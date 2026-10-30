@@ -1,0 +1,1213 @@
+/*! Phenom Concept Style Kit — component recipes
+ *  kit 0.6.2 · tokens @phenom/design-tokens 0.3.0 · built 2026-09-22
+ *
+ *  Six components restyled over shadcn/ui. Requires phenom-kit.css.
+ *  Load AFTER Tailwind and after phenom-kit.css.
+ *
+ *  Light theme only in this version — the dark theme in the token source
+ *  is a two-token stub whose names do not match the light set, so there is
+ *  nothing to extract. See README.
+ *
+ *  CONCEPT STAND-INS, NOT PRODUCTION COMPONENTS.
+ *  Each block declares the Phenom component it represents, so a prototype
+ *  can later be read back as a spec rather than translated as code.
+ */
+
+:root {
+  --components-breadcrumbs-icon-current-no-default: var(--icon-brand-secondary-default);
+  --components-breadcrumbs-icon-current-no-disabled: var(--icon-disabled);
+  --components-breadcrumbs-icon-current-no-hover: var(--icon-brand-secondary-dark);
+  --components-breadcrumbs-icon-current-yes-default: var(--icon-subtle);
+  --components-breadcrumbs-icon-current-yes-disabled: var(--icon-disabled);
+  --components-breadcrumbs-icon-current-yes-hover: var(--icon-default);
+  --components-breadcrumbs-separator: var(--icon-subtle);
+  --components-breadcrumbs-text-current-no-default: var(--text-brand-secondary-default);
+  --components-breadcrumbs-text-current-no-disabled: var(--text-disabled);
+  --components-breadcrumbs-text-current-no-hover: var(--text-brand-secondary-dark);
+  --components-breadcrumbs-text-current-yes-default: var(--text-subtle);
+  --components-breadcrumbs-text-current-yes-disabled: var(--text-disabled);
+  --components-breadcrumbs-text-current-yes-hover: var(--text-default);
+  --components-button-inverse-disabled-icon: var(--color-core-white-a30);
+  --components-button-inverse-disabled-text: var(--color-core-white-a30);
+  --components-button-neutral-bg-active: var(--bg-neutral-medium);
+  --components-button-neutral-bg-default: var(--bg-neutral-soft);
+  --components-button-neutral-bg-disabled: var(--bg-neutral-soft);
+  --components-button-neutral-bg-focus: var(--bg-neutral-soft);
+  --components-button-neutral-bg-hover: var(--bg-neutral-light);
+  --components-button-neutral-icon-active: var(--icon-default);
+  --components-button-neutral-icon-default: var(--icon-default);
+  --components-button-neutral-icon-disabled: var(--icon-disabled);
+  --components-button-neutral-icon-focus: var(--icon-default);
+  --components-button-neutral-icon-hover: var(--icon-default);
+  --components-button-neutral-text-active: var(--text-default);
+  --components-button-neutral-text-default: var(--text-default);
+  --components-button-neutral-text-disabled: var(--text-disabled);
+  --components-button-neutral-text-focus: var(--text-default);
+  --components-button-neutral-text-hover: var(--text-default);
+  --components-button-primary-bg-active: var(--bg-brand-primary-active);
+  --components-button-primary-bg-default: var(--bg-brand-primary-default);
+  --components-button-primary-bg-disabled: var(--bg-disabled);
+  --components-button-primary-bg-focus: var(--bg-brand-primary-default);
+  --components-button-primary-bg-hover: var(--bg-brand-primary-hover);
+  --components-button-primary-blue-bg-active: var(--bg-brand-secondary-active);
+  --components-button-primary-blue-bg-default: var(--bg-brand-secondary-default);
+  --components-button-primary-blue-bg-disabled: var(--bg-disabled);
+  --components-button-primary-blue-bg-focus: var(--bg-brand-secondary-default);
+  --components-button-primary-blue-bg-hover: var(--bg-brand-secondary-hover);
+  --components-button-primary-blue-icon-active: var(--icon-inverse);
+  --components-button-primary-blue-icon-default: var(--icon-inverse);
+  --components-button-primary-blue-icon-disabled: var(--icon-disabled);
+  --components-button-primary-blue-icon-focus: var(--icon-inverse);
+  --components-button-primary-blue-icon-hover: var(--icon-inverse);
+  --components-button-primary-blue-text-active: var(--text-inverse);
+  --components-button-primary-blue-text-default: var(--text-inverse);
+  --components-button-primary-blue-text-disabled: var(--text-disabled);
+  --components-button-primary-blue-text-focus: var(--text-inverse);
+  --components-button-primary-blue-text-hover: var(--text-inverse);
+  --components-button-primary-icon-active: var(--icon-inverse);
+  --components-button-primary-icon-default: var(--icon-inverse);
+  --components-button-primary-icon-disabled: var(--icon-disabled);
+  --components-button-primary-icon-focus: var(--icon-inverse);
+  --components-button-primary-icon-hover: var(--icon-inverse);
+  --components-button-primary-text-active: var(--text-inverse);
+  --components-button-primary-text-default: var(--text-inverse);
+  --components-button-primary-text-disabled: var(--text-disabled);
+  --components-button-primary-text-focus: var(--text-inverse);
+  --components-button-primary-text-hover: var(--text-inverse);
+  --components-button-secondary-bg-active: var(--bg-neutral-light);
+  --components-button-secondary-bg-default: var(--bg-default);
+  --components-button-secondary-bg-disabled: var(--bg-default);
+  --components-button-secondary-bg-focus: var(--bg-default);
+  --components-button-secondary-bg-hover: var(--bg-neutral-soft);
+  --components-button-secondary-border-active: var(--border-default);
+  --components-button-secondary-border-default: var(--border-default);
+  --components-button-secondary-border-disabled: var(--border-light);
+  --components-button-secondary-border-focus: var(--border-default);
+  --components-button-secondary-border-hover: var(--border-default);
+  --components-button-secondary-ghost-bg-active: var(--bg-neutral-light);
+  --components-button-secondary-ghost-bg-hover: var(--bg-neutral-soft);
+  --components-button-secondary-ghost-icon-active: var(--icon-brand-secondary-default);
+  --components-button-secondary-ghost-icon-default: var(--icon-brand-secondary-default);
+  --components-button-secondary-ghost-icon-disabled: var(--icon-disabled);
+  --components-button-secondary-ghost-icon-focus: var(--icon-brand-secondary-default);
+  --components-button-secondary-ghost-icon-hover: var(--icon-brand-secondary-default);
+  --components-button-secondary-ghost-inverse-bg-active: var(--bg-overlay-light-faint);
+  --components-button-secondary-ghost-inverse-bg-hover: var(--bg-overlay-light-ultra-faint);
+  --components-button-secondary-ghost-inverse-icon-active: var(--color-secondary-40);
+  --components-button-secondary-ghost-inverse-icon-default: var(--icon-brand-secondary-subtle-alt);
+  --components-button-secondary-ghost-inverse-icon-disabled: var(--color-core-white-a30);
+  --components-button-secondary-ghost-inverse-icon-focus: var(--icon-brand-secondary-subtle-alt);
+  --components-button-secondary-ghost-inverse-icon-hover: var(--icon-brand-secondary-subtle-alt);
+  --components-button-secondary-ghost-inverse-text-active: var(--color-secondary-40);
+  --components-button-secondary-ghost-inverse-text-default: var(--text-brand-secondary-subtle-alt);
+  --components-button-secondary-ghost-inverse-text-disabled: var(--color-core-white-a30);
+  --components-button-secondary-ghost-inverse-text-focus: var(--text-brand-secondary-subtle-alt);
+  --components-button-secondary-ghost-inverse-text-hover: var(--text-brand-secondary-subtle-alt);
+  --components-button-secondary-ghost-text-active: var(--text-brand-secondary-default);
+  --components-button-secondary-ghost-text-default: var(--text-brand-secondary-default);
+  --components-button-secondary-ghost-text-disabled: var(--text-disabled);
+  --components-button-secondary-ghost-text-focus: var(--text-brand-secondary-default);
+  --components-button-secondary-ghost-text-hover: var(--text-brand-secondary-default);
+  --components-button-secondary-icon-active: var(--icon-brand-secondary-default);
+  --components-button-secondary-icon-default: var(--icon-brand-secondary-default);
+  --components-button-secondary-icon-disabled: var(--icon-disabled);
+  --components-button-secondary-icon-focus: var(--icon-brand-secondary-default);
+  --components-button-secondary-icon-hover: var(--icon-brand-secondary-default);
+  --components-button-secondary-text-active: var(--text-brand-secondary-default);
+  --components-button-secondary-text-default: var(--text-brand-secondary-default);
+  --components-button-secondary-text-disabled: var(--text-disabled);
+  --components-button-secondary-text-focus: var(--text-brand-secondary-default);
+  --components-button-secondary-text-hover: var(--text-brand-secondary-default);
+  --components-button-tertiary-bg-active: var(--bg-neutral-light);
+  --components-button-tertiary-bg-default: var(--bg-default);
+  --components-button-tertiary-bg-disabled: var(--bg-default);
+  --components-button-tertiary-bg-focus: var(--bg-default);
+  --components-button-tertiary-bg-hover: var(--bg-neutral-soft);
+  --components-button-tertiary-border-active: var(--border-default);
+  --components-button-tertiary-border-default: var(--border-default);
+  --components-button-tertiary-border-disabled: var(--border-light);
+  --components-button-tertiary-border-focus: var(--border-default);
+  --components-button-tertiary-border-hover: var(--border-default);
+  --components-button-tertiary-ghost-bg-active: var(--bg-neutral-light);
+  --components-button-tertiary-ghost-bg-hover: var(--bg-neutral-soft);
+  --components-button-tertiary-ghost-icon-active: var(--icon-default);
+  --components-button-tertiary-ghost-icon-default: var(--icon-default);
+  --components-button-tertiary-ghost-icon-disabled: var(--icon-disabled);
+  --components-button-tertiary-ghost-icon-focus: var(--icon-default);
+  --components-button-tertiary-ghost-icon-hover: var(--icon-default);
+  --components-button-tertiary-ghost-inverse-bg-active: var(--bg-overlay-light-faint);
+  --components-button-tertiary-ghost-inverse-bg-hover: var(--bg-overlay-light-ultra-faint);
+  --components-button-tertiary-ghost-inverse-icon-active: var(--icon-inverse);
+  --components-button-tertiary-ghost-inverse-icon-default: var(--icon-inverse);
+  --components-button-tertiary-ghost-inverse-icon-disabled: var(--color-core-white-a30);
+  --components-button-tertiary-ghost-inverse-icon-focus: var(--icon-inverse);
+  --components-button-tertiary-ghost-inverse-icon-hover: var(--icon-inverse);
+  --components-button-tertiary-ghost-inverse-text-active: var(--text-inverse);
+  --components-button-tertiary-ghost-inverse-text-default: var(--text-inverse);
+  --components-button-tertiary-ghost-inverse-text-disabled: var(--color-core-white-a30);
+  --components-button-tertiary-ghost-inverse-text-focus: var(--text-inverse);
+  --components-button-tertiary-ghost-inverse-text-hover: var(--text-inverse);
+  --components-button-tertiary-ghost-text-active: var(--text-default);
+  --components-button-tertiary-ghost-text-default: var(--text-default);
+  --components-button-tertiary-ghost-text-disabled: var(--text-disabled);
+  --components-button-tertiary-ghost-text-focus: var(--text-default);
+  --components-button-tertiary-ghost-text-hover: var(--text-default);
+  --components-button-tertiary-icon-active: var(--icon-default);
+  --components-button-tertiary-icon-default: var(--icon-default);
+  --components-button-tertiary-icon-disabled: var(--icon-disabled);
+  --components-button-tertiary-icon-focus: var(--icon-default);
+  --components-button-tertiary-icon-hover: var(--icon-default);
+  --components-button-tertiary-text-active: var(--text-default);
+  --components-button-tertiary-text-default: var(--text-default);
+  --components-button-tertiary-text-disabled: var(--text-disabled);
+  --components-button-tertiary-text-focus: var(--text-default);
+  --components-button-tertiary-text-hover: var(--text-default);
+  --components-input-after-icon-default: var(--icon-default);
+  --components-input-after-icon-disabled: var(--icon-disabled);
+  --components-input-after-text-default: var(--text-default);
+  --components-input-after-text-disabled: var(--text-disabled);
+  --components-input-before-icon-default: var(--icon-default);
+  --components-input-before-icon-disabled: var(--icon-disabled);
+  --components-input-before-text-default: var(--text-default);
+  --components-input-before-text-disabled: var(--text-disabled);
+  --components-input-bg-default: var(--bg-default);
+  --components-input-bg-read-only: var(--bg-neutral-subtle);
+  --components-input-chip-bg-default-default: var(--bg-neutral-soft);
+  --components-input-chip-bg-default-disabled: var(--bg-neutral-soft);
+  --components-input-chip-bg-default-focus: var(--bg-neutral-soft);
+  --components-input-chip-bg-default-hover: var(--bg-neutral-light);
+  --components-input-chip-bg-default-pressed: var(--bg-neutral-medium);
+  --components-input-chip-bg-error-default: var(--feedback-error-bg-light);
+  --components-input-chip-bg-error-disabled: var(--feedback-error-bg-light);
+  --components-input-chip-bg-error-focus: var(--feedback-error-bg-light);
+  --components-input-chip-bg-error-hover: var(--feedback-error-bg-subtle);
+  --components-input-chip-bg-error-pressed: var(--feedback-error-bg-medium);
+  --components-input-chip-chip-button-bg-default-focus: var(--bg-neutral-soft);
+  --components-input-chip-chip-button-bg-default-hover: var(--bg-overlay-neutral-medium);
+  --components-input-chip-chip-button-bg-error-focus: var(--feedback-error-bg-subtle);
+  --components-input-chip-chip-button-bg-error-hover: var(--feedback-error-bg-medium);
+  --components-input-chip-chip-button-icon-default: var(--icon-default);
+  --components-input-chip-chip-button-icon-error: var(--feedback-error-icon-strong);
+  --components-input-chip-icon-default: var(--icon-default);
+  --components-input-chip-icon-disabled: var(--icon-disabled);
+  --components-input-chip-icon-error-default: var(--feedback-error-icon-strong);
+  --components-input-chip-icon-error-disabled: var(--feedback-error-icon-subtle);
+  --components-input-chip-text-default: var(--text-default);
+  --components-input-chip-text-disabled: var(--text-disabled);
+  --components-input-chip-text-error-default: var(--feedback-error-text-strong);
+  --components-input-chip-text-error-disabled: var(--feedback-error-text-subtle);
+  --components-input-helper-icon-validation: var(--feedback-error-icon-strong);
+  --components-input-helper-text-counter: var(--text-subtle);
+  --components-input-helper-text-default: var(--text-subtle);
+  --components-input-helper-text-disabled: var(--text-disabled);
+  --components-input-helper-text-success: var(--feedback-success-text-strong);
+  --components-input-helper-text-validation: var(--feedback-error-text-strong);
+  --components-input-icon-auto-filled: var(--feedback-success-icon-default);
+  --components-input-keyboard-bg-default: var(--bg-neutral-soft);
+  --components-input-number-bg-default: var(--bg-default);
+  --components-input-number-bg-read-only: var(--bg-neutral-subtle);
+  --components-input-number-icon-auto-filled: var(--feedback-success-icon-default);
+  --components-input-number-icon-default: var(--icon-default);
+  --components-input-number-icon-disabled: var(--icon-disabled);
+  --components-input-number-stepper-controls-bg-default: var(--bg-default);
+  --components-input-number-stepper-controls-bg-focus: var(--bg-neutral-light);
+  --components-input-number-stepper-controls-bg-hover: var(--bg-neutral-soft);
+  --components-input-number-stepper-controls-border-default: var(--border-input-default);
+  --components-input-number-stepper-controls-border-disabled: var(--border-input-disabled);
+  --components-input-number-stroke-auto-filled: var(--border-input-success);
+  --components-input-number-stroke-default: var(--border-input-default);
+  --components-input-number-stroke-disabled: var(--border-input-disabled);
+  --components-input-number-stroke-filled: var(--border-input-default);
+  --components-input-number-stroke-focus: var(--border-input-focus);
+  --components-input-number-stroke-hover: var(--border-input-hover);
+  --components-input-number-stroke-validation: var(--border-input-error);
+  --components-input-stroke-auto-filled: var(--border-input-success);
+  --components-input-stroke-default: var(--border-input-default);
+  --components-input-stroke-disabled: var(--border-input-disabled);
+  --components-input-stroke-filled: var(--border-input-default);
+  --components-input-stroke-focus: var(--border-input-focus);
+  --components-input-stroke-hover: var(--border-input-hover);
+  --components-input-stroke-validation: var(--border-input-error);
+  --components-input-width-full: 800;
+  --components-input-width-l: 480;
+  --components-input-width-m: 360;
+  --components-input-width-s: 280;
+  --components-input-width-xl: 600;
+  --components-input-width-xs: 120;
+  --components-input-width-xxs: 60;
+  --components-menu-item-bg-active: var(--bg-neutral-minimal);
+  --components-menu-item-bg-default: var(--bg-default);
+  --components-menu-item-bg-disabled: var(--bg-default);
+  --components-menu-item-bg-focus: var(--bg-neutral-soft-alt);
+  --components-menu-item-bg-hover: var(--bg-neutral-soft-alt);
+  --components-menu-item-icon-default: var(--icon-default);
+  --components-menu-item-icon-destructive-default: var(--feedback-error-icon-strong);
+  --components-menu-item-icon-disabled: var(--icon-disabled);
+  --components-menu-item-text-default: var(--text-default);
+  --components-menu-item-text-destructive-default: var(--feedback-error-text-strong);
+  --components-menu-item-text-details-default: var(--bg-default);
+  --components-menu-item-text-disabled: var(--text-disabled);
+  --components-menu-item-text-header-default: var(--text-strong);
+  --components-menu-item-text-subtle-default: var(--text-subtle);
+  --components-menu-item-text-subtle-disabled: var(--text-disabled);
+  --components-sidebar-bg-default: var(--bg-default);
+  --components-sidebar-border-default: var(--border-light);
+  --components-sidebar-footer-text-description-default: var(--text-default);
+  --components-sidebar-footer-text-header-default: var(--text-strong);
+  --components-sidebar-header-text-default: var(--text-strong);
+  --components-sidebar-navigation-bg-default: var(--bg-surface-base);
+  --components-sidebar-navigation-border-default: var(--border-light);
+  --components-sidebar-navigation-category-default: var(--text-subtle);
+  --components-sidebar-navigation-expand-bg-default: var(--bg-surface-base);
+  --components-sidebar-navigation-expand-bg-right-default: var(--bg-neutral-light);
+  --components-sidebar-navigation-expand-border-top-default: var(--border-faint);
+  --components-sidebar-navigation-expand-icon-default: var(--icon-default);
+  --components-sidebar-navigation-menu-item-bg-active: var(--bg-brand-secondary-subtle);
+  --components-sidebar-navigation-menu-item-bg-hover: var(--bg-neutral-soft);
+  --components-sidebar-navigation-menu-item-icon-active: var(--icon-brand-secondary-default);
+  --components-sidebar-navigation-menu-item-icon-default: var(--icon-default);
+  --components-sidebar-navigation-menu-item-icon-disabled: var(--icon-disabled);
+  --components-sidebar-navigation-menu-item-text-active: var(--text-brand-secondary-default);
+  --components-sidebar-navigation-menu-item-text-default: var(--text-default);
+  --components-sidebar-navigation-menu-item-text-disabled: var(--text-disabled);
+  --components-sidebar-navigation-submenu-item-bg-active: var(--bg-neutral-subtle);
+  --components-sidebar-navigation-submenu-item-bg-hover: var(--bg-neutral-minimal);
+  --components-sidebar-navigation-submenu-item-icon-active: var(--icon-brand-secondary-default);
+  --components-sidebar-navigation-submenu-item-icon-default: var(--icon-default);
+  --components-sidebar-navigation-submenu-item-icon-disabled: var(--icon-disabled);
+  --components-sidebar-navigation-submenu-item-text-active: var(--text-brand-secondary-default);
+  --components-sidebar-navigation-submenu-item-text-default: var(--text-default);
+  --components-sidebar-navigation-submenu-item-text-disabled: var(--text-disabled);
+  --components-sidebar-navigation-subnav-bg-default: var(--bg-default);
+  --components-sidebar-navigation-subnav-border-default: var(--border-light);
+  --components-status-bg-active-default: var(--feedback-success-bg-default);
+  --components-status-bg-active-hover: var(--feedback-success-bg-strong);
+  --components-status-bg-error-default: var(--feedback-error-bg-default);
+  --components-status-bg-error-hover: var(--feedback-error-bg-strong);
+  --components-status-bg-inactive-default: var(--bg-neutral-default);
+  --components-status-bg-inactive-hover: var(--bg-neutral-strong);
+  --components-status-bg-progressive-default: var(--feedback-progressive-bg-default);
+  --components-status-bg-progressive-hover: var(--feedback-progressive-bg-strong);
+  --components-status-bg-warning-default: var(--feedback-warning-bg-default);
+  --components-status-bg-warning-hover: var(--feedback-warning-bg-strong);
+  --components-status-border-active: var(--border-status-active);
+  --components-status-border-error: var(--border-status-error);
+  --components-status-border-inactive: var(--border-status-inactive);
+  --components-status-border-progressive: var(--border-status-progressive);
+  --components-status-border-warning: var(--border-status-warning);
+  --components-status-icon-active: var(--feedback-success-bg-default);
+  --components-status-icon-default: var(--icon-subtle);
+  --components-status-icon-error: var(--feedback-error-icon-default);
+  --components-status-icon-warning: var(--feedback-warning-icon-default);
+  --components-status-text-default: var(--text-default);
+  --components-status-text-supporting: var(--text-subtle);
+  --components-tab-focus-outline: var(--border-focus-medium);
+  --components-tab-icon-default: var(--icon-default);
+  --components-tab-icon-disabled: var(--icon-disabled);
+  --components-tab-icon-selected: var(--icon-strong);
+  --components-tab-scroll-bg-default: var(--bg-default);
+  --components-tab-scroll-border-default: var(--border-light);
+  --components-tab-text-default: var(--text-default);
+  --components-tab-text-disabled: var(--text-disabled);
+  --components-tab-text-focus: var(--text-strong);
+  --components-tab-text-hover: var(--text-strong);
+  --components-tab-text-selected: var(--text-strong);
+  --components-tab-underline-focus: var(--border-focus-hover);
+  --components-tab-underline-hover: var(--border-default);
+  --components-tab-underline-selected: var(--border-focus-hover);
+  --components-table-action-button-secondary-ghost-bg-active: var(--bg-overlay-brand-medium);
+  --components-table-action-button-secondary-ghost-bg-hover: var(--bg-overlay-brand-subtle);
+  --components-table-action-button-secondary-ghost-icon-active: var(--icon-brand-secondary-dark);
+  --components-table-action-button-secondary-ghost-icon-disabled: var(--icon-disabled);
+  --components-table-action-button-secondary-ghost-icon-hover: var(--icon-brand-secondary-dark);
+  --components-table-action-button-secondary-ghost-text-active: var(--text-brand-secondary-dark);
+  --components-table-action-button-secondary-ghost-text-disabled: var(--text-disabled);
+  --components-table-action-button-secondary-ghost-text-hover: var(--text-brand-secondary-dark);
+  --components-table-action-button-tertiary-ghost-bg-active: var(--bg-overlay-neutral-medium);
+  --components-table-action-button-tertiary-ghost-bg-hover: var(--bg-overlay-neutral-subtle);
+  --components-table-action-button-tertiary-ghost-icon-active: var(--icon-strong);
+  --components-table-action-button-tertiary-ghost-icon-default: var(--icon-default);
+  --components-table-action-button-tertiary-ghost-icon-disabled: var(--icon-disabled);
+  --components-table-action-button-tertiary-ghost-icon-hover: var(--icon-strong);
+  --components-table-action-button-tertiary-ghost-text-active: var(--text-strong);
+  --components-table-action-button-tertiary-ghost-text-default: var(--text-default);
+  --components-table-action-button-tertiary-ghost-text-disabled: var(--text-disabled);
+  --components-table-action-button-tertiary-ghost-text-hover: var(--text-strong);
+  --components-table-bg-default: var(--bg-default);
+  --components-table-border-default: var(--border-light);
+  --components-table-cell-bg-default: var(--bg-default);
+  --components-table-cell-bg-hover: var(--bg-neutral-minimal);
+  --components-table-cell-bg-selected: var(--bg-brand-secondary-subtle);
+  --components-table-cell-border-default: var(--border-light);
+  --components-table-cell-border-hover: var(--border-light);
+  --components-table-cell-border-selected: var(--border-light);
+  --components-table-cell-icon-default: var(--icon-default);
+  --components-table-cell-icon-subtle-default: var(--icon-subtle);
+  --components-table-cell-icon-subtle-hover: var(--icon-strong);
+  --components-table-cell-icon-unread: var(--icon-strong);
+  --components-table-cell-icon-warning: var(--feedback-warning-icon-default);
+  --components-table-cell-text-default: var(--text-default);
+  --components-table-cell-text-disabled: var(--text-disabled);
+  --components-table-cell-text-hover: var(--text-strong);
+  --components-table-cell-text-subtle-active: var(--text-default);
+  --components-table-cell-text-subtle-default: var(--text-subtle);
+  --components-table-cell-text-unread: var(--text-strong);
+  --components-table-header-bg-default: var(--bg-surface-base);
+  --components-table-header-bg-focus: var(--bg-default);
+  --components-table-header-bg-hover: var(--bg-neutral-soft);
+  --components-table-header-border-default: var(--border-light);
+  --components-table-header-border-focus: var(--border-focus-default);
+  --components-table-header-border-hover: var(--border-light);
+  --components-table-header-cells-icon-active: var(--icon-brand-secondary-light);
+  --components-table-header-cells-icon-default: var(--icon-default);
+  --components-table-header-cells-icon-hover: var(--icon-strong);
+  --components-table-header-text-active: var(--text-strong);
+  --components-table-header-text-inactive: var(--text-strong);
+  --components-table-row-resizer-bg-hover: var(--bg-brand-secondary-default);
+  --components-table-toolbar-bg-default: var(--bg-default);
+  --components-table-toolbar-border-default: var(--border-light);
+  --components-tag-beta-feature-bg: var(--bg-default);
+  --components-tag-beta-feature-stroke: var(--bg-brand-secondary-default);
+  --components-tag-beta-feature-text: var(--text-brand-secondary-light);
+  --components-tag-classification-bg: var(--bg-brand-secondary-subtle);
+  --components-tag-classification-icon: var(--icon-brand-secondary-default);
+  --components-tag-classification-text: var(--text-brand-secondary-default);
+  --components-tag-coming-soon-bg: var(--bg-neutral-soft);
+  --components-tag-coming-soon-text: var(--text-strong);
+  --components-tag-disabled-bg: var(--bg-disabled);
+  --components-tag-disabled-icon: var(--icon-disabled);
+  --components-tag-disabled-text: var(--text-disabled);
+  --components-tag-highlighted-bg: var(--bg-brand-primary-subtle);
+  --components-tag-highlighted-icon: var(--icon-brand-primary-dark);
+  --components-tag-highlighted-text: var(--text-brand-primary-dark);
+  --components-tag-informational-bg: var(--bg-neutral-soft);
+  --components-tag-informational-icon: var(--icon-default);
+  --components-tag-informational-text: var(--text-strong);
+  --components-tag-new-feature-bg: var(--bg-brand-primary-default);
+  --components-tag-new-feature-text: var(--text-inverse);
+  --components-tag-phasing-out-bg: var(--feedback-warning-bg-subtle);
+  --components-tag-phasing-out-icon: var(--feedback-warning-icon-strong);
+  --components-tag-phasing-out-text: var(--feedback-warning-text-default);
+  --components-tag-pro-feature-text: var(--text-inverse);
+  --components-top-navigation-bg-default: var(--bg-default);
+  --components-top-navigation-border-default: var(--border-light);
+}
+
+/* ==================================================================
+   TABS
+   Stands in for: PxTabView / px-tab  (Angular: px-tabview)
+   Phenom tabs are UNDERLINE tabs. shadcn ships a pill-in-a-track, so
+   this is the one recipe that changes shape, not just colour.
+   ================================================================== */
+
+:root [role="tablist"],
+:root .phx-tabs {
+  display: flex;
+  align-items: stretch;
+  gap: var(--spacing-lg);
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid var(--components-tab-scroll-border-default);
+  border-radius: 0;
+  padding: 0;
+  box-shadow: none;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+:root [role="tablist"]::-webkit-scrollbar { display: none; }
+
+:root [role="tab"],
+:root .phx-tabs > button {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-lg);
+  flex: 0 0 auto;
+  background: transparent;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
+  box-shadow: none;
+  margin-bottom: -1px;
+  padding: var(--spacing-xl) var(--spacing-sm);
+  font-family: "Poppins", sans-serif;
+  font-size: var(--font-size-base);
+  line-height: var(--font-line-height-md);
+  font-weight: var(--font-weight-medium);
+  letter-spacing: var(--label-tracking);
+  color: var(--components-tab-text-default);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: color var(--motion-fast) var(--motion-ease),
+              border-color var(--motion-fast) var(--motion-ease);
+}
+
+:root [role="tab"]:hover:not([disabled]):not([data-disabled]) {
+  color: var(--components-tab-text-hover);
+  border-bottom-color: var(--components-tab-underline-hover);
+}
+
+:root [role="tab"][data-state="active"],
+:root [role="tab"][aria-selected="true"],
+:root .phx-tabs > button[aria-selected="true"] {
+  background: transparent;
+  box-shadow: none;
+  color: var(--components-tab-text-selected);
+  border-bottom-color: var(--components-tab-underline-selected);
+  font-weight: var(--font-weight-semibold);
+}
+
+:root [role="tab"]:focus-visible {
+  outline: var(--focus-ring-width) var(--focus-ring-style) var(--components-tab-focus-outline);
+  outline-offset: calc(var(--focus-ring-offset) * -1);
+  color: var(--components-tab-text-focus);
+}
+
+:root [role="tab"][disabled],
+:root [role="tab"][data-disabled] {
+  color: var(--components-tab-text-disabled);
+  cursor: not-allowed;
+  border-bottom-color: transparent;
+}
+
+:root [role="tab"] svg { color: var(--components-tab-icon-default); }
+:root [role="tab"][data-state="active"] svg,
+:root [role="tab"][aria-selected="true"] svg { color: var(--components-tab-icon-selected); }
+:root [role="tab"][disabled] svg { color: var(--components-tab-icon-disabled); }
+
+/* ==================================================================
+   BUTTON
+   Stands in for: PxButton / px-button
+   Geometry extracted from @phenom/react-ds .p-button and .px-button-small.
+   Variant comes from data-variant; an unmarked button keeps whatever
+   shadcn gave it, which is already on-brand via the role variables.
+   ================================================================== */
+
+:root [data-slot="button"],
+:root .phx-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-lg);
+  padding: var(--control-pad-y) var(--control-pad-x);
+  border: 1px solid transparent;
+  border-radius: var(--control-radius);
+  font-family: "Poppins", sans-serif;
+  font-size: var(--font-size-base);
+  line-height: var(--font-line-height-md);
+  font-weight: var(--font-weight-medium);
+  letter-spacing: var(--label-tracking);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background-color var(--motion-fast) var(--motion-ease),
+              border-color var(--motion-fast) var(--motion-ease),
+              color var(--motion-fast) var(--motion-ease);
+}
+
+:root [data-slot="button"]:focus-visible,
+:root .phx-btn:focus-visible {
+  outline: var(--focus-ring-width) var(--focus-ring-style) var(--border-focus-default);
+  outline-offset: var(--focus-ring-offset);
+}
+
+:root [data-size="sm"][data-slot="button"],
+:root .phx-btn[data-size="sm"] {
+  padding: var(--control-pad-y-sm) var(--control-pad-x-sm);
+  border-radius: var(--control-radius-sm);
+  font-size: var(--font-size-sm);
+  line-height: var(--font-line-height-sm);
+}
+
+/* primary — Phenom's default filled action is TEAL, not indigo */
+:root [data-variant="primary"] {
+  background: var(--components-button-primary-bg-default);
+  color: var(--components-button-primary-text-default);
+  border-color: transparent;
+}
+:root [data-variant="primary"]:hover:not(:disabled) { background: var(--components-button-primary-bg-hover); }
+:root [data-variant="primary"]:active:not(:disabled) { background: var(--components-button-primary-bg-active); }
+
+/* primary-blue — the indigo filled action */
+:root [data-variant="primary-blue"] {
+  background: var(--components-button-primary-blue-bg-default);
+  color: var(--components-button-primary-blue-text-default);
+  border-color: transparent;
+}
+:root [data-variant="primary-blue"]:hover:not(:disabled) { background: var(--components-button-primary-blue-bg-hover); }
+:root [data-variant="primary-blue"]:active:not(:disabled) { background: var(--components-button-primary-blue-bg-active); }
+
+/* secondary — outlined, indigo label */
+:root [data-variant="secondary"] {
+  background: var(--components-button-secondary-bg-default);
+  color: var(--components-button-secondary-text-default);
+  border-color: var(--components-button-secondary-border-default);
+}
+:root [data-variant="secondary"]:hover:not(:disabled) { background: var(--components-button-secondary-bg-hover); }
+:root [data-variant="secondary"]:active:not(:disabled) { background: var(--components-button-secondary-bg-active); }
+:root [data-variant="secondary"] svg { color: var(--components-button-secondary-icon-default); }
+
+/* tertiary — outlined, neutral label */
+:root [data-variant="tertiary"] {
+  background: var(--components-button-tertiary-bg-default);
+  color: var(--components-button-tertiary-text-default);
+  border-color: var(--components-button-tertiary-border-default);
+}
+:root [data-variant="tertiary"]:hover:not(:disabled) { background: var(--components-button-tertiary-bg-hover); }
+:root [data-variant="tertiary"]:active:not(:disabled) { background: var(--components-button-tertiary-bg-active); }
+
+/* neutral — grey fill */
+:root [data-variant="neutral"] {
+  background: var(--components-button-neutral-bg-default);
+  color: var(--components-button-neutral-text-default);
+  border-color: transparent;
+}
+:root [data-variant="neutral"]:hover:not(:disabled) { background: var(--components-button-neutral-bg-hover); }
+:root [data-variant="neutral"]:active:not(:disabled) { background: var(--components-button-neutral-bg-active); }
+
+/* NO DESTRUCTIVE BUTTON EXISTS IN PHENOM.
+   The token set has exactly five button variants — inverse, neutral, primary,
+   secondary, tertiary — and no red fill anywhere. Confirmed in Figma. The
+   system's only destructive treatment is red TEXT on a menu item:
+   components.menu.item.text.destructive.default -> {feedback.error.text.strong}
+   Earlier kit versions invented a red filled button. Use this instead. */
+
+:root .phx-menu-item[data-destructive],
+:root [role="menuitem"][data-destructive] {
+  color: var(--components-menu-item-text-destructive-default);
+}
+:root .phx-menu-item[data-destructive] svg,
+:root [role="menuitem"][data-destructive] svg {
+  color: var(--components-menu-item-icon-destructive-default);
+}
+
+:root [data-slot="button"]:disabled,
+:root .phx-btn:disabled,
+:root [data-variant]:disabled {
+  background: var(--components-button-primary-bg-disabled);
+  color: var(--components-button-primary-text-disabled);
+  border-color: var(--components-button-tertiary-border-disabled);
+  cursor: not-allowed;
+}
+:root [data-variant="secondary"]:disabled,
+:root [data-variant="tertiary"]:disabled {
+  background: var(--components-button-tertiary-bg-disabled);
+}
+
+/* ==================================================================
+   INPUT
+   Stands in for: PxInputField / px-input
+   ================================================================== */
+
+:root [data-slot="input"],
+:root [data-slot="textarea"],
+:root .phx-input,
+:root input[type="text"],
+:root input[type="email"],
+:root input[type="password"],
+:root input[type="search"],
+:root input[type="tel"],
+:root input[type="url"],
+:root input[type="number"],
+:root input[type="date"],
+:root textarea,
+:root select {
+  width: 100%;
+  padding: var(--spacing-xl) var(--spacing-2xl);
+  background: var(--components-input-bg-default);
+  color: var(--text-default);
+  border: 1px solid var(--components-input-stroke-default);
+  border-radius: var(--control-radius);
+  font-family: "Poppins", sans-serif;
+  font-size: var(--font-size-base);
+  line-height: var(--font-line-height-md);
+  transition: border-color var(--motion-fast) var(--motion-ease),
+              box-shadow var(--motion-fast) var(--motion-ease);
+}
+
+:root input::placeholder,
+:root textarea::placeholder { color: var(--text-subtle); }
+
+:root [data-slot="input"]:hover:not(:disabled),
+:root .phx-input:hover:not(:disabled),
+:root input:hover:not(:disabled),
+:root textarea:hover:not(:disabled),
+:root select:hover:not(:disabled) {
+  border-color: var(--components-input-stroke-hover);
+}
+
+:root [data-slot="input"]:focus,
+:root [data-slot="input"]:focus-visible,
+:root .phx-input:focus,
+:root input:focus,
+:root textarea:focus,
+:root select:focus {
+  outline: none;
+  border-color: var(--components-input-stroke-focus);
+  box-shadow: 0 0 0 var(--focus-ring-width) var(--border-focus-subtle);
+}
+
+/* Error state needs to out-specify the element-typed base rule above. */
+:root input[aria-invalid="true"],
+:root textarea[aria-invalid="true"],
+:root select[aria-invalid="true"],
+:root [data-slot="input"][aria-invalid="true"],
+:root [data-slot="textarea"][aria-invalid="true"],
+:root .phx-input[aria-invalid="true"],
+:root .phx-input[data-state="error"] {
+  border-color: var(--components-input-stroke-validation);
+}
+:root input[aria-invalid="true"]:focus,
+:root textarea[aria-invalid="true"]:focus,
+:root [data-slot="input"][aria-invalid="true"]:focus,
+:root .phx-input[data-state="error"]:focus {
+  border-color: var(--components-input-stroke-validation);
+  box-shadow: 0 0 0 var(--focus-ring-width) var(--feedback-error-bg-light);
+}
+
+:root input:disabled,
+:root textarea:disabled,
+:root select:disabled,
+:root .phx-input:disabled {
+  background: var(--bg-disabled);
+  border-color: var(--components-input-stroke-disabled);
+  color: var(--text-disabled);
+  cursor: not-allowed;
+}
+
+:root input:read-only:not(:disabled) { background: var(--components-input-bg-read-only); }
+
+/* Leading-icon input (search/filter fields). Wrap icon + input in
+   .phx-input-icon — the base rule's uniform padding above sits the
+   icon on top of the placeholder text otherwise, and a plain Tailwind
+   pl-* utility does not survive it (this rule always wins on specificity). */
+:root .phx-input-icon { position: relative; }
+:root .phx-input-icon > svg {
+  position: absolute;
+  left: var(--spacing-xl);
+  top: 50%;
+  transform: translateY(-50%);
+  width: 16px;
+  height: 16px;
+  color: var(--icon-subtle);
+  pointer-events: none;
+}
+:root .phx-input-icon input,
+:root .phx-input-icon [data-slot="input"] {
+  padding-left: calc(var(--spacing-xl) + 16px + var(--spacing-lg));
+}
+
+:root label,
+:root .phx-label {
+  display: inline-block;
+  margin-bottom: var(--spacing-md);
+  font-size: var(--font-size-md);
+  line-height: var(--font-line-height-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--text-strong);
+  letter-spacing: var(--label-tracking);
+}
+
+:root .phx-helper { font-size: var(--font-size-sm); color: var(--components-input-helper-text-default); }
+:root .phx-helper[data-state="error"] { color: var(--components-input-helper-text-validation); }
+:root .phx-helper[data-state="success"] { color: var(--components-input-helper-text-success); }
+
+/* ==================================================================
+   TABLE
+   Stands in for: PxTable / px-table  (PrimeNG/PrimeReact DataTable)
+   ================================================================== */
+
+/* Border hierarchy note: the token set points the outer frame, the header
+   rule and every row divider at the SAME value (--border-light, #d1d5dc).
+   Three identical 1px lines give a wide table no hierarchy and read heavy.
+   So: header rule keeps --border-light, row dividers drop to --border-faint,
+   and the outer frame becomes a shadow. A deliberate deviation from the DS
+   spec, still entirely inside the token set. */
+
+:root table,
+:root .phx-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--components-table-bg-default);
+  border: 0;
+  border-radius: var(--borderRadius-lg);
+  box-shadow: var(--shadow-xs);
+  overflow: hidden;
+  font-size: var(--font-size-base);
+}
+
+:root thead th,
+:root .phx-table thead th {
+  text-align: left;
+  padding: var(--spacing-2xl) var(--spacing-4xl);
+  background: var(--components-table-header-bg-default);
+  color: var(--components-table-header-text-active);
+  border-bottom: 1px solid var(--components-table-header-border-default);
+  font-family: "Poppins", sans-serif;
+  font-size: var(--font-size-md);
+  line-height: var(--font-line-height-sm);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: var(--label-tracking);
+  white-space: nowrap;
+}
+
+:root thead th:hover { background: var(--components-table-header-bg-hover); }
+
+:root tbody td,
+:root .phx-table tbody td {
+  padding: var(--spacing-4xl);
+  color: var(--components-table-cell-text-default);
+  background: var(--components-table-cell-bg-default);
+  border-bottom: 1px solid var(--border-faint);
+  vertical-align: middle;
+}
+
+:root tbody tr:last-child td { border-bottom: 0; }
+
+:root tbody tr:hover td {
+  background: var(--components-table-cell-bg-hover);
+  color: var(--components-table-cell-text-hover);
+}
+
+:root tbody tr[data-state="selected"] td,
+:root tbody tr[aria-selected="true"] td {
+  background: var(--components-table-cell-bg-selected);
+}
+
+:root tbody td .phx-subtle { color: var(--components-table-cell-text-subtle-default); }
+
+/* ==================================================================
+   TAG
+   Stands in for: PxTag / px-tag
+   Phenom's tag tones are semantic, not decorative — the tone says what
+   kind of thing it is. Do not invent tones outside this set.
+   ================================================================== */
+
+/* Geometry verified against Figma (Tag / Big), 2026-09-21:
+   height fixed 24px, radius 6px, padding-x spacing-md, gap spacing-sm.
+   Small size uses a 4px radius. The kit previously used a pill radius and
+   2px/12px padding — both wrong.
+   Base styling is the INFORMATIONAL treatment on purpose, so an invented
+   tone degrades to a neutral tag instead of an invisible one. */
+
+:root [data-slot="badge"],
+:root .phx-tag {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 24px;
+  gap: var(--spacing-sm);
+  padding: 0 var(--spacing-md);
+  border: 1px solid transparent;
+  border-radius: var(--borderRadius-md);
+  background: var(--components-tag-informational-bg);
+  color: var(--components-tag-informational-text);
+  font-family: "Poppins", sans-serif;
+  font-size: var(--font-size-sm);
+  line-height: 1;
+  font-weight: var(--font-weight-medium);
+  letter-spacing: var(--label-tracking);
+  white-space: nowrap;
+}
+
+:root .phx-tag[data-size="sm"] {
+  height: 20px;
+  border-radius: var(--borderRadius-sm);
+  font-size: var(--font-size-xs);
+}
+
+:root .phx-tag[data-tone="informational"] { background: var(--components-tag-informational-bg); color: var(--components-tag-informational-text); }
+:root .phx-tag[data-tone="classification"] { background: var(--components-tag-classification-bg); color: var(--components-tag-classification-text); }
+:root .phx-tag[data-tone="highlighted"] { background: var(--components-tag-highlighted-bg); color: var(--components-tag-highlighted-text); }
+:root .phx-tag[data-tone="new-feature"] { background: var(--components-tag-new-feature-bg); color: var(--components-tag-new-feature-text); }
+:root .phx-tag[data-tone="beta-feature"] { background: var(--components-tag-beta-feature-bg); color: var(--components-tag-beta-feature-text); border-color: var(--components-tag-beta-feature-stroke); }
+:root .phx-tag[data-tone="phasing-out"] { background: var(--components-tag-phasing-out-bg); color: var(--components-tag-phasing-out-text); }
+:root .phx-tag[data-tone="coming-soon"] { background: var(--components-tag-coming-soon-bg); color: var(--components-tag-coming-soon-text); }
+/* "Plus" in Figma, exported as pro-feature. The fill is a linear gradient,
+   which Style Dictionary cannot represent — the token carries only the text
+   colour, so the background is absent from the export entirely. Values read
+   from Figma: Gradients/Tag/Pro feature, #9486F7 -> #6652F3. Angle is
+   approximated from the rendering; everything else is measured. */
+:root .phx-tag[data-tone="plus"],
+:root .phx-tag[data-tone="pro-feature"] {
+  background: linear-gradient(135deg, #9486F7 0%, #6652F3 100%);
+  color: var(--components-tag-pro-feature-text);
+}
+:root .phx-tag[data-tone="disabled"] { background: var(--components-tag-disabled-bg); color: var(--components-tag-disabled-text); }
+
+/* ==================================================================
+   STATUS
+   Stands in for: PxStatus / px-status
+   A dot plus a label. Phenom carries five states — note "progressive",
+   which most systems do not have; use it for in-flight, not warning.
+   ================================================================== */
+
+:root .phx-status {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-lg);
+  font-size: var(--font-size-base);
+  color: var(--components-status-text-default);
+}
+
+:root .phx-status::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  border-radius: var(--borderRadius-rounded);
+  background: var(--components-status-bg-inactive-default);
+  border: 1px solid var(--components-status-border-inactive);
+  flex: 0 0 auto;
+}
+
+:root .phx-status[data-status="active"]::before { background: var(--components-status-bg-active-default);      border-color: var(--components-status-border-active); }
+:root .phx-status[data-status="inactive"]::before { background: var(--components-status-bg-inactive-default);    border-color: var(--components-status-border-inactive); }
+:root .phx-status[data-status="warning"]::before { background: var(--components-status-bg-warning-default);     border-color: var(--components-status-border-warning); }
+:root .phx-status[data-status="error"]::before { background: var(--components-status-bg-error-default);       border-color: var(--components-status-border-error); }
+:root .phx-status[data-status="progressive"]::before { background: var(--components-status-bg-progressive-default); border-color: var(--components-status-border-progressive); }
+
+:root .phx-status .phx-status-supporting { color: var(--components-status-text-supporting); font-size: var(--font-size-sm); }
+
+/* ==================================================================
+   FEEDBACK BANNER
+   Stands in for: PxSnackbar / inline message
+   Uses the foundation feedback families; no component tokens needed.
+   ================================================================== */
+
+:root .phx-feedback {
+  display: flex;
+  gap: var(--spacing-2xl);
+  padding: var(--spacing-2xl) var(--spacing-4xl);
+  border-radius: var(--borderRadius-lg);
+  border-left: 3px solid transparent;
+  font-size: var(--font-size-base);
+}
+:root .phx-feedback[data-tone="info"] { background: var(--feedback-info-bg-light);        border-left-color: var(--feedback-info-bg-default);        color: var(--feedback-info-text-strong); }
+:root .phx-feedback[data-tone="success"] { background: var(--feedback-success-bg-light);     border-left-color: var(--feedback-success-bg-default);     color: var(--feedback-success-text-strong); }
+:root .phx-feedback[data-tone="warning"] { background: var(--feedback-warning-bg-light);     border-left-color: var(--feedback-warning-bg-default);     color: var(--feedback-warning-text-strong); }
+:root .phx-feedback[data-tone="error"] { background: var(--feedback-error-bg-light);       border-left-color: var(--feedback-error-bg-default);       color: var(--feedback-error-text-strong); }
+:root .phx-feedback[data-tone="progressive"] { background: var(--feedback-progressive-bg-light); border-left-color: var(--feedback-progressive-bg-default); color: var(--feedback-progressive-text-strong); }
+
+
+/* ==================================================================
+   PAGE SHELL
+   Stands in for: PageShell  (Figma UI Shell / Master, node 40139:2581)
+
+   Measured, not invented:
+     top bar      56px    bg #ffffff   bottom border #d1d5dc
+     rail         60px    bg #f8f9fb   right border  #d1d5dc
+     page header  140px
+     footer       72px
+     active item  bg #eae8fb   icon #2927b2
+
+   Phenom's default navigation is a 60px ICON RAIL, not a wide labelled
+   sidebar. Labels appear only in the expanded state, which this version
+   does not implement. Do not widen the rail.
+   ================================================================== */
+
+:root .phx-shell {
+  display: grid;
+  grid-template-columns: var(--shell-rail-width) 1fr;
+  grid-template-rows: var(--shell-topbar-height) 1fr;
+  grid-template-areas:
+    "topbar topbar"
+    "rail   main";
+  height: 100vh;
+  min-height: 0;
+  background: var(--components-sidebar-navigation-bg-default);
+}
+
+/* --- top bar --- */
+
+:root .phx-topbar {
+  grid-area: topbar;
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2xl);
+  padding: 0 var(--spacing-4xl);
+  background: var(--components-top-navigation-bg-default);
+  border-bottom: 1px solid var(--components-top-navigation-border-default);
+  z-index: var(--z-sticky);
+}
+
+/* Neutral by design, verified against the real topbar (Wizard —
+   Horizontal template, Sept 2026): the mark sits plain on white, no
+   colour tile, and the name beside it is not brand-coloured either.
+   Do not add teal/indigo here — that is what a builder invents when
+   this rule is silent. */
+:root .phx-topbar-brand {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  flex: 0 0 auto;
+  color: var(--icon-default);
+}
+
+/* Product name beside the brand mark. Must stay on one line — a wrap
+   collides with the mode badge next to it and crowds the rail below. */
+:root .phx-topbar-brand-name {
+  white-space: nowrap;
+  color: var(--text-strong);
+  font-weight: var(--font-weight-medium);
+  font-size: var(--font-size-base);
+}
+
+:root .phx-topbar-spacer { flex: 1 1 auto; }
+
+/* The top-bar search is a pill, not a rounded rect like a form input. */
+:root .phx-topbar .phx-search {
+  width: var(--components-input-width-s, 280px);
+  height: 32px;
+  padding: 0 var(--spacing-2xl);
+  background: var(--components-search-bg-default, var(--bg-default));
+  border: 1px solid var(--components-search-border-default, var(--border-input-default));
+  border-radius: var(--borderRadius-rounded);
+  font-size: var(--font-size-base);
+}
+
+:root .phx-topbar-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  width: 32px;
+  height: 32px;
+  flex: 0 0 auto;
+  border: 0;
+  border-radius: var(--borderRadius-md);
+  background: transparent;
+  color: var(--icon-default);
+  cursor: pointer;
+  transition: background-color var(--motion-fast) var(--motion-ease);
+}
+:root .phx-topbar-action:hover { background: var(--bg-neutral-soft); }
+
+/* Notification count. The badge red (#c40f24) is the one red fill in the
+   system — there is still no red button. */
+:root .phx-topbar-action[data-count]::after {
+  content: attr(data-count);
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border: 1px solid var(--components-number-badge-border, var(--bg-default));
+  border-radius: var(--borderRadius-rounded);
+  background: var(--components-number-badge-filled-bg-default, #c40f24);
+  color: var(--components-number-badge-filled-text-default, var(--text-inverse));
+  font-size: var(--font-size-xs);
+  line-height: 14px;
+  font-weight: var(--font-weight-medium);
+  letter-spacing: var(--label-tracking-sm);
+  text-align: center;
+}
+
+/* --- rail --- */
+
+:root .phx-rail {
+  grid-area: rail;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--spacing-xs);
+  padding: var(--spacing-lg) 0;
+  background: var(--components-sidebar-navigation-bg-default);
+  border-right: 1px solid var(--components-sidebar-navigation-border-default);
+  overflow-y: auto;
+  scrollbar-width: none;
+}
+:root .phx-rail::-webkit-scrollbar { display: none; }
+
+:root .phx-rail-item {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  flex: 0 0 auto;
+  border: 0;
+  border-radius: var(--borderRadius-md);
+  background: transparent;
+  color: var(--components-sidebar-navigation-menu-item-icon-default);
+  cursor: pointer;
+  transition: background-color var(--motion-fast) var(--motion-ease),
+              color var(--motion-fast) var(--motion-ease);
+}
+
+:root .phx-rail-item:hover:not([disabled]) {
+  background: var(--components-sidebar-navigation-menu-item-bg-hover);
+}
+
+:root .phx-rail-item[aria-current],
+:root .phx-rail-item[data-state="active"] {
+  background: var(--components-sidebar-navigation-menu-item-bg-active);
+  color: var(--components-sidebar-navigation-menu-item-icon-active);
+}
+
+:root .phx-rail-item[disabled] {
+  color: var(--components-sidebar-navigation-menu-item-icon-disabled);
+  cursor: not-allowed;
+}
+
+:root .phx-rail-spacer { flex: 1 1 auto; }
+
+:root .phx-rail-expand {
+  width: 100%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 40px;
+  border: 0;
+  border-top: 1px solid var(--components-sidebar-navigation-expand-border-top-default);
+  background: var(--components-sidebar-navigation-expand-bg-default);
+  color: var(--components-sidebar-navigation-expand-icon-default);
+  cursor: pointer;
+}
+
+/* --- main --- */
+
+:root .phx-main {
+  grid-area: main;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  overflow: auto;
+}
+
+:root .phx-pageheader {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--spacing-5xl);
+  padding: var(--spacing-5xl) var(--spacing-6xl);
+  background: var(--bg-default);
+  border-bottom: 1px solid var(--border-light);
+}
+
+:root .phx-content {
+  flex: 1 1 auto;
+  padding: var(--spacing-5xl) var(--spacing-6xl);
+  min-height: 0;
+}
+
+:root .phx-subnav {
+  flex: 0 0 auto;
+  padding: 0 var(--spacing-6xl);
+  background: var(--bg-default);
+}
+
+:root .phx-shell-footer {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--spacing-2xl);
+  height: var(--shell-footer-height);
+  padding: 0 var(--spacing-6xl);
+  background: var(--bg-default);
+  border-top: 1px solid var(--border-light);
+}
+
+@media (max-width: 900px) {
+  :root .phx-shell {
+    grid-template-columns: 1fr;
+    grid-template-areas: "topbar" "main";
+    height: auto;
+    min-height: 100vh;
+  }
+  :root .phx-rail { display: none; }
+}
+
+
+/* ==================================================================
+   BREADCRUMB / BACK LINK
+   Stands in for: p-breadcrumb  (phenom-ds extensions/_breadcrumb.scss)
+
+   Transcribed from that file rather than designed here. The one thing
+   worth stating loudly:
+
+     A NAVIGATION LINK IS NOT A PROSE LINK.
+
+   Phenom's prose link classes (pds-ux-typo-*-link) are underlined AT
+   REST. The breadcrumb is the opposite: plain at rest, underlined on
+   hover. So the kit needs both, and .phx-link is not a substitute here.
+
+   Gap is 0.5rem in the source, which is 8px — the same as --spacing-lg
+   on Phenom's scale. The icon is 20x14 with its own colour token, which
+   is the icon/text split again.
+   ================================================================== */
+
+:root .phx-breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-lg);
+  margin: 0;
+  padding: var(--spacing-sm);
+  list-style: none;
+}
+
+:root .phx-crumb {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-lg);
+  border-radius: var(--borderRadius-md);
+  background: transparent;
+  color: var(--components-breadcrumbs-text-current-no-default);
+  text-decoration: none;
+  white-space: nowrap;
+  font-size: var(--font-size-base);
+  line-height: var(--font-line-height-md);
+  font-weight: var(--font-weight-medium);
+  letter-spacing: var(--label-tracking);
+  cursor: pointer;
+}
+
+:root .phx-crumb svg,
+:root .phx-crumb .phx-crumb-icon {
+  width: 20px;
+  height: 14px;
+  flex: 0 0 auto;
+  color: var(--components-breadcrumbs-icon-current-no-default);
+}
+
+:root .phx-crumb:hover {
+  text-decoration: underline;
+  color: var(--components-breadcrumbs-text-current-no-hover);
+}
+:root .phx-crumb:hover svg,
+:root .phx-crumb:hover .phx-crumb-icon {
+  color: var(--components-breadcrumbs-icon-current-no-hover);
+}
+
+/* The current page is the last crumb: still a crumb, no longer a link. */
+:root .phx-crumb[aria-current] {
+  color: var(--components-breadcrumbs-text-current-yes-default);
+  cursor: default;
+}
+:root .phx-crumb[aria-current] svg { color: var(--components-breadcrumbs-icon-current-yes-default); }
+:root .phx-crumb[aria-current]:hover { text-decoration: none; color: var(--components-breadcrumbs-text-current-yes-hover); }
+
+:root .phx-crumb[data-disabled],
+:root .phx-crumb[aria-disabled="true"] {
+  color: var(--components-breadcrumbs-text-current-no-disabled);
+  pointer-events: none;
+}
+
+:root .phx-crumb:focus-visible {
+  outline: var(--focus-ring-width) solid var(--border-focus-default);
+  outline-offset: var(--focus-ring-offset);
+}
+
+:root .phx-crumb-sep {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 20px;
+  flex: 0 0 auto;
+  color: var(--components-breadcrumbs-separator);
+}

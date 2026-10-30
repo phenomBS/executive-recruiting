@@ -1,0 +1,6 @@
+{
+  "name": "Phenomenal Executive Recruiting",
+  "description": "Executive recruiting solution prototype for managing candidate pipelines and long-term engagement.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

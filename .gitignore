@@ -1,0 +1,9 @@
+*.zip
+Design System/
+App Code/
+.DS_Store
+node_modules/
+**/node_modules/
+**/.vite/
+dist/
+**/dist/

@@ -1,0 +1,185 @@
+/* Kit sits above Tailwind's theme (so Phenom tokens win name collisions)
+   and below utilities (so component classes keep winning). */
+@layer theme, base, kit, components, utilities;
+
+@import "tailwindcss";
+@import "./styles/phenom-kit.css" layer(kit);
+@import "./styles/phenom-recipes.css" layer(kit);
+
+@theme inline {
+  --font-sans: "Poppins", ui-sans-serif, system-ui, sans-serif;
+  /* The kit ships regular, medium, semibold, and bold. */
+  --font-weight-extrabold: 700;
+  --font-weight-black: 700;
+
+  /* Slate utilities → neutrals and grays. */
+  --color-slate-50: var(--color-grays-25);
+  --color-slate-100: var(--color-neutrals-40);
+  --color-slate-200: var(--color-neutrals-75);
+  --color-slate-300: var(--color-neutrals-100);
+  --color-slate-400: var(--color-neutrals-200);
+  --color-slate-500: var(--color-neutrals-300);
+  --color-slate-600: var(--color-neutrals-400);
+  --color-slate-700: var(--color-neutrals-500);
+  --color-slate-800: var(--color-neutrals-500);
+  --color-slate-900: var(--color-neutrals-500);
+  --color-slate-950: var(--color-neutrals-500);
+
+  /* Purple, indigo, and blue → secondary. Focus, selection, links, and the primary-blue action. */
+  --color-purple-50: var(--color-secondary-40);
+  --color-purple-100: var(--color-secondary-40);
+  --color-purple-200: var(--color-secondary-50);
+  --color-purple-300: var(--color-secondary-75);
+  --color-purple-400: var(--color-secondary-100);
+  --color-purple-500: var(--color-secondary-200);
+  --color-purple-600: var(--color-secondary-200);
+  --color-purple-700: var(--color-secondary-300);
+  --color-purple-800: var(--color-secondary-400);
+  --color-purple-900: var(--color-secondary-500);
+  --color-purple-950: var(--color-secondary-500);
+
+  --color-indigo-50: var(--color-secondary-40);
+  --color-indigo-100: var(--color-secondary-40);
+  --color-indigo-200: var(--color-secondary-50);
+  --color-indigo-300: var(--color-secondary-75);
+  --color-indigo-400: var(--color-secondary-100);
+  --color-indigo-500: var(--color-secondary-200);
+  --color-indigo-600: var(--color-secondary-200);
+  --color-indigo-700: var(--color-secondary-300);
+  --color-indigo-800: var(--color-secondary-400);
+  --color-indigo-900: var(--color-secondary-500);
+  --color-indigo-950: var(--color-secondary-500);
+
+  --color-blue-50: var(--color-secondary-40);
+  --color-blue-100: var(--color-secondary-40);
+  --color-blue-200: var(--color-secondary-50);
+  --color-blue-300: var(--color-secondary-75);
+  --color-blue-400: var(--color-secondary-100);
+  --color-blue-500: var(--color-secondary-200);
+  --color-blue-600: var(--color-secondary-200);
+  --color-blue-700: var(--color-secondary-300);
+  --color-blue-800: var(--color-secondary-400);
+  --color-blue-900: var(--color-secondary-500);
+  --color-blue-950: var(--color-secondary-500);
+
+  --color-sky-50: var(--color-secondary-40);
+  --color-sky-100: var(--color-secondary-40);
+  --color-sky-200: var(--color-secondary-50);
+  --color-sky-300: var(--color-secondary-75);
+  --color-sky-400: var(--color-secondary-100);
+  --color-sky-500: var(--color-secondary-200);
+  --color-sky-600: var(--color-secondary-200);
+  --color-sky-700: var(--color-secondary-300);
+  --color-sky-800: var(--color-secondary-400);
+  --color-sky-900: var(--color-secondary-500);
+  --color-sky-950: var(--color-secondary-500);
+
+  /* Teal utilities → primary. */
+  --color-teal-50: var(--color-primary-50);
+  --color-teal-100: var(--color-primary-50);
+  --color-teal-200: var(--color-primary-75);
+  --color-teal-300: var(--color-primary-100);
+  --color-teal-400: var(--color-primary-200);
+  --color-teal-500: var(--color-primary-300);
+  --color-teal-600: var(--color-primary-400);
+  --color-teal-700: var(--color-primary-500);
+  --color-teal-800: var(--color-primary-500);
+  --color-teal-900: var(--color-primary-500);
+  --color-teal-950: var(--color-primary-500);
+
+  /* Emerald → green. */
+  --color-emerald-50: var(--color-green-100);
+  --color-emerald-100: var(--color-green-100);
+  --color-emerald-200: var(--color-green-200);
+  --color-emerald-300: var(--color-green-300);
+  --color-emerald-400: var(--color-green-300);
+  --color-emerald-500: var(--color-green-400);
+  --color-emerald-600: var(--color-green-400);
+  --color-emerald-700: var(--color-green-500);
+  --color-emerald-800: var(--color-green-500);
+  --color-emerald-900: var(--color-green-500);
+  --color-emerald-950: var(--color-green-500);
+
+  /* Amber → yellow. */
+  --color-amber-50: var(--color-yellow-100);
+  --color-amber-100: var(--color-yellow-100);
+  --color-amber-200: var(--color-yellow-200);
+  --color-amber-300: var(--color-yellow-300);
+  --color-amber-400: var(--color-yellow-300);
+  --color-amber-500: var(--color-yellow-400);
+  --color-amber-600: var(--color-yellow-400);
+  --color-amber-700: var(--color-yellow-500);
+  --color-amber-800: var(--color-yellow-500);
+  --color-amber-900: var(--color-brown-500);
+  --color-amber-950: var(--color-brown-500);
+
+  /* Rose and red → red. */
+  --color-rose-50: var(--color-red-50);
+  --color-rose-100: var(--color-red-75);
+  --color-rose-200: var(--color-red-100);
+  --color-rose-300: var(--color-red-200);
+  --color-rose-400: var(--color-red-300);
+  --color-rose-500: var(--color-red-400);
+  --color-rose-600: var(--color-red-400);
+  --color-rose-700: var(--color-red-500);
+  --color-rose-800: var(--color-red-500);
+  --color-rose-900: var(--color-red-500);
+  --color-rose-950: var(--color-red-500);
+
+  --color-red-50: var(--color-red-50);
+  --color-red-100: var(--color-red-75);
+  --color-red-200: var(--color-red-100);
+  --color-red-300: var(--color-red-200);
+  --color-red-400: var(--color-red-300);
+  --color-red-500: var(--color-red-400);
+  --color-red-600: var(--color-red-400);
+  --color-red-700: var(--color-red-500);
+  --color-red-800: var(--color-red-500);
+  --color-red-900: var(--color-red-500);
+  --color-red-950: var(--color-red-500);
+
+  /* The kit registers named spacing (xs…11xl) on Tailwind's spacing scale.
+     In Tailwind v4 that scale also drives max-w-*, so max-w-7xl would become
+     40px. Drop those theme keys. The tokens stay on :root as --spacing-*. */
+  --spacing-xs: initial;
+  --spacing-sm: initial;
+  --spacing-md: initial;
+  --spacing-lg: initial;
+  --spacing-xl: initial;
+  --spacing-2xl: initial;
+  --spacing-3xl: initial;
+  --spacing-4xl: initial;
+  --spacing-5xl: initial;
+  --spacing-6xl: initial;
+  --spacing-7xl: initial;
+  --spacing-8xl: initial;
+  --spacing-9xl: initial;
+  --spacing-10xl: initial;
+  --spacing-11xl: initial;
+}
+
+@layer utilities {
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+}
+
+@media print {
+  aside, header, nav, button, select, input {
+    display: none !important;
+  }
+  body, #root, main {
+    background: white !important;
+    color: black !important;
+    overflow: visible !important;
+    height: auto !important;
+  }
+  .print-page-break {
+    page-break-after: always;
+    break-after: page;
+  }
+}
