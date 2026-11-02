@@ -4,7 +4,11 @@ import path from 'path';
 import {defineConfig} from 'vite';
 
 export default defineConfig(() => {
+  // GitHub Pages project site needs /executive-recruiting/; local/dev stays /.
+  const base = process.env.VITE_BASE_PATH || '/';
+
   return {
+    base,
     plugins: [react(), tailwindcss()],
     resolve: {
       alias: {
