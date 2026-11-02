@@ -35,6 +35,7 @@ import {
   Network
 } from 'lucide-react';
 import { Project } from '../../types';
+import { withBasePath } from '../../context/RouterContext';
 import { 
   ProjectMarketMapData, 
   MappedCompany, 
@@ -217,7 +218,7 @@ export function ProjectMarketMapTab({ project }: ProjectMarketMapTabProps) {
   // Handlers for Export & Preview
   // -------------------------------------------------------------
   const handleCopyShareUrl = async () => {
-    const shareUrl = `${window.location.origin}/projects/${project.id}?tab=market-map&mode=presentation`;
+    const shareUrl = `${window.location.origin}${withBasePath(`/projects/${project.id}`)}?tab=market-map&mode=presentation`;
     try {
       if (navigator.clipboard) {
         await navigator.clipboard.writeText(shareUrl);
