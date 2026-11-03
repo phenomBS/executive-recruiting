@@ -9,16 +9,17 @@ import {
   Send,
   ListFilter,
   UserSearch,
-  BookOpen,
-  LayoutList,
-  Columns3,
   User,
   Plus,
   ArrowLeft,
   ArrowRight,
+  ChevronLeft,
+  ChevronRight,
+  Pencil,
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import type { ProjectPipelineCandidate } from './tabs/ProjectCandidatesTab';
+import { SEARCH_BOOK_TEMPLATES, SearchBookTemplate, TemplateContext } from './searchBookTemplates';
 
 export type RecipientChannel = 'email' | 'sms' | 'whatsapp';
 
@@ -32,6 +33,8 @@ export interface SearchBookRecipient {
 export interface SearchBookSendSummary {
   candidateCount: number;
   templateName: string;
+  subject: string;
+  message: string;
   recipients: SearchBookRecipient[];
 }
 
@@ -44,28 +47,8 @@ interface GenerateSearchBookModalProps {
   onSend: (summary: SearchBookSendSummary) => void;
 }
 
-type TemplateId = 'brief' | 'profiles' | 'comparison';
-
-const TEMPLATES: { id: TemplateId; name: string; description: string; icon: typeof BookOpen }[] = [
-  {
-    id: 'brief',
-    name: 'Executive Brief',
-    description: 'Cover page plus a ranked one-page summary table of every candidate.',
-    icon: LayoutList,
-  },
-  {
-    id: 'profiles',
-    name: 'Candidate Profiles',
-    description: 'Cover page plus a full profile page for each candidate.',
-    icon: BookOpen,
-  },
-  {
-    id: 'comparison',
-    name: 'Side-by-Side Comparison',
-    description: 'Cover page plus a matrix that compares candidates across key fields.',
-    icon: Columns3,
-  },
-];
+const TEMPLATE_EDITOR_URL =
+  'https://ai.studio/apps/0cd932cc-5c25-4ea8-b34d-1b7d6d4a90a8?fullscreenApplet=true';
 
 const CHANNELS: { id: RecipientChannel; label: string; icon: typeof Mail; placeholder: string }[] = [
   { id: 'email', label: 'Email', icon: Mail, placeholder: 'name@company.com' },
@@ -126,167 +109,107 @@ function EmiBadge({ score }: { score: number }) {
 }
 
 /* ------------------------------------------------------------------ */
-/* Template previews (rendered at design size, scaled down by wrapper) */
+/* Template thumbnail: the real page layout, scaled down               */
 /* ------------------------------------------------------------------ */
 
-function PreviewPage({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <figure className="flex flex-col items-center gap-2 min-w-0">
-      <div className="w-[210px] h-[272px] overflow-hidden bg-white border border-slate-200 shadow-md relative">
-        <div className="w-[420px] h-[544px] origin-top-left scale-50 p-8 flex flex-col text-slate-800">{children}</div>
-      </div>
-      <figcaption className="text-xs text-slate-500">{label}</figcaption>
-    </figure>
-  );
-}
+const THUMB_W = 76;
+const THUMB_MAX_H = 104;
 
-function CoverPage({
-  projectTitle,
-  leadRecruiter,
-  count,
-}: {
-  projectTitle: string;
-  leadRecruiter: string;
-  count: number;
-}) {
-  const today = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+function TemplateThumb({ template, ctx }: { template: SearchBookTemplate; ctx: TemplateContext }) {
+  const page = template.pages[Math.min(template.thumbnailPage, template.pages.length - 1)];
+  const scale = THUMB_W / template.size.w;
+  const height = Math.min(THUMB_MAX_H, template.size.h * scale);
   return (
-    <div className="flex flex-col h-full">
-      <div className="h-2 w-16 rounded-full bg-(--color-secondary-200)" />
-      <div className="mt-24">
-        <div className="text-xs font-semibold tracking-widest text-slate-500 uppercase">Executive Search Book</div>
-        <div className="text-3xl font-bold leading-tight mt-3 text-slate-900">{projectTitle}</div>
-        <div className="text-sm text-slate-500 mt-4">
-          {count} candidate{count === 1 ? '' : 's'} • {today}
-        </div>
-      </div>
-      <div className="mt-auto text-xs text-slate-500">
-        Prepared by {leadRecruiter}
-        <div className="text-[10px] mt-1 text-slate-400">Confidential</div>
+    <div
+      aria-hidden="true"
+      className="relative overflow-hidden shrink-0 rounded-md border border-slate-300 bg-white shadow-xs pointer-events-none select-none"
+      style={{ width: THUMB_W, height }}
+    >
+      <div style={{ width: template.size.w, height: template.size.h, transform: `scale(${scale})`, transformOrigin: 'top left' }}>
+        {page.render(ctx)}
       </div>
     </div>
   );
 }
 
-function BriefPage({ sample }: { sample: ProjectPipelineCandidate[] }) {
+/* ------------------------------------------------------------------ */
+/* Template preview                                                    */
+/* ------------------------------------------------------------------ */
+
+function TemplatePreview({ template, ctx }: { template: SearchBookTemplate; ctx: TemplateContext }) {
+  const [pageIndex, setPageIndex] = useState(0);
+
+  useEffect(() => {
+    setPageIndex(0);
+  }, [template.id]);
+
+  const total = template.pages.length;
+  const index = Math.min(pageIndex, total - 1);
+  const page = template.pages[index];
+  const scale = Math.min(440 / template.size.h, 400 / template.size.w);
+
   return (
-    <div className="flex flex-col h-full">
-      <div className="text-lg font-bold text-slate-900">Candidate summary</div>
-      <div className="mt-4 border-t border-slate-200">
-        {sample.map((c, i) => (
-          <div key={c.id} className="flex items-center gap-3 py-3 border-b border-slate-200">
-            <span className="w-5 text-xs font-bold text-slate-400">{i + 1}</span>
-            <Avatar candidate={c} size="w-8 h-8" />
-            <div className="min-w-0 flex-1">
-              <div className="text-sm font-semibold truncate">
-                {c.firstName} {c.lastName}
-              </div>
-              <div className="text-xs text-slate-500 truncate">
-                {c.role}, {c.company}
-              </div>
-            </div>
-            <EmiBadge score={c.emiScore} />
-          </div>
+    <div className="flex flex-col items-center gap-4">
+      <div role="tablist" aria-label={`${template.name} pages`} className="flex flex-wrap justify-center gap-1.5">
+        {template.pages.map((pg, i) => (
+          <button
+            key={pg.id}
+            type="button"
+            role="tab"
+            aria-selected={i === index}
+            onClick={() => setPageIndex(i)}
+            className={cn(
+              'px-3 py-1 rounded-full text-xs font-semibold border transition-colors cursor-pointer',
+              i === index
+                ? 'bg-(--color-secondary-200) text-white border-(--color-secondary-200)'
+                : 'bg-white text-slate-600 border-slate-300 hover:bg-slate-50'
+            )}
+          >
+            {pg.label}
+          </button>
         ))}
       </div>
-    </div>
-  );
-}
 
-function ProfilePage({ candidate }: { candidate?: ProjectPipelineCandidate }) {
-  if (!candidate) return null;
-  return (
-    <div className="flex flex-col h-full">
-      <div className="flex items-center gap-4">
-        <Avatar candidate={candidate} size="w-16 h-16" />
-        <div className="min-w-0">
-          <div className="text-xl font-bold text-slate-900 truncate">
-            {candidate.firstName} {candidate.lastName}
-          </div>
-          <div className="text-sm text-slate-600 truncate">{candidate.role}</div>
-          <div className="text-xs text-slate-500 truncate">
-            {candidate.company} • {candidate.location}
+      <div className="flex items-center gap-3">
+        <button
+          type="button"
+          onClick={() => setPageIndex(Math.max(0, index - 1))}
+          disabled={index === 0}
+          aria-label="Previous page"
+          className="p-1.5 rounded-full border border-slate-300 bg-white text-slate-600 hover:bg-slate-50 disabled:opacity-30 cursor-pointer"
+        >
+          <ChevronLeft className="w-4 h-4" />
+        </button>
+        <div
+          className="relative overflow-hidden bg-white border border-slate-300 shadow-lg shrink-0"
+          style={{ width: template.size.w * scale, height: template.size.h * scale }}
+          role="img"
+          aria-label={`${template.name}, page ${index + 1} of ${total}: ${page.label}`}
+        >
+          <div
+            style={{
+              width: template.size.w,
+              height: template.size.h,
+              transform: `scale(${scale})`,
+              transformOrigin: 'top left',
+            }}
+          >
+            {page.render(ctx)}
           </div>
         </div>
+        <button
+          type="button"
+          onClick={() => setPageIndex(Math.min(total - 1, index + 1))}
+          disabled={index === total - 1}
+          aria-label="Next page"
+          className="p-1.5 rounded-full border border-slate-300 bg-white text-slate-600 hover:bg-slate-50 disabled:opacity-30 cursor-pointer"
+        >
+          <ChevronRight className="w-4 h-4" />
+        </button>
       </div>
-      <div className="mt-5 flex items-center gap-2 text-xs text-slate-500">
-        EMI score <EmiBadge score={candidate.emiScore} /> Stage: {candidate.projectStatus}
+      <div className="text-xs text-slate-500">
+        Page {index + 1} of {total}
       </div>
-      <div className="mt-6 space-y-2">
-        <div className="text-xs font-bold uppercase tracking-wider text-slate-500">Executive summary</div>
-        <div className="h-2 rounded bg-slate-200 w-full" />
-        <div className="h-2 rounded bg-slate-200 w-11/12" />
-        <div className="h-2 rounded bg-slate-200 w-4/5" />
-      </div>
-      <div className="mt-6 space-y-2">
-        <div className="text-xs font-bold uppercase tracking-wider text-slate-500">Career highlights</div>
-        <div className="h-2 rounded bg-slate-200 w-full" />
-        <div className="h-2 rounded bg-slate-200 w-5/6" />
-        <div className="h-2 rounded bg-slate-200 w-3/4" />
-      </div>
-    </div>
-  );
-}
-
-function ComparisonPage({ sample }: { sample: ProjectPipelineCandidate[] }) {
-  const rows: { label: string; value: (c: ProjectPipelineCandidate) => React.ReactNode }[] = [
-    { label: 'Current role', value: c => c.role },
-    { label: 'Company', value: c => c.company },
-    { label: 'Location', value: c => c.location.split(',')[0] },
-    { label: 'Stage', value: c => c.projectStatus },
-    { label: 'EMI score', value: c => <EmiBadge score={c.emiScore} /> },
-  ];
-  return (
-    <div className="flex flex-col h-full">
-      <div className="text-lg font-bold text-slate-900">Comparison</div>
-      <div className="mt-4 text-xs border border-slate-200 rounded">
-        <div className="grid" style={{ gridTemplateColumns: `72px repeat(${Math.max(sample.length, 1)}, minmax(0, 1fr))` }}>
-          <div className="p-2 bg-slate-50 border-b border-slate-200" />
-          {sample.map(c => (
-            <div key={c.id} className="p-2 bg-slate-50 border-b border-l border-slate-200 font-semibold truncate">
-              {c.firstName} {c.lastName}
-            </div>
-          ))}
-          {rows.map(row => (
-            <React.Fragment key={row.label}>
-              <div className="p-2 border-b border-slate-200 text-slate-500">{row.label}</div>
-              {sample.map(c => (
-                <div key={c.id} className="p-2 border-b border-l border-slate-200 truncate">
-                  {row.value(c)}
-                </div>
-              ))}
-            </React.Fragment>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function TemplatePreview({
-  template,
-  candidates,
-  projectTitle,
-  leadRecruiter,
-}: {
-  template: TemplateId;
-  candidates: ProjectPipelineCandidate[];
-  projectTitle: string;
-  leadRecruiter: string;
-}) {
-  const sample = candidates.slice(0, 3);
-  return (
-    <div className="flex items-start justify-center gap-5 flex-wrap">
-      <PreviewPage label="Cover page">
-        <CoverPage projectTitle={projectTitle} leadRecruiter={leadRecruiter} count={candidates.length} />
-      </PreviewPage>
-      <PreviewPage
-        label={template === 'brief' ? 'Summary page' : template === 'profiles' ? 'Profile page' : 'Comparison page'}
-      >
-        {template === 'brief' && <BriefPage sample={sample} />}
-        {template === 'profiles' && <ProfilePage candidate={sample[0]} />}
-        {template === 'comparison' && <ComparisonPage sample={sample.slice(0, 3)} />}
-      </PreviewPage>
     </div>
   );
 }
@@ -313,7 +236,8 @@ export function GenerateSearchBookModal({
   const [manualIds, setManualIds] = useState<string[]>([]);
 
   // Step 2: template
-  const [templateId, setTemplateId] = useState<TemplateId>('brief');
+  const [templateId, setTemplateId] = useState<string>(SEARCH_BOOK_TEMPLATES[0].id);
+  const [templateChosen, setTemplateChosen] = useState(false);
 
   // Step 3: recipients
   const [recipients, setRecipients] = useState<SearchBookRecipient[]>([]);
@@ -321,6 +245,7 @@ export function GenerateSearchBookModal({
   const [contact, setContact] = useState('');
   const [contactName, setContactName] = useState('');
   const [contactError, setContactError] = useState<string | null>(null);
+  const [subject, setSubject] = useState(`Executive Search Book: ${projectTitle}`);
   const [note, setNote] = useState('');
 
   useEffect(() => {
@@ -353,7 +278,7 @@ export function GenerateSearchBookModal({
     [mode, filterMatches, candidates, manualIds]
   );
 
-  const template = TEMPLATES.find(t => t.id === templateId) ?? TEMPLATES[0];
+  const template = SEARCH_BOOK_TEMPLATES.find(t => t.id === templateId) ?? SEARCH_BOOK_TEMPLATES[0];
 
   const toggleStage = (stage: string) =>
     setStageFilter(prev => (prev.includes(stage) ? prev.filter(s => s !== stage) : [...prev, stage]));
@@ -394,11 +319,17 @@ export function GenerateSearchBookModal({
   };
 
   const canAdvance = step === 0 ? selectedCandidates.length > 0 : true;
-  const canSend = selectedCandidates.length > 0 && recipients.length > 0;
+  const canSend = selectedCandidates.length > 0 && recipients.length > 0 && subject.trim().length > 0;
 
   const handleSend = () => {
     if (!canSend) return;
-    onSend({ candidateCount: selectedCandidates.length, templateName: template.name, recipients });
+    onSend({
+      candidateCount: selectedCandidates.length,
+      templateName: template.name,
+      subject: subject.trim(),
+      message: note.trim(),
+      recipients,
+    });
   };
 
   return (
@@ -674,10 +605,9 @@ export function GenerateSearchBookModal({
           )}
 
           {step === 1 && (
-            <div className="grid grid-cols-1 lg:grid-cols-[300px_minmax(0,1fr)] gap-6">
-              <div role="radiogroup" aria-label="Search book template" className="space-y-3">
-                {TEMPLATES.map(t => {
-                  const Icon = t.icon;
+            <div className="grid grid-cols-1 lg:grid-cols-[320px_minmax(0,1fr)] gap-6 items-start">
+              <div role="radiogroup" aria-label="Search book template" className="space-y-2.5">
+                {SEARCH_BOOK_TEMPLATES.map(t => {
                   const active = t.id === templateId;
                   return (
                     <button
@@ -685,43 +615,54 @@ export function GenerateSearchBookModal({
                       type="button"
                       role="radio"
                       aria-checked={active}
-                      onClick={() => setTemplateId(t.id)}
+                      onClick={() => {
+                        setTemplateId(t.id);
+                        setTemplateChosen(true);
+                      }}
                       className={cn(
-                        'w-full text-left rounded-xl border p-4 flex gap-3 transition-all cursor-pointer',
+                        'w-full text-left rounded-xl border p-3 flex gap-3 transition-all cursor-pointer',
                         active
                           ? 'border-(--color-secondary-200) ring-1 ring-(--color-secondary-200) bg-purple-50/40'
                           : 'border-slate-200 hover:border-slate-300 bg-white'
                       )}
                     >
-                      <div
-                        className={cn(
-                          'w-10 h-10 rounded-lg flex items-center justify-center shrink-0',
-                          active ? 'bg-(--color-secondary-200) text-white' : 'bg-slate-100 text-slate-600'
-                        )}
-                      >
-                        <Icon className="w-5 h-5" />
-                      </div>
-                      <div>
-                        <div className="text-sm font-bold text-slate-900">{t.name}</div>
-                        <div className="text-xs text-slate-500 mt-0.5">{t.description}</div>
+                      <TemplateThumb template={t} ctx={{ candidates: selectedCandidates, projectTitle, leadRecruiter }} />
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-sm font-bold text-slate-900">{t.name}</span>
+                          {t.badge && (
+                            <span
+                              className={cn(
+                                'px-1.5 py-0.5 rounded text-[10px] font-bold',
+                                'bg-slate-100 text-slate-600'
+                              )}
+                            >
+                              {t.badge}
+                            </span>
+                          )}
+                        </div>
+                        <div className="text-xs text-slate-500 mt-0.5 line-clamp-2">{t.description}</div>
+                        <div className="text-[11px] text-slate-400 mt-1">{t.pages.length} pages</div>
                       </div>
                     </button>
                   );
                 })}
               </div>
 
-              <div className="bg-slate-100 rounded-xl p-5 border border-slate-200 min-w-0" aria-live="polite">
-                <div className="text-xs font-semibold text-slate-600 mb-3">Preview: {template.name}</div>
-                <TemplatePreview
-                  template={templateId}
-                  candidates={selectedCandidates}
-                  projectTitle={projectTitle}
-                  leadRecruiter={leadRecruiter}
-                />
-                <div className="text-xs text-slate-500 text-center mt-4">
-                  Preview uses your {selectedCandidates.length} selected candidate
-                  {selectedCandidates.length === 1 ? '' : 's'}.
+              <div className="bg-slate-100 rounded-xl p-5 border border-slate-200 min-w-0 lg:sticky lg:top-0" aria-live="polite">
+                <div className="flex items-start justify-between gap-3 mb-4">
+                  <div className="min-w-0">
+                    <div className="text-sm font-bold text-slate-900 mb-0.5">{template.name}</div>
+                    <div className="text-xs text-slate-500">
+                      Preview built from your {selectedCandidates.length} selected candidate
+                      {selectedCandidates.length === 1 ? '' : 's'}.
+                    </div>
+                  </div>
                 </div>
+                <TemplatePreview
+                  template={template}
+                  ctx={{ candidates: selectedCandidates, projectTitle, leadRecruiter }}
+                />
               </div>
             </div>
           )}
@@ -856,6 +797,26 @@ export function GenerateSearchBookModal({
                 </div>
 
                 <div>
+                  <label htmlFor="sb-subject" className="block text-xs font-semibold text-slate-600 mb-1.5">
+                    Subject line
+                  </label>
+                  <input
+                    id="sb-subject"
+                    type="text"
+                    value={subject}
+                    onChange={e => setSubject(e.target.value)}
+                    placeholder="Subject of the message"
+                    aria-required="true"
+                    aria-invalid={subject.trim().length === 0}
+                    className="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm bg-white text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-(--color-secondary-200) focus:ring-1 focus:ring-(--color-secondary-200)"
+                  />
+                  {subject.trim().length === 0 && (
+                    <p className="text-xs text-red-600 mt-1">Enter a subject line to send the search book.</p>
+                  )}
+                  <p className="text-xs text-slate-500 mt-1">Used as the email subject; SMS and WhatsApp recipients see it as the first line.</p>
+                </div>
+
+                <div>
                   <label htmlFor="sb-note" className="block text-xs font-semibold text-slate-600 mb-1.5">
                     Message (optional)
                   </label>
@@ -912,6 +873,17 @@ export function GenerateSearchBookModal({
               >
                 <ArrowLeft className="w-4 h-4" /> Back
               </button>
+            )}
+            {step === 1 && templateChosen && (
+              <a
+                href={TEMPLATE_EDITOR_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label={`Edit ${template.name} template (opens in a new tab)`}
+                className="flex items-center gap-2 px-5 py-2 rounded-full border border-slate-300 text-(--color-secondary-200) font-semibold text-sm hover:bg-slate-50 bg-white transition-colors cursor-pointer"
+              >
+                <Pencil className="w-4 h-4" /> Edit
+              </a>
             )}
             {step < STEPS.length - 1 ? (
               <button
