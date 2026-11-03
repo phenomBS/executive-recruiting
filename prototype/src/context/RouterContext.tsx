@@ -41,9 +41,41 @@ export interface RouterContextType extends RouteState {
 
 const RouterContext = createContext<RouterContextType | undefined>(undefined);
 
+/** Vite BASE_URL (e.g. `/executive-recruiting/` on GitHub Pages, `/` locally). */
+function viteBaseNoSlash(): string {
+  const base = import.meta.env.BASE_URL || '/';
+  if (!base || base === '/') return '';
+  return base.replace(/\/$/, '');
+}
+
+/** Strip deploy base so path parsing stays app-relative (`/candidates/...`). */
+export function stripBasePath(pathname: string): string {
+  const baseNoSlash = viteBaseNoSlash();
+  if (baseNoSlash && (pathname === baseNoSlash || pathname.startsWith(`${baseNoSlash}/`))) {
+    const rest = pathname.slice(baseNoSlash.length) || '/';
+    return rest.startsWith('/') ? rest : `/${rest}`;
+  }
+  return pathname;
+}
+
+/** Prefix deploy base for history / share URLs. Idempotent if base already present. */
+export function withBasePath(path: string): string {
+  const baseNoSlash = viteBaseNoSlash();
+  const match = path.match(/^([^?#]*)(.*)$/);
+  const pathname = match?.[1] || '/';
+  const suffix = match?.[2] || '';
+
+  if (!baseNoSlash) return path;
+  if (pathname === baseNoSlash || pathname.startsWith(`${baseNoSlash}/`)) {
+    return path;
+  }
+  const normalized = pathname.startsWith('/') ? pathname : `/${pathname}`;
+  return `${baseNoSlash}${normalized}${suffix}`;
+}
+
 function parseLocation(pathname: string, search: string, hash: string): RouteState {
   // If hash routing is used (e.g. #/candidates/c-1 or #/projects/p-1), parse hash
-  let cleanPath = pathname;
+  let cleanPath = stripBasePath(pathname);
   let searchStr = search;
 
   if (hash && hash.startsWith('#/')) {
@@ -275,10 +307,11 @@ export function RouterProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const navigate = useCallback((path: string, options?: { replace?: boolean }) => {
+    const resolved = withBasePath(path);
     if (options?.replace) {
-      window.history.replaceState(null, '', path);
+      window.history.replaceState(null, '', resolved);
     } else {
-      window.history.pushState(null, '', path);
+      window.history.pushState(null, '', resolved);
     }
     setRouteState(parseLocation(window.location.pathname, window.location.search, window.location.hash));
   }, []);
