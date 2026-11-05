@@ -2,6 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { Project } from '../types';
 import { Search, Filter, FolderKanban, Calendar, User, Sparkles, CalendarPlus } from 'lucide-react';
 import { cn } from '../lib/utils';
+import { isProjectLive, isProjectOpen, projectStatusLabel } from '../lib/projectStatus';
 import { IntakeMeetingModal } from './IntakeMeetingModal';
 import { ProjectParametersModal } from './ProjectParametersModal';
 
@@ -45,9 +46,9 @@ export function ProjectsList({ projects, onSelectProject, onAddProject }: Projec
 
   const displayed = projects.filter(project => {
     if (activeTab === 'recommendations' && !project.nextAction) return false;
-    if (activeTab === 'open' && project.status !== 'Active') return false;
-    if (activeTab === 'mine' && !(project.leadRecruiter === 'Brian Stepan' && project.status === 'Active')) return false;
-    if (activeTab === 'closed' && project.status === 'Active') return false;
+    if (activeTab === 'open' && !isProjectLive(project.status)) return false;
+    if (activeTab === 'mine' && !(project.leadRecruiter === 'Brian Stepan' && isProjectLive(project.status))) return false;
+    if (activeTab === 'closed' && isProjectLive(project.status)) return false;
     if (activeTab === 'executive' && project.type !== 'Executive Search') return false;
     if (recruiterFilter !== 'all' && project.leadRecruiter !== recruiterFilter) return false;
     if (!searchQuery.trim()) return true;
@@ -67,9 +68,9 @@ export function ProjectsList({ projects, onSelectProject, onAddProject }: Projec
   const tabs: { id: ProjectTab; label: string; count: number }[] = [
     { id: 'all', label: 'All Projects', count: projects.length },
     { id: 'recommendations', label: 'Recommendations', count: recommended.length },
-    { id: 'open', label: 'Open Projects', count: projects.filter(p => p.status === 'Active').length },
-    { id: 'mine', label: 'My Projects', count: projects.filter(p => p.leadRecruiter === 'Brian Stepan' && p.status === 'Active').length },
-    { id: 'closed', label: 'Closed Projects', count: projects.filter(p => p.status !== 'Active').length },
+    { id: 'open', label: 'Open Projects', count: projects.filter(p => isProjectLive(p.status)).length },
+    { id: 'mine', label: 'My Projects', count: projects.filter(p => p.leadRecruiter === 'Brian Stepan' && isProjectLive(p.status)).length },
+    { id: 'closed', label: 'Closed Projects', count: projects.filter(p => !isProjectLive(p.status)).length },
     { id: 'executive', label: 'Executive Search', count: projects.filter(p => p.type === 'Executive Search').length },
   ];
 
@@ -297,11 +298,13 @@ export function ProjectsList({ projects, onSelectProject, onAddProject }: Projec
                       <td className="px-6 py-3.5">
                         <span className={cn(
                           "px-2.5 py-1 text-xs font-bold rounded-md border inline-flex items-center justify-center",
-                          project.status === 'Active'
+                          isProjectOpen(project.status)
                             ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-                            : "bg-slate-100 text-slate-700 border-slate-200"
+                            : isProjectLive(project.status)
+                              ? "bg-blue-50 text-blue-700 border-blue-200"
+                              : "bg-slate-100 text-slate-700 border-slate-200"
                         )}>
-                          {project.status === 'Active' ? 'Open' : project.status}
+                          {projectStatusLabel(project.status)}
                         </span>
                       </td>
                       <td className="px-6 py-3.5">

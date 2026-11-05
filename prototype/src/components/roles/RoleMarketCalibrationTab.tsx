@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { RoleSuccessionItem } from '../../data/rolesSuccessionData';
-import { getSearchIntelligenceForRole, SearchIntelligenceData } from '../../data/projectSearchIntelligenceData';
+import { getSearchIntelligenceForRole, getSearchIntelligenceForProject, SearchIntelligenceData } from '../../data/projectSearchIntelligenceData';
+import type { Project } from '../../types';
 import { buildPdf, downloadBlob, PdfBlock } from '../../lib/simplePdf';
 import { 
   DollarSign, 
@@ -27,12 +28,16 @@ import {
 } from 'lucide-react';
 import { IntakeMeetingModal } from '../IntakeMeetingModal';
 
+/** Provide either a role (Roles tab) or a project (Projects tab); both render the same calibration screen. */
 interface RoleMarketCalibrationTabProps {
-  role: RoleSuccessionItem;
+  role?: RoleSuccessionItem;
+  project?: Project;
 }
 
-export function RoleMarketCalibrationTab({ role }: RoleMarketCalibrationTabProps) {
-  const data: SearchIntelligenceData = getSearchIntelligenceForRole(role);
+export function RoleMarketCalibrationTab({ role, project }: RoleMarketCalibrationTabProps) {
+  const data: SearchIntelligenceData = project
+    ? getSearchIntelligenceForProject(project.id, project.title, project.company)
+    : getSearchIntelligenceForRole(role as RoleSuccessionItem);
 
   const [appliedFilterIds, setAppliedFilterIds] = useState<string[]>([]);
   const [clientBaseBudget, setClientBaseBudget] = useState<number>(data.compensation.clientBudgetBase);

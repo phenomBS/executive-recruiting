@@ -17,6 +17,8 @@ import {
   MapPin, 
   Clock, 
   Sliders,
+  SlidersHorizontal,
+  ArrowRight,
   Check
 } from 'lucide-react';
 import { cn } from '../lib/utils';
@@ -29,6 +31,15 @@ import { ProjectMarketMapTab } from './tabs/ProjectMarketMapTab';
 import { ProjectParametersModal } from './ProjectParametersModal';
 import { getRecommendationsForProject } from '../data/projectRecommendationsData';
 import { useRouter } from '../context/RouterContext';
+import { RoleMarketCalibrationTab } from './roles/RoleMarketCalibrationTab';
+import {
+  getProjectLifecycle,
+  isProjectOpen,
+  PROJECT_STATUS_CLOSED,
+  PROJECT_STATUS_IN_PROGRESS,
+  PROJECT_STATUS_OPEN,
+  ProjectLifecycle,
+} from '../lib/projectStatus';
 
 interface ExecutiveSearchProjectDetailProps {
   project: Project;
@@ -36,11 +47,11 @@ interface ExecutiveSearchProjectDetailProps {
   onUpdateProject?: (project: Project) => void;
 }
 
-type TabType = 'overview' | 'recommendations' | 'candidates' | 'market-map' | 'relationships' | 'nurture';
+type TabType = 'overview' | 'recommendations' | 'candidates' | 'market-map' | 'market-calibration' | 'relationships' | 'nurture';
 
 export function ExecutiveSearchProjectDetail({ project, onBack, onUpdateProject }: ExecutiveSearchProjectDetailProps) {
   const router = useRouter();
-  const validTabs: TabType[] = ['overview', 'recommendations', 'candidates', 'market-map', 'relationships', 'nurture'];
+  const validTabs: TabType[] = ['overview', 'recommendations', 'candidates', 'market-map', 'market-calibration', 'relationships', 'nurture'];
   const activeTab: TabType = (router.activeTab && validTabs.includes(router.activeTab as TabType))
     ? (router.activeTab as TabType)
     : 'overview';
@@ -83,11 +94,23 @@ export function ExecutiveSearchProjectDetail({ project, onBack, onUpdateProject 
     { id: 'recommendations', label: 'Recommendations', icon: Sparkles, count: recommendationsCount },
     { id: 'candidates', label: 'Candidates', icon: Users },
     { id: 'market-map', label: 'Market Map', icon: Map },
+    { id: 'market-calibration', label: 'Market Calibration', icon: SlidersHorizontal },
     { id: 'relationships', label: 'Relationships', icon: Network },
     { id: 'nurture', label: 'Nurture', icon: Mail },
   ];
 
   const params = project.parameters;
+
+  // Market Calibration is an intake-prep aid: the Overview card shows only while the project is Open,
+  // but the Market Calibration tab is always available.
+  const lifecycle = getProjectLifecycle(project.status);
+  const showCalibrationCard = isProjectOpen(project.status);
+
+  const handleStatusChange = (next: ProjectLifecycle) => {
+    const status =
+      next === 'open' ? PROJECT_STATUS_OPEN : next === 'in-progress' ? PROJECT_STATUS_IN_PROGRESS : PROJECT_STATUS_CLOSED;
+    onUpdateProject?.({ ...project, status });
+  };
 
   return (
     <div className="flex flex-col h-full bg-(--bg-surface-base) overflow-y-auto w-full">
@@ -140,9 +163,22 @@ export function ExecutiveSearchProjectDetail({ project, onBack, onUpdateProject 
                     <span className="bg-purple-500/20 text-purple-300 text-[10px] font-bold px-2 py-0.5 rounded border border-purple-500/30 uppercase tracking-wider">
                       {project.type || 'Executive Search'}
                     </span>
-                    <span className="bg-emerald-500/20 text-emerald-300 text-[10px] font-bold px-2 py-0.5 rounded border border-emerald-500/30 uppercase tracking-wider">
-                      {project.status || 'Active'}
-                    </span>
+                    <select
+                      aria-label="Project status"
+                      value={lifecycle}
+                      onChange={e => handleStatusChange(e.target.value as ProjectLifecycle)}
+                      style={{ width: 'auto', height: 'auto', minHeight: 0 }}
+                      className={cn(
+                        "shrink-0 whitespace-nowrap text-[10px] font-bold pl-2 pr-1 py-0.5 rounded border uppercase tracking-wider cursor-pointer focus:outline-none focus:ring-1 focus:ring-white/60",
+                        lifecycle === 'open' && "bg-emerald-500/20 text-emerald-300 border-emerald-500/30",
+                        lifecycle === 'in-progress' && "bg-sky-500/20 text-sky-200 border-sky-400/40",
+                        lifecycle === 'closed' && "bg-slate-500/20 text-slate-300 border-slate-500/40"
+                      )}
+                    >
+                      <option value="open" className="text-slate-900 normal-case">Open</option>
+                      <option value="in-progress" className="text-slate-900 normal-case">In Progress</option>
+                      <option value="closed" className="text-slate-900 normal-case">Closed</option>
+                    </select>
                     {params?.roleLevel && (
                       <span className="bg-blue-500/20 text-blue-300 text-[10px] font-bold px-2 py-0.5 rounded border border-blue-500/30 uppercase tracking-wider">
                         {params.roleLevel}
@@ -436,6 +472,29 @@ export function ExecutiveSearchProjectDetail({ project, onBack, onUpdateProject 
                </div>
 
                <div className="space-y-6">
+                  {showCalibrationCard && (
+                    <div
+                      className="rounded-xl p-6 text-white shadow-sm border border-(--color-secondary-300)"
+                      style={{ background: 'linear-gradient(135deg, var(--color-secondary-400), var(--color-secondary-200))' }}
+                    >
+                      <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider text-white/80 mb-3">
+                        <Sparkles className="w-3.5 h-3.5" />
+                        Intake calibration ready
+                      </div>
+                      <h3 className="text-lg font-bold mb-2 text-white">Pre-Intake Market Calibration</h3>
+                      <p className="text-xs leading-relaxed text-white/85 mb-5">
+                        Market compensation percentiles, talent pool scarcity TAM, and source company concentrations calibrated for this search.
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => setActiveTab('market-calibration')}
+                        className="w-full px-4 py-2.5 bg-white hover:bg-(--bg-brand-secondary-subtle) text-(--color-secondary-300) rounded-lg text-sm font-semibold flex items-center justify-center gap-2 transition-colors cursor-pointer"
+                      >
+                        View Market Calibration Tab <ArrowRight className="w-4 h-4" />
+                      </button>
+                    </div>
+                  )}
+
                   <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
                     <h3 className="font-bold text-slate-900 mb-4">Funnel Metrics</h3>
                     <div className="space-y-4">
@@ -467,6 +526,10 @@ export function ExecutiveSearchProjectDetail({ project, onBack, onUpdateProject 
           
           {activeTab === 'market-map' && (
             <ProjectMarketMapTab project={project} />
+          )}
+
+          {activeTab === 'market-calibration' && (
+            <RoleMarketCalibrationTab key={project.id} project={project} />
           )}
 
           {activeTab === 'recommendations' && (
