@@ -187,6 +187,10 @@ function parseLocation(pathname: string, search: string, hash: string): RouteSta
         }
         break;
 
+      case 'analytics':
+        view = 'analytics';
+        break;
+
       case 'workspace':
       case 'overview':
       case 'home':
@@ -278,6 +282,9 @@ export function buildUrlForView(
       }
       return '/opportunity-rooms';
     }
+
+    case 'analytics':
+      return '/analytics';
 
     case 'agents': {
       if (params?.agentTab && params.agentTab !== 'all') {

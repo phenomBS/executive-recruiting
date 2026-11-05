@@ -61,7 +61,7 @@ export function ExecutiveSearchProjectDetail({ project, onBack, onUpdateProject 
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [showSearchBookModal, setShowSearchBookModal] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
-  const [pipeline, setPipeline] = useState<ProjectPipelineCandidate[]>(initialProjectPipeline);
+  const [pipeline, setPipeline] = useState<ProjectPipelineCandidate[]>(() => project.seedPipeline ?? initialProjectPipeline);
   const { restrictedCompanies } = useRestricted();
 
   // Restricted (off-limits) candidates never appear in a project's search book

@@ -40,7 +40,7 @@ const CHAR_MAP: Record<string, string> = {
   '\u00A0': ' ',
 };
 
-function toWinAnsi(text: string): string {
+export function toWinAnsi(text: string): string {
   let out = '';
   for (const ch of text) {
     if (CHAR_MAP[ch] !== undefined) {
@@ -54,7 +54,7 @@ function toWinAnsi(text: string): string {
   return out;
 }
 
-function escapePdf(text: string): string {
+export function escapePdf(text: string): string {
   let out = '';
   for (let i = 0; i < text.length; i += 1) {
     const code = text.charCodeAt(i);
@@ -90,13 +90,13 @@ function charWidth(ch: string, bold: boolean): number {
   return bold ? w * 1.07 : w;
 }
 
-function textWidth(text: string, size: number, bold: boolean): number {
+export function textWidth(text: string, size: number, bold: boolean): number {
   let total = 0;
   for (const ch of text) total += charWidth(ch, bold);
   return (total / 1000) * size;
 }
 
-function wrap(text: string, size: number, bold: boolean, maxWidth: number): string[] {
+export function wrap(text: string, size: number, bold: boolean, maxWidth: number): string[] {
   const lines: string[] = [];
   const paragraphs = toWinAnsi(text).split('\n');
   for (const paragraph of paragraphs) {

@@ -214,6 +214,11 @@ export type Project = {
   candidatesCount?: number;
   lastAction?: ProjectAction;
   nextAction?: ProjectNextAction;
+  /** Role (Roles & Succession) this project was created from, if any */
+  sourceRoleId?: string;
+  sourceRoleTitle?: string;
+  /** Candidates carried over from the source role's succession bench */
+  seedPipeline?: Array<Candidate & { projectStatus: string; dateAdded: string }>;
 };
 
 export type EmiSubWeights = {

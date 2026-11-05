@@ -18,6 +18,14 @@ import {
   Users
 } from 'lucide-react';
 import { Project, ProjectParameters, ProjectRoleLevel, ProjectWorkModel } from '../types';
+import {
+  PROJECT_METRO_OPTIONS,
+  PipelineSeedCandidate,
+  cleanRoleTitle,
+  findTrackedRole,
+  roleToProjectDraft,
+  trackedRoles,
+} from '../lib/roleProject';
 
 interface ProjectParametersModalProps {
   isOpen: boolean;
@@ -26,17 +34,7 @@ interface ProjectParametersModalProps {
   onSave: (project: Project) => void;
 }
 
-const DEFAULT_METROS = [
-  'San Francisco Bay Area',
-  'New York Metro Area',
-  'Seattle-Bellevue',
-  'Austin Metro',
-  'Boston-Cambridge',
-  'Washington DC Metro',
-  'Chicago Metro',
-  'London / UK',
-  'Remote (US / Global)'
-];
+const DEFAULT_METROS = PROJECT_METRO_OPTIONS;
 
 const COMMON_DOMAINS = [
   'Infrastructure & Cloud Computing',
@@ -53,6 +51,12 @@ export function ProjectParametersModal({ isOpen, onOpenChange, project, onSave }
 
   // Active parameter block tab for quick jumping
   const [activeBlock, setActiveBlock] = useState<number>(1);
+
+  // Start from a tracked role (Roles & Succession): populates details and carries over the succession bench
+  const [sourceRoleId, setSourceRoleId] = useState<string>('');
+  const [includeBench, setIncludeBench] = useState(true);
+  const [benchSeed, setBenchSeed] = useState<PipelineSeedCandidate[]>([]);
+  const sourceRole = findTrackedRole(sourceRoleId);
 
   // Block 0: Project Basics
   const [title, setTitle] = useState(project?.title || '');
@@ -167,6 +171,9 @@ export function ProjectParametersModal({ isOpen, onOpenChange, project, onSave }
       }
     } else {
       // Defaults for new project
+      setSourceRoleId('');
+      setIncludeBench(true);
+      setBenchSeed([]);
       setTitle('');
       setCompany('');
       setLeadRecruiter('Brian Stepan');
@@ -195,6 +202,47 @@ export function ProjectParametersModal({ isOpen, onOpenChange, project, onSave }
       setConfidentialityProtocol('Named Enterprise Search');
     }
   }, [project, isOpen]);
+
+  const applyRole = (roleId: string) => {
+    setSourceRoleId(roleId);
+    const role = findTrackedRole(roleId);
+    if (!role) {
+      setBenchSeed([]);
+      return;
+    }
+    const draft = roleToProjectDraft(role);
+    const prm = draft.parameters;
+    setTitle(draft.title);
+    setStage(draft.stage);
+    setDescription(draft.description);
+    setPrimaryTitle(prm.primaryTitle);
+    setEquivalentTitles(prm.equivalentTitles);
+    setRoleLevel(prm.roleLevel);
+    setFunctionalDomain(prm.functionalDomain);
+    setDomainKeywords(prm.domainKeywords);
+    setTargetBaseSalary(prm.targetBaseSalary);
+    setMaxBaseBudget(prm.maxBaseBudget);
+    setVariableOTE(prm.variableOTE);
+    setEquityGrantValue(prm.equityGrantValue);
+    setMaxTotalCompensationCeiling(prm.maxTotalCompensationCeiling);
+    setTargetCompanyStage(prm.targetCompanyStage);
+    setRequiredPandLScope(prm.requiredPandLScope);
+    setTeamHeadcountScale(prm.teamHeadcountScale);
+    setWorkModel(prm.workModel);
+    setHybridDaysPerWeek(prm.hybridDaysPerWeek || 3);
+    setTargetMetropolitanMarkets(prm.targetMetropolitanMarkets);
+    setRelocationWillingness(prm.relocationWillingness);
+    setTargetStartDate(prm.targetStartDate);
+    setMaxNoticePeriodTolerance(prm.maxNoticePeriodTolerance);
+    setConfidentialityProtocol(prm.confidentialityProtocol || 'Named Enterprise Search');
+    setBenchSeed(draft.bench);
+    setIncludeBench(true);
+  };
+
+  const clearRole = () => {
+    setSourceRoleId('');
+    setBenchSeed([]);
+  };
 
   // Tag helper
   const addEquivalentTitle = () => {
@@ -263,9 +311,22 @@ export function ProjectParametersModal({ isOpen, onOpenChange, project, onSave }
       status: status,
       createdAt: project?.createdAt || 'Oct 01, 2026',
       leadRecruiter: leadRecruiter,
-      candidatesCount: project?.candidatesCount || 18,
+      candidatesCount: !isEdit && sourceRole && includeBench ? benchSeed.length : project?.candidatesCount || 18,
       description: description.trim() || `In-house executive mandate for ${primaryTitle}.`,
-      parameters: finalParameters
+      parameters: finalParameters,
+      ...(isEdit
+        ? {
+            sourceRoleId: project?.sourceRoleId,
+            sourceRoleTitle: project?.sourceRoleTitle,
+            seedPipeline: project?.seedPipeline,
+          }
+        : sourceRole
+          ? {
+              sourceRoleId: sourceRole.id,
+              sourceRoleTitle: cleanRoleTitle(sourceRole.roleTitle),
+              seedPipeline: includeBench ? benchSeed : undefined,
+            }
+          : {}),
     };
 
     onSave(finalProject);
@@ -342,6 +403,105 @@ export function ProjectParametersModal({ isOpen, onOpenChange, project, onSave }
           {/* Form Body */}
           <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 space-y-8 bg-(--bg-neutral-minimal)">
             
+            {/* ================================================================= */}
+            {/* BLOCK 0: Start from a tracked role (create mode only) */}
+            {/* ================================================================= */}
+            {!isEdit && (
+              <div id="block-0" className="bg-white rounded-xl border border-slate-200 p-5 shadow-xs space-y-4">
+                <div className="flex items-center gap-2">
+                  <div className="w-7 h-7 rounded-lg bg-purple-50 text-purple-600 flex items-center justify-center">
+                    <Users className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-bold text-slate-900">Start from a tracked role</h3>
+                    <p className="text-[11px] text-slate-500">
+                      Is this search filling a position already tracked in Roles &amp; Succession? Select it to populate the project and carry over its succession bench.
+                    </p>
+                  </div>
+                </div>
+
+                <div>
+                  <label htmlFor="source-role" className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                    Role (optional)
+                  </label>
+                  <select
+                    id="source-role"
+                    value={sourceRoleId}
+                    onChange={e => applyRole(e.target.value)}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs font-semibold bg-white text-slate-800"
+                  >
+                    <option value="">None: set up the project manually</option>
+                    <optgroup label="Active requisitions">
+                      {trackedRoles
+                        .filter(r => r.type === 'active_requisition')
+                        .map(r => (
+                          <option key={r.id} value={r.id}>
+                            {cleanRoleTitle(r.roleTitle)} · {r.department} · {r.candidates.length} on bench
+                          </option>
+                        ))}
+                    </optgroup>
+                    <optgroup label="Succession benches">
+                      {trackedRoles
+                        .filter(r => r.type === 'succession_bench')
+                        .map(r => (
+                          <option key={r.id} value={r.id}>
+                            {cleanRoleTitle(r.roleTitle)} · {r.department} · {r.candidates.length} on bench
+                          </option>
+                        ))}
+                    </optgroup>
+                  </select>
+                </div>
+
+                {sourceRole && (
+                  <div className="rounded-lg border border-purple-200 bg-purple-50/60 p-4 space-y-3" role="status">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <div className="text-sm font-bold text-slate-900">
+                          Populated from {cleanRoleTitle(sourceRole.roleTitle)}
+                        </div>
+                        <div className="text-[11px] text-slate-600 mt-0.5">
+                          Hiring manager: {sourceRole.hiringManager}, {sourceRole.hiringManagerTitle} · Target date: {sourceRole.targetDate}
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={clearRole}
+                        className="text-xs font-semibold text-purple-700 hover:text-purple-900 shrink-0 cursor-pointer"
+                      >
+                        Clear role
+                      </button>
+                    </div>
+                    <div className="flex flex-wrap gap-1.5 text-[11px] font-semibold">
+                      {[sourceRole.department, sourceRole.level, sourceRole.priorityLevel, sourceRole.anchors.targetRevenueScale, sourceRole.anchors.geographicFlexibility].map(chip => (
+                        <span key={chip} className="px-2 py-0.5 rounded bg-white border border-purple-200 text-purple-800">
+                          {chip}
+                        </span>
+                      ))}
+                    </div>
+                    <label className="flex items-start gap-2.5 text-xs text-slate-800 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={includeBench}
+                        onChange={e => setIncludeBench(e.target.checked)}
+                        className="mt-0.5 w-4 h-4 accent-(--color-secondary-200)"
+                      />
+                      <span>
+                        <span className="font-semibold">
+                          Add the succession bench to this project ({benchSeed.length} candidate{benchSeed.length === 1 ? '' : 's'})
+                        </span>
+                        <span className="block text-[11px] text-slate-500 mt-0.5">
+                          Bench candidates are added to the project pipeline with their EMI scores, and warm outreach stages carry over.
+                        </span>
+                      </span>
+                    </label>
+                    <p className="text-[11px] text-slate-500">
+                      Review and adjust any populated field below before creating the project.
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* ================================================================= */}
             {/* BLOCK 1: Role & Leveling Baseline */}
             {/* ================================================================= */}

@@ -14,6 +14,8 @@ import { ExecutiveLandingView } from './components/ExecutiveLandingView';
 import { RolesSuccessionView } from './components/roles/RolesSuccessionView';
 import { JobsView } from './components/jobs/JobsView';
 import { DealRoomsDashboard } from './components/dealrooms/DealRoomsDashboard';
+import { AnalyticsView } from './components/analytics/AnalyticsView';
+import { TooltipLayer } from './components/TooltipLayer';
 import { RestrictedProvider } from './context/RestrictedContext';
 import { AgentConfigProvider } from './context/AgentConfigContext';
 import { InterviewFeedbackProvider } from './context/InterviewFeedbackContext';
@@ -59,6 +61,8 @@ function AppContent() {
             onNavigateCandidate={(candId) => router.setCandidateId(candId)} 
           />
         );
+      case 'analytics':
+        return <AnalyticsView />;
       default:
         return <ExecutiveLandingView onNavigateView={handleNavigateView} />;
     }
@@ -76,6 +80,7 @@ function AppContent() {
           {renderContent()}
         </main>
       </div>
+      <TooltipLayer />
     </div>
   );
 }

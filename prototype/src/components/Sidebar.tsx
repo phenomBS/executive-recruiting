@@ -19,10 +19,11 @@ import {
   Handshake, 
   Target,
   Layers,
+  BarChart3,
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 
-export type View = 'home' | 'candidates' | 'jobs' | 'projects' | 'companies' | 'agents' | 'roles' | 'dealrooms';
+export type View = 'home' | 'candidates' | 'jobs' | 'projects' | 'companies' | 'agents' | 'roles' | 'dealrooms' | 'analytics';
 
 interface SidebarProps {
   currentView: View;
@@ -39,19 +40,20 @@ export function Sidebar({ currentView, onViewChange }: SidebarProps) {
     { icon: Briefcase, id: 'jobs', label: 'Jobs' },
     { icon: Handshake, id: 'dealrooms', label: 'Opportunity Rooms' },
     { icon: Bot, id: 'agents', label: 'Agents' },
+    { icon: BarChart3, id: 'analytics', label: 'Analytics' },
   ];
 
   const otherIcons = [
-    { icon: List, id: 'lists' },
-    { icon: Megaphone, id: 'campaigns' },
-    { icon: MessageSquare, id: 'messages' },
-    { icon: Calendar, id: 'calendar' },
-    { icon: Users, id: 'people' },
-    { icon: Network, id: 'org' },
-    { icon: ShieldCheck, id: 'shield' },
-    { icon: FileText, id: 'docs' },
-    { icon: CheckSquare, id: 'tasks' },
-    { icon: Target, id: 'goals' },
+    { icon: List, id: 'lists', label: 'Lists' },
+    { icon: Megaphone, id: 'campaigns', label: 'Campaigns' },
+    { icon: MessageSquare, id: 'messages', label: 'Messages' },
+    { icon: Calendar, id: 'calendar', label: 'Calendar' },
+    { icon: Users, id: 'people', label: 'People' },
+    { icon: Network, id: 'org', label: 'Org Charts' },
+    { icon: ShieldCheck, id: 'shield', label: 'Compliance' },
+    { icon: FileText, id: 'docs', label: 'Documents' },
+    { icon: CheckSquare, id: 'tasks', label: 'Tasks' },
+    { icon: Target, id: 'goals', label: 'Goals' },
   ];
 
   return (
@@ -73,7 +75,10 @@ export function Sidebar({ currentView, onViewChange }: SidebarProps) {
             <button
               key={id}
               onClick={() => onViewChange(id as View)}
-              title={label}
+              data-tooltip={label}
+              data-tooltip-placement="right"
+              aria-label={label}
+              aria-current={active ? 'page' : undefined}
               className={cn(
                 "w-10 h-10 rounded-xl flex items-center justify-center transition-colors relative group",
                 active
@@ -90,9 +95,12 @@ export function Sidebar({ currentView, onViewChange }: SidebarProps) {
       <div className="w-8 h-px bg-slate-200 my-2" />
 
       <div className="flex flex-col gap-2 w-full items-center">
-        {otherIcons.map(({ icon: Icon, id }) => (
+        {otherIcons.map(({ icon: Icon, id, label }) => (
           <button
             key={id}
+            data-tooltip={label}
+            data-tooltip-placement="right"
+            aria-label={label}
             className="w-10 h-10 rounded-xl flex items-center justify-center transition-colors relative group text-(--components-sidebar-navigation-menu-item-icon-default) hover:bg-(--components-sidebar-navigation-menu-item-bg-hover) hover:text-(--components-sidebar-navigation-menu-item-icon-active)"
           >
             <Icon className="w-5 h-5 stroke-[1.5]" />

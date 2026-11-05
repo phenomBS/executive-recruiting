@@ -444,7 +444,15 @@ export function ProjectCandidatesTab({ project, pipeline: pipelineProp, onPipeli
                     return (
                       <tr
                         key={candidate.id}
-                        onClick={() => router.navigateToView('candidates', { candidateId: candidate.id })}
+                        onClick={() => {
+                          const hasProfile = [...mockCandidates, ...mockRecommendedCandidates].some(c => c.id === candidate.id);
+                          // Bench candidates carried over from a tracked role live in that role's shadow bench
+                          if (!hasProfile && project?.sourceRoleId) {
+                            router.navigateToView('roles', { roleId: project.sourceRoleId });
+                          } else {
+                            router.navigateToView('candidates', { candidateId: candidate.id });
+                          }
+                        }}
                         className={cn(
                           "hover:bg-slate-50/80 cursor-pointer transition-colors group",
                           isSelected && "bg-purple-50/40"
