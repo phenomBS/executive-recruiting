@@ -28,6 +28,7 @@ import { RoleHealthBreakdownWidget } from './landing/RoleHealthBreakdownWidget';
 import { OpportunityRoomsWorkflowWidget } from './landing/OpportunityRoomsWorkflowWidget';
 import { ProjectsWorkflowWidget } from './landing/ProjectsWorkflowWidget';
 import { RecommendationsWidget } from './landing/RecommendationsWidget';
+import { ProfileUpdatesWidget } from './landing/ProfileUpdatesWidget';
 import { PhenomAuraPromptBar } from './landing/PhenomAuraPromptBar';
 import { 
   FeedbackReminderModal, 
@@ -283,6 +284,12 @@ export function ExecutiveLandingView({ onNavigateView }: ExecutiveLandingViewPro
             </p>
           </div>
         </div>
+
+        {/* AGENT PROFILE UPDATES FOR REVIEW (profiles already in the CRM) */}
+        <ProfileUpdatesWidget
+          onSelectCandidate={(candidateId) => onNavigateView('candidates', { candidateId })}
+          onNotify={showToast}
+        />
 
         {/* WORKFLOW SECTION 1: RECOMMENDED CANDIDATE & COMPANIES TO ADD (Top-priority workflow recommendations) */}
         <div>

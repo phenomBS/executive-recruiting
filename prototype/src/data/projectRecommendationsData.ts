@@ -1,6 +1,5 @@
 import { Project } from '../types';
 import { initialDirectoryCandidates, DirectoryCandidate } from './candidateDirectoryData';
-import { initialDirectoryCompanies, DirectoryCompany } from './companyDirectoryData';
 import { mockCandidates } from './mockData';
 
 export interface ProjectExecutiveRecommendation {
@@ -34,27 +33,8 @@ export interface ProjectExecutiveRecommendation {
   originalCandidate?: any;
 }
 
-export interface ProjectCompanyRecommendation {
-  id: string;
-  name: string;
-  industry: string;
-  stage: string;
-  size: string;
-  headquarters: string;
-  website: string;
-  fitRationale: string;
-  tier: 'Tier 1 Talent Source' | 'High Churn / High Mobility' | 'Enterprise Scale' | 'High-Growth Challenger';
-  mobilitySignal: string;
-  relevantCandidatesCount: number;
-  matchScore: number;
-  keyHighlights: string[];
-  status: 'recommended' | 'added_to_map';
-  originalCompany?: any;
-}
-
 export interface ProjectRecommendationsResult {
   executives: ProjectExecutiveRecommendation[];
-  companies: ProjectCompanyRecommendation[];
   totalCount: number;
   highFitCount: number;
   averageMatchScore: number;
@@ -539,253 +519,14 @@ export function getRecommendationsForProject(project: Project): ProjectRecommend
     ];
   }
 
-  // 2. GENERATE TARGET COMPANY RECOMMENDATIONS
-  let companies: ProjectCompanyRecommendation[] = [];
 
-  if (isFinance) {
-    companies = [
-      {
-        id: 'rec-comp-fin-1',
-        name: 'Stripe',
-        industry: 'Financial Technology & Payments',
-        stage: 'Pre-IPO Unicorn',
-        size: '5,001-10,000 employees',
-        headquarters: 'South San Francisco, CA',
-        website: 'stripe.com',
-        fitRationale: 'Premier talent incubator for pre-IPO CFOs, VP FP&A, and treasury executives. 4+ recent finance VP departures indicate ripe recruitment window.',
-        tier: 'Tier 1 Talent Source',
-        mobilitySignal: '94% Mobility Indicator • 4 Recent Finance Departures',
-        relevantCandidatesCount: 16,
-        matchScore: 98,
-        keyHighlights: ['Top-Tier Pre-IPO Finance Org', 'Global Treasury Depth', 'S-1 Preparation Experience'],
-        status: 'recommended'
-      },
-      {
-        id: 'rec-comp-fin-2',
-        name: 'Databricks',
-        industry: 'Data & Analytics',
-        stage: 'Pre-IPO Unicorn',
-        size: '5,001-10,000 employees',
-        headquarters: 'San Francisco, CA',
-        website: 'databricks.com',
-        fitRationale: 'Hypergrowth enterprise SaaS scaling model ($2B+ ARR). Finance directors have mastered consumption-based revenue modeling and investor roadshows.',
-        tier: 'High Churn / High Mobility',
-        mobilitySignal: '92% Mobility Indicator • Structurally Blocked Number-Twos',
-        relevantCandidatesCount: 14,
-        matchScore: 96,
-        keyHighlights: ['Consumption Revenue Accounting', 'Multi-Product ARR', 'Top Equity Comp Parity'],
-        status: 'recommended'
-      },
-      {
-        id: 'rec-comp-fin-3',
-        name: 'Plaid',
-        industry: 'Financial Technology & Payments',
-        stage: 'Pre-IPO Unicorn',
-        size: '1,001-5,000 employees',
-        headquarters: 'San Francisco, CA',
-        website: 'plaid.com',
-        fitRationale: 'Elite financial infrastructure talent pool. High tenure saturation (average 4.1 years) creating prime timing for senior finance exits.',
-        tier: 'High Churn / High Mobility',
-        mobilitySignal: '90% Mobility Indicator • 4-Year Cliff Vesting Window',
-        relevantCandidatesCount: 10,
-        matchScore: 94,
-        keyHighlights: ['Banking & Fintech Regulatory', 'Strategic M&A Team', 'Venture-Backed Capital Depth'],
-        status: 'recommended'
-      },
-      {
-        id: 'rec-comp-fin-4',
-        name: 'Snowflake',
-        industry: 'Cloud Infrastructure & DevOps',
-        stage: 'Public Enterprise ($1B-$10B)',
-        size: '5,001-10,000 employees',
-        headquarters: 'Bozeman, MT / San Mateo, CA',
-        website: 'snowflake.com',
-        fitRationale: 'Public SaaS corporate governance gold standard. High-caliber VP-level corporate controllers and FP&A leads looking for first CFO appointments.',
-        tier: 'Enterprise Scale',
-        mobilitySignal: '89% Mobility Indicator • Leadership Step-Up Appetite',
-        relevantCandidatesCount: 12,
-        matchScore: 92,
-        keyHighlights: ['Public SOX Internal Controls', 'Investor Relations Bench', 'Top Gross Margin Rigor'],
-        status: 'recommended'
-      },
-      {
-        id: 'rec-comp-fin-5',
-        name: 'Brex',
-        industry: 'Financial Technology & Payments',
-        stage: 'Pre-IPO Unicorn',
-        size: '1,001-5,000 employees',
-        headquarters: 'San Francisco, CA',
-        website: 'brex.com',
-        fitRationale: 'Modern corporate card & spend management finance leadership. High organizational mobility post-restructuring makes executives receptive.',
-        tier: 'High-Growth Challenger',
-        mobilitySignal: '93% Mobility Indicator • High Receptivity to Inbound Outreach',
-        relevantCandidatesCount: 8,
-        matchScore: 90,
-        keyHighlights: ['Spend Governance Platform', 'Rapid Headcount Scaling', 'Direct Enterprise Sales FP&A'],
-        status: 'recommended'
-      }
-    ];
-  } else if (isEngineering) {
-    companies = [
-      {
-        id: 'rec-comp-eng-1',
-        name: 'Anthropic',
-        industry: 'Advanced Computing & Systems',
-        stage: 'Pre-IPO Unicorn',
-        size: '1,001-5,000 employees',
-        headquarters: 'San Francisco, CA',
-        website: 'anthropic.com',
-        fitRationale: 'World-class AI systems and compute infrastructure research org. Significant executive churn and rapid scaling makes senior directors approachable.',
-        tier: 'Tier 1 Talent Source',
-        mobilitySignal: '96% Mobility Indicator • 6 Recent Leadership Changes',
-        relevantCandidatesCount: 22,
-        matchScore: 98,
-        keyHighlights: ['Frontier GPU Cluster Orchestration', 'Distributed Inference Systems', 'Constitutional AI Scaling'],
-        status: 'recommended'
-      },
-      {
-        id: 'rec-comp-eng-2',
-        name: 'Datadog',
-        industry: 'Cloud Infrastructure & DevOps',
-        stage: 'Public Enterprise ($1B-$10B)',
-        size: '5,001-10,000 employees',
-        headquarters: 'New York, NY / Austin, TX',
-        website: 'datadoghq.com',
-        fitRationale: 'Industry benchmark for distributed observability, high-concurrency ingestion pipelines, and multi-cloud Kubernetes reliability.',
-        tier: 'Enterprise Scale',
-        mobilitySignal: '93% Mobility Indicator • Tenured Engineering Directors Ready for Step-Up',
-        relevantCandidatesCount: 18,
-        matchScore: 96,
-        keyHighlights: ['High-Throughput Streaming', 'Kubernetes Core Infrastructure', 'Austin & NY Engineering Hubs'],
-        status: 'recommended'
-      },
-      {
-        id: 'rec-comp-eng-3',
-        name: 'Snowflake',
-        industry: 'Cloud Infrastructure & DevOps',
-        stage: 'Public Enterprise ($1B-$10B)',
-        size: '5,001-10,000 employees',
-        headquarters: 'San Mateo, CA',
-        website: 'snowflake.com',
-        fitRationale: 'Distributed storage, database kernel, and query compiler engineering excellence. Excellent source for infrastructure VPs.',
-        tier: 'Tier 1 Talent Source',
-        mobilitySignal: '91% Mobility Indicator • Post-Acquisition Reorganization',
-        relevantCandidatesCount: 19,
-        matchScore: 94,
-        keyHighlights: ['Multi-Cloud Database Kernels', 'Tier-1 Reliability Track Record', 'SF Bay Area Concentration'],
-        status: 'recommended'
-      },
-      {
-        id: 'rec-comp-eng-4',
-        name: 'Cloudflare',
-        industry: 'Cybersecurity & Network Defense',
-        stage: 'Public Enterprise ($1B-$10B)',
-        size: '5,001-10,000 employees',
-        headquarters: 'San Francisco, CA / Austin, TX',
-        website: 'cloudflare.com',
-        fitRationale: 'Global edge compute network with ultra-low latency requirements. Deep bench of systems engineers and infrastructure leadership.',
-        tier: 'Enterprise Scale',
-        mobilitySignal: '90% Mobility Indicator • 4-Year Stock Cliff Exits',
-        relevantCandidatesCount: 14,
-        matchScore: 92,
-        keyHighlights: ['Edge Computing & Anycast Routing', 'Distributed Systems Security', 'Global Scale Operations'],
-        status: 'recommended'
-      },
-      {
-        id: 'rec-comp-eng-5',
-        name: 'OpenAI',
-        industry: 'Advanced Computing & Systems',
-        stage: 'Pre-IPO Unicorn',
-        size: '1,001-5,000 employees',
-        headquarters: 'San Francisco, CA',
-        website: 'openai.com',
-        fitRationale: 'High organizational restructuring over past 6 months. Key infrastructure and reliability leaders actively receptive to senior external VP roles.',
-        tier: 'High Churn / High Mobility',
-        mobilitySignal: '97% Mobility Indicator • High Leadership Churn Rate',
-        relevantCandidatesCount: 17,
-        matchScore: 91,
-        keyHighlights: ['Frontier Model Training Clusters', 'Custom Compute Architecture', 'Top Engineering Brand'],
-        status: 'recommended'
-      }
-    ];
-  } else {
-    // Product or generic search
-    companies = [
-      {
-        id: 'rec-comp-gen-1',
-        name: 'Databricks',
-        industry: 'Data & Analytics',
-        stage: 'Pre-IPO Unicorn',
-        size: '5,001-10,000 employees',
-        headquarters: 'San Francisco, CA',
-        website: 'databricks.com',
-        fitRationale: 'Proven enterprise product-led growth model. Product VPs hold deep enterprise developer platform and platform monetization pedigree.',
-        tier: 'Tier 1 Talent Source',
-        mobilitySignal: '94% Mobility Indicator • Structurally Blocked Number-Twos',
-        relevantCandidatesCount: 15,
-        matchScore: 97,
-        keyHighlights: ['Enterprise Platform Product', 'Product-Led Monetization', 'Pre-IPO Scale'],
-        status: 'recommended'
-      },
-      {
-        id: 'rec-comp-gen-2',
-        name: 'Figma',
-        industry: 'Enterprise B2B SaaS',
-        stage: 'Pre-IPO Unicorn',
-        size: '1,001-5,000 employees',
-        headquarters: 'San Francisco, CA',
-        website: 'figma.com',
-        fitRationale: 'Gold standard for collaborative product craftsmanship and enterprise viral adoption loops. Post-deal transition creates leadership openness.',
-        tier: 'High Churn / High Mobility',
-        mobilitySignal: '92% Mobility Indicator • Post-Acquisition Departure Wave',
-        relevantCandidatesCount: 12,
-        matchScore: 95,
-        keyHighlights: ['Viral Enterprise Land & Expand', 'Design-Driven Engineering', 'SF Tech Magnet'],
-        status: 'recommended'
-      },
-      {
-        id: 'rec-comp-gen-3',
-        name: 'Anthropic',
-        industry: 'Advanced Computing & Systems',
-        stage: 'Pre-IPO Unicorn',
-        size: '1,001-5,000 employees',
-        headquarters: 'San Francisco, CA',
-        website: 'anthropic.com',
-        fitRationale: 'Explosive enterprise customer adoption creates rapid product team evolution. High leadership mobility across enterprise product suites.',
-        tier: 'High Churn / High Mobility',
-        mobilitySignal: '95% Mobility Indicator • Rapid Expansion Phase',
-        relevantCandidatesCount: 14,
-        matchScore: 93,
-        keyHighlights: ['Enterprise API Platform', 'Safety & Governance Productization', 'High Mobility Indicator'],
-        status: 'recommended'
-      },
-      {
-        id: 'rec-comp-gen-4',
-        name: 'Canva',
-        industry: 'Enterprise B2B SaaS',
-        stage: 'Pre-IPO Unicorn',
-        size: '1,001-5,000 employees',
-        headquarters: 'Sydney / San Francisco / New York',
-        website: 'canva.com',
-        fitRationale: 'Scaled global SaaS platform transitioning into enterprise workspaces with AI productivity integrations.',
-        tier: 'High-Growth Challenger',
-        mobilitySignal: '89% Mobility Indicator • 4-Year Cliff Vesting Window',
-        relevantCandidatesCount: 9,
-        matchScore: 90,
-        keyHighlights: ['Global Scale Product Growth', 'AI Studio Workflows', 'B2B Enterprise Expansion'],
-        status: 'recommended'
-      }
-    ];
-  }
-
-  const totalCount = executives.length + companies.length;
-  const highFitCount = executives.filter(e => e.matchScore >= 95).length + companies.filter(c => c.matchScore >= 95).length;
-  const totalScore = executives.reduce((sum, e) => sum + e.matchScore, 0) + companies.reduce((sum, c) => sum + c.matchScore, 0);
+  const totalCount = executives.length;
+  const highFitCount = executives.filter(e => e.matchScore >= 95).length;
+  const totalScore = executives.reduce((sum, e) => sum + e.matchScore, 0);
   const averageMatchScore = Math.round(totalScore / (totalCount || 1));
 
   return {
     executives,
-    companies,
     totalCount,
     highFitCount,
     averageMatchScore

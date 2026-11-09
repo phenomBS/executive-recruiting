@@ -2,18 +2,13 @@ import React, { useState, useMemo } from 'react';
 import { Project } from '../../types';
 import { 
   getRecommendationsForProject, 
-  ProjectExecutiveRecommendation, 
-  ProjectCompanyRecommendation 
+  ProjectExecutiveRecommendation
 } from '../../data/projectRecommendationsData';
 import { 
   Sparkles, 
   Users, 
-  Building2, 
-  Search, 
-  Filter, 
   Check, 
   UserPlus, 
-  PlusCircle, 
   Flame, 
   MapPin, 
   Briefcase, 
@@ -24,7 +19,6 @@ import {
   CheckSquare, 
   Square, 
   X, 
-  SlidersHorizontal,
   ChevronRight,
   Info,
   Clock,
@@ -37,13 +31,11 @@ import { useRestricted } from '../../context/RestrictedContext';
 interface ProjectRecommendationsTabProps {
   project: Project;
   onCandidateAdded?: (candidate: ProjectExecutiveRecommendation) => void;
-  onCompanyAdded?: (company: ProjectCompanyRecommendation) => void;
 }
 
 export function ProjectRecommendationsTab({ 
   project, 
-  onCandidateAdded, 
-  onCompanyAdded 
+  onCandidateAdded
 }: ProjectRecommendationsTabProps) {
   const { restrictedCompanies } = useRestricted();
   
@@ -52,19 +44,10 @@ export function ProjectRecommendationsTab({
 
   // Local state for tracking added status and bulk actions
   const [executivesList, setExecutivesList] = useState<ProjectExecutiveRecommendation[]>(initialData.executives);
-  const [companiesList, setCompaniesList] = useState<ProjectCompanyRecommendation[]>(initialData.companies);
   const [pipelinedExecIds, setPipelinedExecIds] = useState<Set<string>>(new Set());
-  const [mappedCompanyIds, setMappedCompanyIds] = useState<Set<string>>(new Set());
   
   // Selection state for bulk operations
   const [selectedExecIds, setSelectedExecIds] = useState<Set<string>>(new Set());
-  const [selectedCompIds, setSelectedCompIds] = useState<Set<string>>(new Set());
-
-  // Search & filter state
-  const [searchQuery, setSearchQuery] = useState('');
-  const [activeFilter, setActiveFilter] = useState<'all' | 'executives' | 'companies'>('all');
-  const [minFitScore, setMinFitScore] = useState<number>(0); // 0 = all, 95 = top fit
-  const [mobilityOnly, setMobilityOnly] = useState<boolean>(false);
 
   // Toast feedback
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -78,41 +61,11 @@ export function ProjectRecommendationsTab({
     return restrictedCompanies.some(rc => rc.name.trim().toLowerCase() === name.trim().toLowerCase());
   };
 
-  // Filtered lists
-  const filteredExecutives = useMemo(() => {
-    return executivesList.filter(exec => {
-      if (isCompanyRestricted(exec.company)) return false;
-      if (minFitScore > 0 && exec.matchScore < minFitScore) return false;
-      if (mobilityOnly && !exec.mobilitySignal.toLowerCase().includes('high') && !exec.mobilitySignal.includes('9')) return false;
-      if (searchQuery.trim()) {
-        const q = searchQuery.toLowerCase();
-        const matchesName = exec.name.toLowerCase().includes(q);
-        const matchesRole = exec.role.toLowerCase().includes(q);
-        const matchesComp = exec.company.toLowerCase().includes(q);
-        const matchesLoc = exec.location.toLowerCase().includes(q);
-        const matchesRationale = exec.fitRationale.toLowerCase().includes(q);
-        if (!matchesName && !matchesRole && !matchesComp && !matchesLoc && !matchesRationale) return false;
-      }
-      return true;
-    });
-  }, [executivesList, minFitScore, mobilityOnly, searchQuery, restrictedCompanies]);
-
-  const filteredCompanies = useMemo(() => {
-    return companiesList.filter(comp => {
-      if (isCompanyRestricted(comp.name)) return false;
-      if (minFitScore > 0 && comp.matchScore < minFitScore) return false;
-      if (mobilityOnly && !comp.mobilitySignal.toLowerCase().includes('high') && !comp.mobilitySignal.includes('9')) return false;
-      if (searchQuery.trim()) {
-        const q = searchQuery.toLowerCase();
-        const matchesName = comp.name.toLowerCase().includes(q);
-        const matchesInd = comp.industry.toLowerCase().includes(q);
-        const matchesHQ = comp.headquarters.toLowerCase().includes(q);
-        const matchesRationale = comp.fitRationale.toLowerCase().includes(q);
-        if (!matchesName && !matchesInd && !matchesHQ && !matchesRationale) return false;
-      }
-      return true;
-    });
-  }, [companiesList, minFitScore, mobilityOnly, searchQuery, restrictedCompanies]);
+  // Visible recommendations (executives at restricted companies are never shown)
+  const filteredExecutives = useMemo(
+    () => executivesList.filter(exec => !isCompanyRestricted(exec.company)),
+    [executivesList, restrictedCompanies]
+  );
 
   // Handlers for single adds
   const handleAddExecutiveToPipeline = (exec: ProjectExecutiveRecommendation, e?: React.MouseEvent) => {
@@ -120,13 +73,6 @@ export function ProjectRecommendationsTab({
     setPipelinedExecIds(prev => new Set(prev).add(exec.id));
     if (onCandidateAdded) onCandidateAdded(exec);
     showToast(`Added ${exec.name} (${exec.role} at ${exec.company}) to Project Candidate Pipeline!`);
-  };
-
-  const handleAddCompanyToMarketMap = (comp: ProjectCompanyRecommendation, e?: React.MouseEvent) => {
-    if (e) e.stopPropagation();
-    setMappedCompanyIds(prev => new Set(prev).add(comp.id));
-    if (onCompanyAdded) onCompanyAdded(comp);
-    showToast(`Added ${comp.name} to Project Market Map targets!`);
   };
 
   // Toggle selection
@@ -139,59 +85,27 @@ export function ProjectRecommendationsTab({
     });
   };
 
-  const toggleSelectComp = (id: string) => {
-    setSelectedCompIds(prev => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  };
-
   // Bulk actions
-  const totalSelectedCount = selectedExecIds.size + selectedCompIds.size;
+  const totalSelectedCount = selectedExecIds.size;
 
   const handleBulkAddToProject = () => {
-    if (selectedExecIds.size > 0) {
-      setPipelinedExecIds(prev => {
-        const next = new Set(prev);
-        selectedExecIds.forEach(id => next.add(id));
-        return next;
-      });
-    }
-    if (selectedCompIds.size > 0) {
-      setMappedCompanyIds(prev => {
-        const next = new Set(prev);
-        selectedCompIds.forEach(id => next.add(id));
-        return next;
-      });
-    }
-
-    const execCount = selectedExecIds.size;
-    const compCount = selectedCompIds.size;
+    const count = selectedExecIds.size;
+    setPipelinedExecIds(prev => {
+      const next = new Set(prev);
+      selectedExecIds.forEach(id => next.add(id));
+      return next;
+    });
     setSelectedExecIds(new Set());
-    setSelectedCompIds(new Set());
-
-    showToast(`Successfully added ${execCount} executive${execCount === 1 ? '' : 's'} and ${compCount} target compan${compCount === 1 ? 'y' : 'ies'} to project!`);
+    showToast(`Added ${count} candidate${count === 1 ? '' : 's'} to the project pipeline.`);
   };
 
   const handleSelectAllVisible = () => {
-    if (activeFilter === 'all' || activeFilter === 'executives') {
-      const allExecIds = new Set(filteredExecutives.map(e => e.id));
-      setSelectedExecIds(allExecIds);
-    }
-    if (activeFilter === 'all' || activeFilter === 'companies') {
-      const allCompIds = new Set(filteredCompanies.map(c => c.id));
-      setSelectedCompIds(allCompIds);
-    }
+    setSelectedExecIds(new Set(filteredExecutives.map(e => e.id)));
   };
 
   const handleClearSelection = () => {
     setSelectedExecIds(new Set());
-    setSelectedCompIds(new Set());
   };
-
-  const totalVisibleCount = (activeFilter === 'all' ? filteredExecutives.length + filteredCompanies.length : activeFilter === 'executives' ? filteredExecutives.length : filteredCompanies.length);
 
   return (
     <div className="flex flex-col gap-6 max-w-7xl mx-auto w-full pb-28 relative">
@@ -214,7 +128,7 @@ export function ProjectRecommendationsTab({
           <div className="flex items-center gap-2.5 flex-wrap">
             <span className="px-3 py-1 rounded-full text-[11px] font-bold tracking-wider bg-purple-500/20 text-purple-300 border border-purple-500/30 uppercase flex items-center gap-1.5">
               <Sparkles className="w-3.5 h-3.5 text-purple-400" />
-              Master Graph AI Match Engine
+              Agent Discovery
             </span>
             <span className="text-slate-400 text-xs">•</span>
             <span className="text-xs text-slate-300 font-medium">
@@ -230,146 +144,12 @@ export function ProjectRecommendationsTab({
             )}
           </div>
 
-          <h2 className="text-2xl lg:text-3xl font-extrabold tracking-tight">
-            Master Graph Recommendations for this Mandate
+          <h2 className="text-2xl lg:text-3xl font-extrabold tracking-tight text-(--text-inverse)!">
+            Agent-Discovered Candidates for this Mandate
           </h2>
           <p className="text-sm text-slate-300 max-w-3xl leading-relaxed">
-            Autonomous discovery across the master graph matching target functional scope, level step-up deltas, compensation parity, and real-time propensity-to-move (PTM) inflection points.
+            While researching market data, the agent found these profiles and matched them to this project's scope, level and compensation. Review each profile and add the right people to the project pipeline.
           </p>
-        </div>
-
-        {/* Quick Stats Grid */}
-        <div className="grid grid-cols-3 gap-3 bg-slate-900/80 p-3.5 rounded-xl border border-slate-800 shrink-0 text-center">
-          <div className="px-3 py-1">
-            <div className="text-2xl font-black text-purple-400">{initialData.totalCount}</div>
-            <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mt-0.5">Total Recs</div>
-          </div>
-          <div className="px-3 py-1 border-x border-slate-800">
-            <div className="text-2xl font-black text-emerald-400">{initialData.executives.length}</div>
-            <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mt-0.5">Executives</div>
-          </div>
-          <div className="px-3 py-1">
-            <div className="text-2xl font-black text-blue-400">{initialData.companies.length}</div>
-            <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mt-0.5">Target Orgs</div>
-          </div>
-        </div>
-      </div>
-
-      {/* Filter and View Controls Bar */}
-      <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
-        {/* Left: Subtabs */}
-        <div className="flex items-center gap-2 p-1 bg-slate-100/80 rounded-xl w-fit">
-          <button
-            onClick={() => setActiveFilter('all')}
-            className={cn(
-              "px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-2 cursor-pointer",
-              activeFilter === 'all'
-                ? "bg-white text-slate-900 shadow-xs"
-                : "text-slate-600 hover:text-slate-900"
-            )}
-          >
-            <Sparkles className="w-3.5 h-3.5 text-purple-600" />
-            <span>All Recommendations</span>
-            <span className={cn(
-              "px-2 py-0.5 rounded-full text-[10px] font-extrabold",
-              activeFilter === 'all' ? "bg-purple-100 text-purple-700" : "bg-slate-200 text-slate-600"
-            )}>
-              {executivesList.length + companiesList.length}
-            </span>
-          </button>
-
-          <button
-            onClick={() => setActiveFilter('executives')}
-            className={cn(
-              "px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-2 cursor-pointer",
-              activeFilter === 'executives'
-                ? "bg-white text-slate-900 shadow-xs"
-                : "text-slate-600 hover:text-slate-900"
-            )}
-          >
-            <Users className="w-3.5 h-3.5 text-emerald-600" />
-            <span>Executives</span>
-            <span className={cn(
-              "px-2 py-0.5 rounded-full text-[10px] font-extrabold",
-              activeFilter === 'executives' ? "bg-emerald-100 text-emerald-700" : "bg-slate-200 text-slate-600"
-            )}>
-              {executivesList.length}
-            </span>
-          </button>
-
-          <button
-            onClick={() => setActiveFilter('companies')}
-            className={cn(
-              "px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-2 cursor-pointer",
-              activeFilter === 'companies'
-                ? "bg-white text-slate-900 shadow-xs"
-                : "text-slate-600 hover:text-slate-900"
-            )}
-          >
-            <Building2 className="w-3.5 h-3.5 text-blue-600" />
-            <span>Target Companies</span>
-            <span className={cn(
-              "px-2 py-0.5 rounded-full text-[10px] font-extrabold",
-              activeFilter === 'companies' ? "bg-blue-100 text-blue-700" : "bg-slate-200 text-slate-600"
-            )}>
-              {companiesList.length}
-            </span>
-          </button>
-        </div>
-
-        {/* Right: Search, Fit Score Filter & Selection Toggle */}
-        <div className="flex items-center gap-3 flex-wrap">
-          <div className="relative">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={e => setSearchQuery(e.target.value)}
-              placeholder="Search recommendations..."
-              className="pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs w-48 lg:w-60 focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500"
-            />
-            {searchQuery && (
-              <button 
-                onClick={() => setSearchQuery('')}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs font-bold"
-              >
-                ✕
-              </button>
-            )}
-          </div>
-
-          {/* Fit Score Dropdown */}
-          <select
-            value={minFitScore}
-            onChange={e => setMinFitScore(Number(e.target.value))}
-            className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 focus:outline-none focus:border-purple-500"
-          >
-            <option value="0">All Match Scores</option>
-            <option value="95">95%+ Strong Fit Only</option>
-            <option value="90">90%+ High Fit</option>
-          </select>
-
-          <button
-            type="button"
-            onClick={() => setMobilityOnly(!mobilityOnly)}
-            className={cn(
-              "px-3 py-2 rounded-xl text-xs font-semibold border transition-all flex items-center gap-1.5 cursor-pointer",
-              mobilityOnly
-                ? "bg-amber-50 border-amber-300 text-amber-800"
-                : "bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100"
-            )}
-          >
-            <Flame className="w-3.5 h-3.5 text-amber-500" />
-            <span>High Mobility Only</span>
-          </button>
-
-          <button
-            onClick={handleSelectAllVisible}
-            className="px-3 py-2 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 transition-colors flex items-center gap-1.5 cursor-pointer"
-          >
-            <CheckSquare className="w-3.5 h-3.5 text-purple-600" />
-            <span>Select All</span>
-          </button>
         </div>
       </div>
 
@@ -378,7 +158,7 @@ export function ProjectRecommendationsTab({
         {/* ========================================================================= */}
         {/* EXECUTIVES SECTION */}
         {/* ========================================================================= */}
-        {(activeFilter === 'all' || activeFilter === 'executives') && (
+        {(
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2.5">
@@ -387,29 +167,34 @@ export function ProjectRecommendationsTab({
                 </div>
                 <div>
                   <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
-                    Recommended Executives in Master Graph
+                    Candidates Found by the Agent
                     <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800">
-                      {filteredExecutives.length} Matches
+                      {filteredExecutives.length} Candidates
                     </span>
                   </h3>
                   <p className="text-xs text-slate-500">
-                    Executives determined to possess high step-up delta, structural domain overlap, and active mobility inflection timing.
+                    Profiles the agent surfaced from market research that fit this project's details.
                   </p>
                 </div>
               </div>
 
               {filteredExecutives.length > 0 && (
-                <span className="text-xs text-slate-400 font-medium hidden sm:inline-block">
-                  Sorted by Match Score & PTM Index
-                </span>
+                <div className="flex items-center gap-3">
+                  <span className="text-xs text-slate-400 font-medium hidden sm:inline-block">
+                    Best fit first
+                  </span>
+                  <button type="button" className="phx-btn" data-variant="secondary" data-size="sm" onClick={handleSelectAllVisible}>
+                    <CheckSquare className="w-4 h-4" aria-hidden="true" /> Select all
+                  </button>
+                </div>
               )}
             </div>
 
             {filteredExecutives.length === 0 ? (
               <div className="bg-white rounded-xl border border-slate-200 p-8 text-center text-slate-500">
                 <Users className="w-8 h-8 text-slate-300 mx-auto mb-2" />
-                <p className="text-sm font-semibold">No executives match current filter criteria</p>
-                <p className="text-xs text-slate-400 mt-1">Try clearing search terms or resetting the minimum fit threshold.</p>
+                <p className="text-sm font-semibold">No candidate recommendations yet</p>
+                <p className="text-xs text-slate-400 mt-1">The agent adds candidates here as the master graph finds matches for this project.</p>
               </div>
             ) : (
               <div className="grid grid-cols-1 gap-4">
@@ -553,161 +338,6 @@ export function ProjectRecommendationsTab({
           </div>
         )}
 
-        {/* ========================================================================= */}
-        {/* TARGET COMPANIES SECTION */}
-        {/* ========================================================================= */}
-        {(activeFilter === 'all' || activeFilter === 'companies') && (
-          <div className="space-y-4 pt-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-lg bg-blue-50 border border-blue-200 flex items-center justify-center text-blue-600">
-                  <Building2 className="w-4 h-4" />
-                </div>
-                <div>
-                  <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
-                    Recommended Target Companies in Master Graph
-                    <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-blue-100 text-blue-800">
-                      {filteredCompanies.length} Target Sources
-                    </span>
-                  </h3>
-                  <p className="text-xs text-slate-500">
-                    Organizations mapped with dense executive benches, active leadership departures, and scale similarity for this mandate.
-                  </p>
-                </div>
-              </div>
-
-              {filteredCompanies.length > 0 && (
-                <span className="text-xs text-slate-400 font-medium hidden sm:inline-block">
-                  Target Talent Incubators
-                </span>
-              )}
-            </div>
-
-            {filteredCompanies.length === 0 ? (
-              <div className="bg-white rounded-xl border border-slate-200 p-8 text-center text-slate-500">
-                <Building2 className="w-8 h-8 text-slate-300 mx-auto mb-2" />
-                <p className="text-sm font-semibold">No companies match current filter criteria</p>
-                <p className="text-xs text-slate-400 mt-1">Try clearing search terms or resetting the minimum fit threshold.</p>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {filteredCompanies.map(comp => {
-                  const isMapped = mappedCompanyIds.has(comp.id) || comp.status === 'added_to_map';
-                  const isSelected = selectedCompIds.has(comp.id);
-
-                  return (
-                    <div
-                      key={comp.id}
-                      className={cn(
-                        "bg-white rounded-xl border transition-all p-5 shadow-xs hover:shadow-md flex flex-col justify-between gap-4 relative group",
-                        isSelected ? "border-purple-500 bg-purple-50/20 ring-1 ring-purple-500" : "border-slate-200 hover:border-slate-300"
-                      )}
-                    >
-                      <div className="space-y-3">
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="flex items-start gap-3">
-                            <button
-                              type="button"
-                              onClick={() => toggleSelectComp(comp.id)}
-                              className="mt-1 text-slate-400 hover:text-purple-600 cursor-pointer"
-                            >
-                              {isSelected ? (
-                                <CheckSquare className="w-4 h-4 text-purple-600" />
-                              ) : (
-                                <Square className="w-4 h-4 text-slate-300" />
-                              )}
-                            </button>
-
-                            <div className="w-11 h-11 rounded-xl bg-slate-900 text-white font-bold flex items-center justify-center text-base shrink-0 shadow-xs">
-                              {comp.name.charAt(0)}
-                            </div>
-
-                            <div>
-                              <div className="flex items-center gap-2 flex-wrap">
-                                <h4 className="text-base font-bold text-slate-900 group-hover:text-blue-700 transition-colors">
-                                  {comp.name}
-                                </h4>
-                                <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-blue-100 text-blue-800 border border-blue-200">
-                                  {comp.matchScore}% Target Match
-                                </span>
-                              </div>
-                              <div className="flex items-center gap-2 text-xs text-slate-500 mt-0.5">
-                                <span>{comp.industry}</span>
-                                <span>•</span>
-                                <span>{comp.stage}</span>
-                              </div>
-                            </div>
-                          </div>
-
-                          <span className="px-2.5 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-700 uppercase tracking-wider shrink-0">
-                            {comp.tier}
-                          </span>
-                        </div>
-
-                        {/* Mobility & Talent Density Signals */}
-                        <div className="grid grid-cols-2 gap-2 bg-slate-50 p-2.5 rounded-lg border border-slate-100 text-xs">
-                          <div>
-                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Graph Talent Pool</span>
-                            <span className="font-extrabold text-purple-700 flex items-center gap-1 mt-0.5">
-                              <Users className="w-3.5 h-3.5" />
-                              {comp.relevantCandidatesCount} Relevant Execs
-                            </span>
-                          </div>
-                          <div>
-                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Mobility Signal</span>
-                            <span className="font-bold text-amber-700 flex items-center gap-1 mt-0.5 truncate" title={comp.mobilitySignal}>
-                              <Flame className="w-3.5 h-3.5 text-amber-600 shrink-0" />
-                              {comp.mobilitySignal}
-                            </span>
-                          </div>
-                        </div>
-
-                        {/* Fit Rationale */}
-                        <p className="text-xs text-slate-600 leading-relaxed">
-                          <strong className="text-slate-800 font-semibold">Mandate Fit: </strong>
-                          {comp.fitRationale}
-                        </p>
-
-                        {/* Highlights */}
-                        <div className="flex items-center gap-1.5 flex-wrap">
-                          {comp.keyHighlights.map((h, i) => (
-                            <span key={i} className="text-[10px] px-2 py-0.5 rounded bg-slate-100 text-slate-600 font-medium">
-                              {h}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-
-                      {/* Card Footer Actions */}
-                      <div className="flex items-center justify-between pt-3 border-t border-slate-100">
-                        <span className="text-xs text-slate-500 flex items-center gap-1">
-                          <MapPin className="w-3.5 h-3.5 text-slate-400" />
-                          {comp.headquarters}
-                        </span>
-
-                        {isMapped ? (
-                          <div className="flex items-center gap-1 px-3 py-1.5 bg-emerald-50 text-emerald-700 rounded-lg text-xs font-bold border border-emerald-200">
-                            <Check className="w-3.5 h-3.5 stroke-[3]" />
-                            <span>In Market Map</span>
-                          </div>
-                        ) : (
-                          <button
-                            type="button"
-                            onClick={(e) => handleAddCompanyToMarketMap(comp, e)}
-                            className="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-xs hover:shadow-blue-500/25"
-                          >
-                            <PlusCircle className="w-3.5 h-3.5" />
-                            <span>+ Add to Market Map</span>
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        )}
       </div>
 
       {/* Floating Bulk Action Drawer when checkboxes selected */}

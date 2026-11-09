@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Candidate, RecommendedCandidate } from '../types';
 import { mockCandidates, mockRecommendedCandidates } from '../data/mockData';
 import { initialDealRooms } from '../data/dealRoomsData';
+import { recommendedCandidateMatches } from '../data/recommendedCandidateMatches';
 import { CandidateDetail } from './CandidateDetail';
 import { RecommendedCandidateDetail } from './RecommendedCandidateDetail';
 import { AddCandidateModal } from './AddCandidateModal';
@@ -20,6 +21,7 @@ import {
   BrainCircuit,
   Handshake,
   FolderKanban,
+  Briefcase,
   X
 } from 'lucide-react';
 import { useRestricted } from '../context/RestrictedContext';
@@ -457,6 +459,7 @@ export function CandidatesView({ candidateId, onSelectCandidate }: CandidatesVie
                 <th className="px-6 py-4">Name & Current Role</th>
                 <th className="px-6 py-4">Company</th>
                 <th className="px-6 py-4">Location</th>
+                {activeTab === 'recommendations' && <th className="px-6 py-4">Projects/Jobs Match</th>}
                 
                 {/* Score columns ONLY in standard tabs, NOT in recommendations */}
                 {activeTab !== 'recommendations' && (
@@ -466,10 +469,13 @@ export function CandidatesView({ candidateId, onSelectCandidate }: CandidatesVie
                   </>
                 )}
 
-                {/* Projects Column */}
-                <th className="px-6 py-4">Projects</th>
-                {/* Last Contact Date Column */}
-                <th className="px-6 py-4">Last Contact</th>
+                {/* Projects and Last Contact: recommended candidates are not in the CRM yet, so neither applies */}
+                {activeTab !== 'recommendations' && (
+                  <>
+                    <th className="px-6 py-4">Projects</th>
+                    <th className="px-6 py-4">Last Contact</th>
+                  </>
+                )}
 
                 {/* Special Columns for Recommendations tab: Reason & Action (NO score columns) */}
                 {activeTab === 'recommendations' && (
@@ -484,7 +490,7 @@ export function CandidatesView({ candidateId, onSelectCandidate }: CandidatesVie
             <tbody className="divide-y divide-slate-100">
               {displayedCandidates.length === 0 ? (
                 <tr>
-                  <td colSpan={activeTab === 'recommendations' ? 8 : 8} className="px-6 py-12 text-center text-slate-500 text-sm">
+                  <td colSpan={activeTab === 'recommendations' ? 7 : 8} className="px-6 py-12 text-center text-slate-500 text-sm">
                     No candidates match the selected filters or search query.
                   </td>
                 </tr>
@@ -536,7 +542,8 @@ export function CandidatesView({ candidateId, onSelectCandidate }: CandidatesVie
                               <span className="font-bold text-slate-900 group-hover:text-blue-600 transition-colors">
                                 {candidate.firstName} {candidate.lastName}
                               </span>
-                              {oppRoom && (
+                              {/* Recommended candidates are not in the CRM until added, so they cannot be in an opportunity room yet */}
+                              {oppRoom && !(isRec && !isAddedToCrm) && (
                                 <span 
                                   className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-50 text-purple-700 border border-purple-200/90 shadow-2xs hover:bg-purple-100 transition-colors shrink-0"
                                   title={`Currently active in ${oppRoom.title} (${oppRoom.status})`}
@@ -581,6 +588,29 @@ export function CandidatesView({ candidateId, onSelectCandidate }: CandidatesVie
                         </div>
                       </td>
 
+                      {/* Projects/Jobs Match: where this recommendation would fit today */}
+                      {activeTab === 'recommendations' && (
+                        <td className="px-6 py-3.5">
+                          <ul className="flex flex-col items-start gap-1.5" aria-label={`Projects and jobs that fit ${candidate.firstName} ${candidate.lastName}`}>
+                            {(recommendedCandidateMatches[candidate.id] ?? []).map(m => (
+                              <li key={`${m.kind}-${m.title}`}>
+                                <span
+                                  className="phx-tag"
+                                  tabIndex={0}
+                                  data-tooltip={`${m.kind === 'project' ? 'Project' : 'Job'}: ${m.reason}`}
+                                  aria-label={`${m.kind === 'project' ? 'Project' : 'Job'} ${m.title}, ${m.fit} percent fit. ${m.reason}`}
+                                >
+                                  {m.kind === 'project' ? <FolderKanban className="w-3.5 h-3.5 shrink-0" aria-hidden="true" /> : <Briefcase className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />}
+                                  <span className="truncate max-w-[200px]">{m.title}</span>
+                                  <span className="font-bold tabular-nums">{m.fit}%</span>
+                                </span>
+                              </li>
+                            ))}
+                            {!(recommendedCandidateMatches[candidate.id]?.length) && <span className="text-xs text-slate-400 italic">No match yet</span>}
+                          </ul>
+                        </td>
+                      )}
+
                       {/* Score Columns - ONLY in non-recommendations tabs */}
                       {activeTab !== 'recommendations' && (
                         <>
@@ -614,6 +644,8 @@ export function CandidatesView({ candidateId, onSelectCandidate }: CandidatesVie
                         </>
                       )}
 
+                      {activeTab !== 'recommendations' && (
+                        <>
                       {/* Projects Column */}
                       <td className="px-6 py-3.5">
                         <div className="flex flex-wrap items-center gap-1.5 max-w-[260px]">
@@ -647,6 +679,8 @@ export function CandidatesView({ candidateId, onSelectCandidate }: CandidatesVie
                           </span>
                         </div>
                       </td>
+                        </>
+                      )}
 
                       {/* Recommendations Extras: NO scores, just Recommendation Reason & Action */}
                       {activeTab === 'recommendations' && (
