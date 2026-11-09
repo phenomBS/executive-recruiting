@@ -4,16 +4,18 @@ import { mockProjects } from '../data/mockData';
 import { ProjectsList } from './ProjectsList';
 import { ExecutiveSearchProjectDetail } from './ExecutiveSearchProjectDetail';
 import { useRouter } from '../context/RouterContext';
+import { addSessionProject, getSessionProjects } from '../lib/sessionProjects';
 
 export function ProjectsView() {
   const router = useRouter();
-  const [projects, setProjects] = useState<Project[]>(mockProjects);
+  const [projects, setProjects] = useState<Project[]>(() => [...getSessionProjects(), ...mockProjects]);
   
   const selectedProjectId = router.projectId;
   const selectedProject = projects.find(p => p.id === selectedProjectId) || null;
 
   const handleAddProject = (newProject: Project) => {
-    setProjects(prev => [newProject, ...prev]);
+    addSessionProject(newProject);
+    setProjects(prev => [newProject, ...prev.filter(p => p.id !== newProject.id)]);
     router.setProjectId(newProject.id);
   };
 

@@ -32,6 +32,8 @@ interface ProjectParametersModalProps {
   onOpenChange: (open: boolean) => void;
   project?: Project | null; // If provided, edit mode; otherwise, create mode
   onSave: (project: Project) => void;
+  /** Create mode only: start pre-filled from this tracked role, with its bench as the pipeline */
+  initialRoleId?: string | null;
 }
 
 const DEFAULT_METROS = PROJECT_METRO_OPTIONS;
@@ -46,7 +48,7 @@ const COMMON_DOMAINS = [
   'Hardware & Systems Architecture'
 ];
 
-export function ProjectParametersModal({ isOpen, onOpenChange, project, onSave }: ProjectParametersModalProps) {
+export function ProjectParametersModal({ isOpen, onOpenChange, project, onSave, initialRoleId }: ProjectParametersModalProps) {
   const isEdit = !!project;
 
   // Active parameter block tab for quick jumping
@@ -200,8 +202,10 @@ export function ProjectParametersModal({ isOpen, onOpenChange, project, onSave }
       setTargetStartDate('2026-12-01');
       setMaxNoticePeriodTolerance('60 days');
       setConfidentialityProtocol('Named Enterprise Search');
+      if (isOpen && initialRoleId) applyRole(initialRoleId);
     }
-  }, [project, isOpen]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [project, isOpen, initialRoleId]);
 
   const applyRole = (roleId: string) => {
     setSourceRoleId(roleId);

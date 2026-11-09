@@ -43,26 +43,25 @@ import { cn } from '../../lib/utils';
 /* ------------------------------------------------------------------ */
 
 const TONE: Record<DifficultyTone, { color: string; soft: string; border: string }> = {
-  green: { color: '#00875a', soft: '#e6f6ef', border: '#9fd8c0' },
-  lime: { color: '#5f8a00', soft: '#f1f8dc', border: '#c9de8a' },
-  amber: { color: '#b07400', soft: '#fff6dc', border: '#efd48b' },
-  orange: { color: '#ba4800', soft: '#fdeee3', border: '#f0bb96' },
-  red: { color: '#c0262d', soft: '#fdecec', border: '#f2b3b6' },
+  green: { color: 'var(--color-green-400)', soft: 'var(--color-green-100)', border: 'var(--color-green-200)' },
+  lime: { color: 'var(--color-green-300)', soft: 'var(--color-green-100)', border: 'var(--color-green-200)' },
+  amber: { color: 'var(--color-brown-400)', soft: 'var(--color-brown-50)', border: 'var(--color-brown-100)' },
+  orange: { color: 'var(--color-yellow-500)', soft: 'var(--color-yellow-100)', border: 'var(--color-yellow-200)' },
+  red: { color: 'var(--color-red-500)', soft: 'var(--color-red-50)', border: 'var(--color-red-100)' },
 };
 
 const KPI_TONE: Record<KpiTone, { color: string; soft: string; border: string }> = {
-  good: { color: '#00875a', soft: '#e6f6ef', border: '#9fd8c0' },
-  warn: { color: '#b07400', soft: '#fff6dc', border: '#efd48b' },
-  bad: { color: '#c0262d', soft: '#fdecec', border: '#f2b3b6' },
-  neutral: { color: '#1c1876', soft: '#eae8fb', border: '#cac1f2' },
+  good: { color: 'var(--color-green-400)', soft: 'var(--color-green-100)', border: 'var(--color-green-200)' },
+  warn: { color: 'var(--color-brown-400)', soft: 'var(--color-brown-50)', border: 'var(--color-brown-100)' },
+  bad: { color: 'var(--color-red-500)', soft: 'var(--color-red-50)', border: 'var(--color-red-100)' },
+  neutral: { color: 'var(--color-secondary-400)', soft: 'var(--color-secondary-40)', border: 'var(--color-secondary-50)' },
 };
 
 const DIAL_STOPS: { at: number; c: [number, number, number] }[] = [
-  { at: 0, c: [34, 197, 94] },
-  { at: 0.25, c: [132, 204, 22] },
-  { at: 0.5, c: [245, 179, 1] },
-  { at: 0.75, c: [249, 115, 22] },
-  { at: 1, c: [239, 68, 68] },
+  { at: 0, c: [54, 179, 126] }, // --color-green-300
+  { at: 0.5, c: [248, 186, 75] }, // --color-brown-200
+  { at: 0.75, c: [255, 139, 0] }, // --color-yellow-300
+  { at: 1, c: [239, 35, 60] }, // --color-red-400
 ];
 
 /** Green (easy) to red (very difficult) gradient lookup, f in 0..1 */
@@ -77,7 +76,7 @@ function dialColor(f: number): string {
       return `rgb(${c[0]}, ${c[1]}, ${c[2]})`;
     }
   }
-  return 'rgb(239, 68, 68)';
+  return 'rgb(239, 35, 60)';
 }
 
 const cardClass = 'bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden';
@@ -172,17 +171,17 @@ export function DifficultyDial({ score, label, tone }: { score: number; label: s
       {Array.from({ length: 10 }).map((_, i) => {
         const o = polar(i + 1, R - 14);
         const inn = polar(i + 1, R - 19);
-        return <line key={i} x1={o.x} y1={o.y} x2={inn.x} y2={inn.y} stroke="#ffffff" strokeOpacity={0.7} strokeWidth={1} />;
+        return <line key={i} x1={o.x} y1={o.y} x2={inn.x} y2={inn.y} stroke="var(--bg-default)" strokeOpacity={0.7} strokeWidth={1} />;
       })}
-      <line x1={CX} y1={CY} x2={needle.x} y2={needle.y} stroke="#0c0b3b" strokeWidth={3.5} strokeLinecap="round" style={{ transition: 'all 300ms ease' }} />
-      <circle cx={CX} cy={CY} r={8} fill="#0c0b3b" />
-      <circle cx={CX} cy={CY} r={3} fill="#ffffff" />
-      <text x={CX - R - 10} y={CY + 18} fontSize="9" fontWeight="600" fill="#626780" textAnchor="start">1 · Easy</text>
-      <text x={CX + R + 10} y={CY + 18} fontSize="9" fontWeight="600" fill="#626780" textAnchor="end">10 · Very Difficult</text>
+      <line x1={CX} y1={CY} x2={needle.x} y2={needle.y} stroke="var(--color-secondary-500)" strokeWidth={3.5} strokeLinecap="round" style={{ transition: 'all 300ms ease' }} />
+      <circle cx={CX} cy={CY} r={8} fill="var(--color-secondary-500)" />
+      <circle cx={CX} cy={CY} r={3} fill="var(--bg-default)" />
+      <text x={CX - R - 10} y={CY + 18} fontSize="9" fontWeight="600" fill="var(--text-default)" textAnchor="start">1 · Easy</text>
+      <text x={CX + R + 10} y={CY + 18} fontSize="9" fontWeight="600" fill="var(--text-default)" textAnchor="end">10 · Very Difficult</text>
       <text x={CX} y={CY + 40} fontSize="30" fontWeight="800" fill={TONE[tone].color} textAnchor="middle" style={{ fontVariantNumeric: 'tabular-nums' }}>
         {score.toFixed(1)}
       </text>
-      <text x={CX + 40} y={CY + 40} fontSize="10" fill="#626780">/ 10</text>
+      <text x={CX + 40} y={CY + 40} fontSize="10" fill="var(--text-default)">/ 10</text>
     </svg>
   );
 }
@@ -233,7 +232,7 @@ export function ExecutiveScorecard({ data, scenario, baseline, competition, resu
             <button
               type="button"
               onClick={showPath}
-              className="px-3.5 py-2 rounded-full bg-(--color-secondary-200) hover:bg-(--color-secondary-300) text-white text-xs font-semibold flex items-center gap-1.5 cursor-pointer"
+              className="phx-btn" data-variant="primary-blue" data-size="sm"
             >
               <Wand2 className="w-3.5 h-3.5" /> Show path to a realistic search
             </button>
@@ -241,7 +240,7 @@ export function ExecutiveScorecard({ data, scenario, baseline, competition, resu
               type="button"
               onClick={reset}
               disabled={!changed}
-              className="px-3.5 py-2 rounded-full border border-slate-300 bg-white text-xs font-semibold text-slate-700 hover:bg-slate-50 flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+              className="phx-btn" data-variant="secondary" data-size="sm"
             >
               <RotateCcw className="w-3.5 h-3.5" /> Reset to intake baseline
             </button>
@@ -388,7 +387,7 @@ export function ScarcityCalculator({ data, scenario, baseline, competition, resu
             }))
           }
           disabled={!requirementsChanged}
-          className="px-4 py-2 rounded-full border border-slate-300 bg-white text-xs font-semibold text-slate-700 hover:bg-slate-50 flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+          className="phx-btn" data-variant="secondary" data-size="sm"
         >
           <RotateCcw className="w-3.5 h-3.5" /> Reset requirements
         </button>
@@ -560,7 +559,7 @@ export function ScarcityCalculator({ data, scenario, baseline, competition, resu
                         className="h-full rounded-md transition-all duration-300"
                         style={{
                           width: `${Math.max(pct, 2)}%`,
-                          background: i === 0 ? '#2927b2' : dialColor(0.35 + 0.65 * (1 - Math.max(pct, 0) / 100)),
+                          background: i === 0 ? 'var(--color-secondary-300)' : dialColor(0.35 + 0.65 * (1 - Math.max(pct, 0) / 100)),
                         }}
                       />
                     </div>
@@ -611,7 +610,7 @@ export function ScarcityCalculator({ data, scenario, baseline, competition, resu
                     <button
                       type="button"
                       onClick={() => setScenario(s.next)}
-                      className="shrink-0 px-3 py-1.5 rounded-full border border-slate-300 bg-white text-xs font-semibold text-(--color-secondary-200) hover:bg-slate-50 cursor-pointer"
+                      className="phx-btn shrink-0" data-variant="secondary" data-size="sm"
                     >
                       Apply
                     </button>
@@ -630,7 +629,7 @@ function DropChip({ pct, active }: { pct: number; active: boolean }) {
   return (
     <span
       className="px-1.5 py-0.5 rounded text-[10px] font-bold whitespace-nowrap shrink-0"
-      style={{ background: active ? TONE.red.soft : '#f1f2f7', color: active ? TONE.red.color : '#626780' }}
+      style={{ background: active ? TONE.red.soft : 'var(--bg-neutral-soft)', color: active ? TONE.red.color : 'var(--text-default)' }}
     >
       {active ? 'Drops' : 'Would drop'} {pct}%
     </span>
@@ -664,7 +663,7 @@ function OptionCard({ checked, label, description, onSelect }: { checked: boolea
 /* Section 3: Compensation & Equity Reality Check                       */
 /* ------------------------------------------------------------------ */
 
-const EQ_COLORS = { base: '#1c1876', bonus: '#7571e0', equity: '#f5a623' };
+const EQ_COLORS = { base: 'var(--color-secondary-400)', bonus: 'var(--color-secondary-100)', equity: 'var(--color-yellow-300)' };
 
 export function CompensationEquity({ data, scenario, setScenario, model, equityMultiple, setEquityMultiple }: SectionProps) {
   const { p25, median, p75 } = data.compensation.baseSalary;
@@ -719,10 +718,10 @@ export function CompensationEquity({ data, scenario, setScenario, model, equityM
             </div>
             {/* bands */}
             <div className="relative h-4 rounded-full overflow-hidden flex" aria-hidden="true">
-              <div style={{ width: `${pct(p25)}%`, background: '#f6c4c4' }} />
-              <div style={{ width: `${pct(median) - pct(p25)}%`, background: '#fbe3a6' }} />
-              <div style={{ width: `${pct(p75) - pct(median)}%`, background: '#bfe8cb' }} />
-              <div className="flex-1" style={{ background: '#cfd2f5' }} />
+              <div style={{ width: `${pct(p25)}%`, background: 'var(--color-red-75)' }} />
+              <div style={{ width: `${pct(median) - pct(p25)}%`, background: 'var(--color-brown-75)' }} />
+              <div style={{ width: `${pct(p75) - pct(median)}%`, background: 'var(--color-green-200)' }} />
+              <div className="flex-1" style={{ background: 'var(--color-secondary-40)' }} />
             </div>
             {/* markers */}
             {[
@@ -799,10 +798,10 @@ export function CompensationEquity({ data, scenario, setScenario, model, equityM
                 key={c.label}
                 type="button"
                 onClick={() => setScenario(s => ({ ...s, baseBudget: c.v }))}
-                className={cn(
-                  'px-3 py-1.5 rounded-full border text-[11px] font-semibold cursor-pointer',
-                  budget === c.v ? 'border-(--color-secondary-200) bg-(--bg-brand-secondary-subtle) text-(--color-secondary-200)' : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-50'
-                )}
+                className="phx-btn"
+                data-variant={budget === c.v ? 'primary-blue' : 'secondary'}
+                data-size="sm"
+                aria-pressed={budget === c.v}
               >
                 {c.label} · {fmtK(c.v)}
               </button>
@@ -964,7 +963,7 @@ export function GeographicHeatmap({ hubs }: { hubs: SearchIntelligenceData['geog
             </radialGradient>
           ))}
         </defs>
-        <polygon points={outline} fill="#ffffff" stroke="#c9cce0" strokeWidth={1.2} strokeLinejoin="round" />
+        <polygon points={outline} fill="var(--bg-default)" stroke="var(--border-default)" strokeWidth={1.2} strokeLinejoin="round" />
         {placed.map(({ hub, geo }, i) => {
           const x = projX(geo.lon);
           const y = projY(geo.lat);
@@ -978,9 +977,9 @@ export function GeographicHeatmap({ hubs }: { hubs: SearchIntelligenceData['geog
           const tx = geo.side === 'r' ? x + 9 : x - 9;
           return (
             <g key={`m-${hub.metro}`}>
-              <circle cx={x} cy={y} r={4} fill="#0c0b3b" stroke="#ffffff" strokeWidth={1.5} />
-              {hub.isClientHQ && <circle cx={x} cy={y} r={8} fill="none" stroke="#0c0b3b" strokeWidth={1.2} strokeDasharray="2 2" />}
-              <text x={tx} y={y + 3 + geo.dy} fontSize="10.5" fontWeight="700" fill="#1b1d2e" textAnchor={anchor} stroke="#ffffff" strokeWidth={3} paintOrder="stroke">
+              <circle cx={x} cy={y} r={4} fill="var(--color-secondary-500)" stroke="var(--bg-default)" strokeWidth={1.5} />
+              {hub.isClientHQ && <circle cx={x} cy={y} r={8} fill="none" stroke="var(--color-secondary-500)" strokeWidth={1.2} strokeDasharray="2 2" />}
+              <text x={tx} y={y + 3 + geo.dy} fontSize="10.5" fontWeight="700" fill="var(--text-strong)" textAnchor={anchor} stroke="var(--bg-default)" strokeWidth={3} paintOrder="stroke">
                 {geo.short} {hub.percentage}%
               </text>
             </g>
@@ -1045,9 +1044,9 @@ export function HuntingGrounds({ data, scenario, model }: SectionProps) {
               <span className="text-slate-500">Client requirement: {data.geography.clientRequirement}</span>
             </div>
             <div className="flex h-3 rounded-full overflow-hidden" aria-hidden="true">
-              <div style={{ width: `${wm.remote}%`, background: '#7571e0' }} />
-              <div style={{ width: `${wm.hybrid}%`, background: '#4d3ee0' }} />
-              <div style={{ width: `${wm.inOffice}%`, background: '#1c1876' }} />
+              <div style={{ width: `${wm.remote}%`, background: 'var(--color-secondary-100)' }} />
+              <div style={{ width: `${wm.hybrid}%`, background: 'var(--color-secondary-200)' }} />
+              <div style={{ width: `${wm.inOffice}%`, background: 'var(--color-secondary-400)' }} />
             </div>
             <div className="flex gap-4 text-[11px] text-slate-600">
               <span>Remote {wm.remote}%</span>

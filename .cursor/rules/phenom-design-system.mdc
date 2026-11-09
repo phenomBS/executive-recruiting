@@ -1,0 +1,31 @@
+---
+description: Phenom design system conventions for all UI in the prototype
+alwaysApply: true
+---
+
+# Phenom design system
+
+The prototype follows the Phenom design system. Reference: `Design System/phenompeople-design-library-*.zip`. The kit CSS is `prototype/src/styles/phenom-kit.css` and `phenom-recipes.css`. Do not edit either file.
+
+## Color
+- Use token variables, never raw hex: `var(--text-strong)`, `var(--text-default)`, `var(--bg-default)`, `var(--bg-neutral-soft)`, `var(--border-light)`, and `var(--color-<palette>-<step>)`.
+- Status colors come from the feedback families (`--feedback-success|warning|error|info|progressive-*`) or these palettes: green (good), brown (caution), red (bad), secondary (brand indigo).
+- The palette named `yellow` is orange (`#ba4800`, `#df6e38`, `#ff8b00`). Use `brown` for amber.
+- SVG attributes accept `var(--token)` (for example `fill="var(--text-default)"`).
+- PDFs cannot read CSS variables. Use the matching hex from the kit (see `STAGE_HEX` in `lib/analytics.ts`).
+
+## Components
+- Buttons: `<button className="phx-btn" data-variant="primary|primary-blue|secondary|tertiary|neutral" data-size="sm">`. Teal `primary` is the one main action on a surface. Use `secondary` for the rest.
+- Fields: bare `<select>` and `<input>` pick up kit styling. Pair them with `<label className="phx-label">`.
+- Tags: `phx-tag` (24px tall, 6px radius, never a pill).
+- Inline messages and callouts: `phx-feedback` with `data-tone="info|success|warning|error|progressive"`.
+- Tables: `phx-table`.
+- Tooltips: add `data-tooltip="..."` (optional `data-tooltip-placement`). `TooltipLayer` renders the DS tooltip.
+
+## Type and layout
+- Use the kit font tokens and Tailwind text sizes (`text-xs`, `text-sm`, `text-base`). Avoid arbitrary sizes such as `text-[11px]`.
+- Pages use `p-8`, a `text-2xl font-bold` title, and cards of `rounded-2xl border border-(--border-light)`.
+
+## Accessibility
+- Every control has a visible label or an `aria-label`. Icon-only buttons carry `aria-label`.
+- Status is never color-only. Pair it with text.

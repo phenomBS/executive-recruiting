@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { 
   X, 
   Sparkles, 
@@ -14,9 +14,12 @@ import {
   CheckCircle2,
   TrendingUp,
   Flame,
-  Info
+  Info,
+  Eye,
+  Check
 } from 'lucide-react';
 import { RoleSuccessionItem, MathematicalAnchors, ShadowBenchCandidate } from '../../data/rolesSuccessionData';
+import { RecommendedRole, findRecommendedMatch } from '../../data/recommendedRolesData';
 import { cn } from '../../lib/utils';
 
 interface CreateRoleModalProps {
@@ -24,13 +27,20 @@ interface CreateRoleModalProps {
   onOpenChange: (open: boolean) => void;
   defaultType?: 'active_requisition' | 'succession_bench';
   onCreateRole: (role: RoleSuccessionItem) => void;
+  /** Roles the agent already recommends; shown first, and a matching title blocks creation */
+  recommendedRoles?: RecommendedRole[];
+  onActivateRecommended?: (roleId: string) => void;
+  onViewRecommended?: (roleId: string) => void;
 }
 
 export function CreateRoleModal({
   isOpen,
   onOpenChange,
   defaultType = 'active_requisition',
-  onCreateRole
+  onCreateRole,
+  recommendedRoles = [],
+  onActivateRecommended,
+  onViewRecommended
 }: CreateRoleModalProps) {
   const [roleTitle, setRoleTitle] = useState('');
   const [roleType, setRoleType] = useState<'active_requisition' | 'succession_bench'>(defaultType);
@@ -50,11 +60,18 @@ export function CreateRoleModal({
   const [targetDate, setTargetDate] = useState('Nov 30, 2026');
   const [description, setDescription] = useState('');
 
+  const duplicate = useMemo(() => findRecommendedMatch(roleTitle, recommendedRoles), [roleTitle, recommendedRoles]);
+
+  // Bring the duplicate warning into view when it appears
+  useEffect(() => {
+    if (duplicate) document.getElementById('create-role-duplicate')?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  }, [duplicate?.id]);
+
   if (!isOpen) return null;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!roleTitle.trim()) return;
+    if (!roleTitle.trim() || duplicate) return;
 
     const newAnchors: MathematicalAnchors = {
       targetRevenueScale,
@@ -238,6 +255,43 @@ export function CreateRoleModal({
           {/* Form */}
           <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 space-y-6">
             
+            {/* Recommended by the agent: activate one of these instead of creating a new role */}
+            {recommendedRoles.length > 0 && (
+              <section aria-labelledby="create-role-recs" className="rounded-2xl border border-(--border-light) bg-(--bg-brand-secondary-subtle) p-4 space-y-3">
+                <div className="flex items-start gap-2">
+                  <Sparkles className="w-5 h-5 text-(--color-secondary-200) shrink-0 mt-0.5" aria-hidden="true" />
+                  <div>
+                    <h3 id="create-role-recs" className="text-sm font-semibold text-(--text-strong)">Recommended by the agent</h3>
+                    <p className="text-sm text-(--text-default) mt-0.5">The agent already built a shadow bench for these roles. Activate one instead of starting from scratch.</p>
+                  </div>
+                </div>
+                <ul className="space-y-2">
+                  {recommendedRoles.map(r => (
+                    <li
+                      key={r.id}
+                      className={cn(
+                        'flex items-center justify-between gap-3 rounded-xl border bg-(--bg-default) p-3',
+                        duplicate?.id === r.id ? 'border-(--feedback-warning-bg-default) ring-1 ring-(--feedback-warning-bg-default)' : 'border-(--border-light)'
+                      )}
+                    >
+                      <div className="min-w-0">
+                        <div className="text-sm font-semibold text-(--text-strong)">{r.roleTitle}</div>
+                        <div className="text-sm text-(--text-default)">{r.totalCandidatesTracked} on the bench · Avg EMI {r.avgEmiMatch}%</div>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <button type="button" className="phx-btn" data-variant="secondary" data-size="sm" onClick={() => onViewRecommended?.(r.id)}>
+                          <Eye className="w-4 h-4" aria-hidden="true" /> View
+                        </button>
+                        <button type="button" className="phx-btn" data-variant="primary" data-size="sm" onClick={() => onActivateRecommended?.(r.id)}>
+                          <Check className="w-4 h-4" aria-hidden="true" /> Activate
+                        </button>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            )}
+
             {/* 1. SECTION TYPE TOGGLE (Active Requisition vs Succession Bench) */}
             <div className="space-y-2">
               <label className="text-xs font-bold text-slate-700 uppercase tracking-wider block">
@@ -296,8 +350,29 @@ export function CreateRoleModal({
                   value={roleTitle}
                   onChange={(e) => setRoleTitle(e.target.value)}
                   placeholder="e.g. Chief Technology Officer or VP of Artificial Intelligence"
+                  aria-invalid={Boolean(duplicate)}
+                  aria-describedby={duplicate ? 'create-role-duplicate' : undefined}
                   className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-(--color-secondary-200) focus:border-transparent"
                 />
+                {duplicate && (
+                  <div id="create-role-duplicate" role="alert" className="phx-feedback mt-3" data-tone="warning">
+                    <ShieldAlert className="w-5 h-5 shrink-0 mt-0.5" aria-hidden="true" />
+                    <div className="flex-1 min-w-0 space-y-2">
+                      <p className="text-sm font-semibold">The agent already recommends this role</p>
+                      <p className="text-sm leading-relaxed">
+                        {duplicate.roleTitle} is recommended, with a shadow bench of {duplicate.totalCandidatesTracked}. {duplicate.recommendation.basis} Activate it instead of creating a duplicate.
+                      </p>
+                      <div className="flex items-center gap-2">
+                        <button type="button" className="phx-btn" data-variant="primary" data-size="sm" onClick={() => onActivateRecommended?.(duplicate.id)}>
+                          <Check className="w-4 h-4" aria-hidden="true" /> Activate {duplicate.roleTitle}
+                        </button>
+                        <button type="button" className="phx-btn" data-variant="secondary" data-size="sm" onClick={() => onViewRecommended?.(duplicate.id)}>
+                          <Eye className="w-4 h-4" aria-hidden="true" /> View details
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div className="grid grid-cols-2 gap-3">
@@ -551,7 +626,7 @@ export function CreateRoleModal({
             <button
               type="button"
               onClick={handleSubmit}
-              disabled={!roleTitle.trim()}
+              disabled={!roleTitle.trim() || Boolean(duplicate)}
               className="px-5 py-2.5 rounded-xl bg-(--color-secondary-200) hover:bg-(--bg-brand-secondary-hover) disabled:opacity-50 text-white text-xs font-bold shadow-sm transition-all flex items-center gap-2"
             >
               <Sparkles className="w-4 h-4" />

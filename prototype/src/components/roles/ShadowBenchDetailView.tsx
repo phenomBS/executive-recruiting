@@ -25,26 +25,35 @@ import {
   Activity,
   Calendar,
   Share2,
-  FileText
+  FileText,
+  FolderPlus
 } from 'lucide-react';
 import { RoleSuccessionItem, ShadowBenchCandidate, getSuccessionRecommendations } from '../../data/rolesSuccessionData';
+import type { RoleRecommendation } from '../../data/recommendedRolesData';
 import { CandidateDetailDrawer } from './CandidateDetailDrawer';
 import { RoleMarketCalibrationTab } from './RoleMarketCalibrationTab';
 import { useRouter } from '../../context/RouterContext';
 import { cn } from '../../lib/utils';
+import { ProjectParametersModal } from '../ProjectParametersModal';
+import { addSessionProject } from '../../lib/sessionProjects';
 
 interface ShadowBenchDetailViewProps {
   role: RoleSuccessionItem;
   onBack: () => void;
   onUpdateRole?: (updatedRole: RoleSuccessionItem) => void;
   onTriggerCandidateOutreach?: (candidate: ShadowBenchCandidate) => void;
+  /** Set when previewing a role the agent recommends and the user has not activated yet */
+  recommendation?: RoleRecommendation;
+  onActivate?: () => void;
 }
 
 export function ShadowBenchDetailView({
   role,
   onBack,
   onUpdateRole,
-  onTriggerCandidateOutreach
+  onTriggerCandidateOutreach,
+  recommendation,
+  onActivate
 }: ShadowBenchDetailViewProps) {
   const router = useRouter();
   const activeTab: 'shadow-bench' | 'market-calibration' =
@@ -65,6 +74,9 @@ export function ShadowBenchDetailView({
   // Selected candidate drawer
   const [selectedCandidate, setSelectedCandidate] = useState<ShadowBenchCandidate | null>(null);
   
+  // Generate Search Project (pre-filled from this role and its bench)
+  const [isProjectModalOpen, setIsProjectModalOpen] = useState(false);
+
   // Scanning state
   const [isScanningSignals, setIsScanningSignals] = useState(false);
   const [scanMessage, setScanMessage] = useState<string | null>(null);
@@ -187,13 +199,19 @@ export function ShadowBenchDetailView({
     [role]
   );
   const totalTracked = role.candidates.length;
-  const highFlightRiskCount = role.candidates.filter(c => c.ptmLevel === 'High').length;
-  const avgEmi = Math.round(
-    role.candidates.reduce((acc, c) => acc + c.emiScore, 0) / (totalTracked || 1)
-  );
 
   return (
     <div className="min-h-full bg-(--bg-surface-base) pb-16">
+      <ProjectParametersModal
+        isOpen={isProjectModalOpen}
+        onOpenChange={setIsProjectModalOpen}
+        initialRoleId={role.id}
+        onSave={project => {
+          addSessionProject(project);
+          router.navigateToView('projects', { projectId: project.id });
+        }}
+      />
+
       
       {/* Toast / Notification Banner */}
       {scanMessage && (
@@ -222,11 +240,13 @@ export function ShadowBenchDetailView({
             <span>·</span>
             <span className={cn(
               "px-2 py-0.5 rounded-full text-[10px] font-bold uppercase",
-              role.type === 'active_requisition' 
-                ? "bg-emerald-50 text-emerald-700 border border-emerald-200" 
-                : "bg-purple-50 text-purple-700 border border-purple-200"
+              recommendation
+                ? "bg-(--bg-brand-secondary-subtle) text-(--color-secondary-200) border border-(--color-secondary-50)"
+                : role.type === 'active_requisition' 
+                  ? "bg-emerald-50 text-emerald-700 border border-emerald-200" 
+                  : "bg-purple-50 text-purple-700 border border-purple-200"
             )}>
-              {role.type === 'active_requisition' ? 'Active Requisition' : 'Succession Bench'}
+              {recommendation ? 'Recommended by agent' : role.type === 'active_requisition' ? 'Active Requisition' : 'Succession Bench'}
             </span>
           </div>
 
@@ -242,6 +262,7 @@ export function ShadowBenchDetailView({
               <span>{isScanningSignals ? 'Scanning SEC Edgar...' : 'Run Real-Time Signal Scan'}</span>
             </button>
 
+            {!recommendation && (
             <button
               type="button"
               onClick={() => setIsQuickAddOpen(!isQuickAddOpen)}
@@ -250,8 +271,29 @@ export function ShadowBenchDetailView({
               <Plus className="w-4 h-4" />
               <span>Add Candidate to Bench</span>
             </button>
+            )}
           </div>
         </div>
+
+        {/* Recommended-role banner: why the agent proposes it, and the activate action */}
+        {recommendation && (
+          <div className="phx-feedback" data-tone="progressive" role="region" aria-label="Agent recommendation">
+            <Sparkles className="w-5 h-5 shrink-0 mt-0.5" aria-hidden="true" />
+            <div className="flex-1 min-w-0 space-y-1.5">
+              <div className="text-sm font-semibold">Recommended by the agent · {recommendation.recommendedOn}</div>
+              <p className="leading-relaxed">{recommendation.basis}</p>
+              <p className="text-sm">
+                Based on past projects: {recommendation.sourceProjects.join(', ')}. {recommendation.evidence}.
+              </p>
+              <p className="text-sm">This role is not tracked yet. Review its shadow bench below, then activate it to bring it into Roles.</p>
+            </div>
+            {onActivate && (
+              <button type="button" className="phx-btn shrink-0 self-center" data-variant="primary" onClick={onActivate}>
+                <CheckCircle2 className="w-4 h-4" aria-hidden="true" /> Activate role
+              </button>
+            )}
+          </div>
+        )}
 
         {/* Quick Add Candidate Dropdown Panel */}
         {isQuickAddOpen && (
@@ -329,10 +371,20 @@ export function ShadowBenchDetailView({
                 {role.description}
               </p>
             </div>
+            {!recommendation && (
+            <button
+              type="button"
+              onClick={() => setIsProjectModalOpen(true)}
+              className="phx-btn shrink-0 self-start lg:self-center"
+              data-variant="primary"
+            >
+              <FolderPlus className="w-4 h-4" aria-hidden="true" /> Generate Search Project
+            </button>
+            )}
           </div>
 
           {/* Clean Metric Header KPI Bar (Total Candidates Tracked & High Flight-Risk Targets) */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 divide-y lg:divide-y-0 lg:divide-x divide-slate-100 bg-white">
+          <div className="grid grid-cols-1 sm:grid-cols-2 divide-y sm:divide-y-0 sm:divide-x divide-slate-100 bg-white">
             
             {/* KPI 1: Total Candidates Tracked */}
             <div className="p-5 flex items-center gap-4">
@@ -348,43 +400,6 @@ export function ShadowBenchDetailView({
                     {totalTracked}
                   </span>
                   <span className="text-xs font-bold text-slate-400">bench targets</span>
-                </div>
-              </div>
-            </div>
-
-            {/* KPI 2: High Flight-Risk Targets (Prominent Flight Risk) */}
-            <div className="p-5 flex items-center gap-4 bg-emerald-50/40">
-              <div className="w-12 h-12 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0 relative">
-                <Flame className="w-6 h-6" />
-                <span className="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-emerald-500 ring-2 ring-white" />
-              </div>
-              <div>
-                <span className="text-xs font-bold text-emerald-700 block uppercase tracking-wider">
-                  High Flight-Risk Targets
-                </span>
-                <div className="flex items-baseline gap-1.5 mt-0.5">
-                  <span className="text-2xl font-black text-emerald-600">
-                    {highFlightRiskCount}
-                  </span>
-                  <span className="text-xs font-bold text-emerald-700/80">high PTM targets</span>
-                </div>
-              </div>
-            </div>
-
-            {/* KPI 3: Average EMI Match Score */}
-            <div className="p-5 flex items-center gap-4">
-              <div className="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center shrink-0">
-                <Sparkles className="w-6 h-6" />
-              </div>
-              <div>
-                <span className="text-xs font-semibold text-slate-500 block uppercase tracking-wider">
-                  Average EMI Match
-                </span>
-                <div className="flex items-baseline gap-1.5 mt-0.5">
-                  <span className="text-2xl font-black text-emerald-600">
-                    {avgEmi}%
-                  </span>
-                  <span className="text-xs font-bold text-slate-400">calibrated</span>
                 </div>
               </div>
             </div>

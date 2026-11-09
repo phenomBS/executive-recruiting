@@ -18,7 +18,14 @@ export const PROJECT_METRO_OPTIONS = [
 export type PipelineSeedCandidate = Candidate & { projectStatus: string; dateAdded: string };
 
 /** Everything in Roles & Succession can seed a new project (active requisitions and succession benches). */
-export const trackedRoles: RoleSuccessionItem[] = initialRolesSuccessionData;
+export const trackedRoles: RoleSuccessionItem[] = [...initialRolesSuccessionData];
+
+/** Keep the registry in step with roles created or activated during the session. */
+export function registerTrackedRole(role: RoleSuccessionItem) {
+  const i = trackedRoles.findIndex(r => r.id === role.id);
+  if (i >= 0) trackedRoles[i] = role;
+  else trackedRoles.unshift(role);
+}
 
 export const findTrackedRole = (id: string | null | undefined) => trackedRoles.find(r => r.id === id);
 
