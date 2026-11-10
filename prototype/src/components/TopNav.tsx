@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
-import { Search, Plus, Bell, HelpCircle, Settings, Grid, Link2, Check } from 'lucide-react';
+import { Search, Plus, Bell, HelpCircle, Settings, Grid, Link2, Check, ChevronRight } from 'lucide-react';
 import { useRouter } from '../context/RouterContext';
+
+type Crumb = { label: string; onClick?: () => void };
 
 export function TopNav() {
   const router = useRouter();
@@ -14,105 +16,123 @@ export function TopNav() {
     }
   };
 
-  const getPageTitle = () => {
+  /** Section crumb (a link when a detail page is open) plus the current page. */
+  const getCrumbs = (): Crumb[] => {
+    const toList = (view: Parameters<typeof router.navigateToView>[0]) => () => router.navigateToView(view);
     switch (router.view) {
-      case 'home':
-        return 'Workspace';
       case 'candidates':
-        return router.candidateId ? `Candidate Profile (${router.candidateId})` : 'Candidates';
+        return router.candidateId
+          ? [{ label: 'Candidates', onClick: toList('candidates') }, { label: `Candidate Profile (${router.candidateId})` }]
+          : [{ label: 'Candidates' }];
       case 'projects':
-        return router.projectId ? `Project Mandate (${router.projectId})` : 'Projects';
+        return router.projectId
+          ? [{ label: 'Projects', onClick: toList('projects') }, { label: `Project Mandate (${router.projectId})` }]
+          : [{ label: 'Projects' }];
       case 'companies':
-        return router.companyId ? `Company Intelligence (${router.companyId})` : 'Companies';
+        return router.companyId
+          ? [{ label: 'Companies', onClick: toList('companies') }, { label: `Company Intelligence (${router.companyId})` }]
+          : [{ label: 'Companies' }];
       case 'roles':
-        return router.roleId ? `Shadow Bench (${router.roleId})` : 'Roles';
+        return router.roleId
+          ? [{ label: 'Roles', onClick: toList('roles') }, { label: `Shadow Bench (${router.roleId})` }]
+          : [{ label: 'Roles' }];
       case 'jobs':
-        return router.roleId ? `Job (${router.roleId})` : 'Jobs';
+        return router.roleId
+          ? [{ label: 'Jobs', onClick: toList('jobs') }, { label: `Job (${router.roleId})` }]
+          : [{ label: 'Jobs' }];
       case 'dealrooms':
-        return router.dealRoomId ? `Opportunity Room (${router.dealRoomId})` : 'Opportunity Rooms';
+        return router.dealRoomId
+          ? [{ label: 'Opportunity Rooms', onClick: toList('dealrooms') }, { label: `Opportunity Room (${router.dealRoomId})` }]
+          : [{ label: 'Opportunity Rooms' }];
       case 'agents':
-        return router.agentTab ? `Agent: ${router.agentTab.toUpperCase()}` : 'Agents';
+        return router.agentTab
+          ? [{ label: 'Agents', onClick: toList('agents') }, { label: router.agentTab.toUpperCase() }]
+          : [{ label: 'Agents' }];
       default:
-        return 'Workspace';
+        return [{ label: 'Workspace' }];
     }
   };
 
+  const crumbs = getCrumbs();
   const currentDisplayPath = window.location.pathname + (window.location.search || '');
 
   return (
-    <header className="h-(--shell-topbar-height) bg-(--components-top-navigation-bg-default) border-b border-(--components-top-navigation-border-default) flex items-center justify-between px-6 flex-shrink-0 z-10">
-      <div className="flex items-center gap-3">
-        <div className="font-medium text-(--text-strong) text-sm tracking-tight flex items-center gap-1.5">
-          <span className="text-base font-medium text-(--text-strong)">
-            Phenom
-          </span>
-          <span className="text-slate-400 font-normal">/</span>
-          <span className="text-slate-700 text-xs font-semibold">{getPageTitle()}</span>
-        </div>
+    <header className="phx-topbar h-(--shell-topbar-height) shrink-0 z-10">
+      <nav aria-label="Breadcrumb">
+        <ol className="phx-breadcrumb">
+          <li className="phx-topbar-brand-name">Phenom</li>
+          {crumbs.map((c, i) => {
+            const last = i === crumbs.length - 1;
+            return (
+              <React.Fragment key={c.label}>
+                <li className="phx-crumb-sep" aria-hidden="true">
+                  <ChevronRight className="w-4 h-4" />
+                </li>
+                <li>
+                  {last ? (
+                    <span className="phx-crumb" aria-current="page">{c.label}</span>
+                  ) : (
+                    <button type="button" className="phx-crumb" onClick={c.onClick}>{c.label}</button>
+                  )}
+                </li>
+              </React.Fragment>
+            );
+          })}
+        </ol>
+      </nav>
 
-        {/* Current URL Path Pill & Copy Deep Link Button */}
-        <button
-          onClick={handleCopyLink}
-          title="Click to copy page unique deep link"
-          className="hidden md:flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-slate-200 hover:border-purple-300 hover:bg-purple-50/50 text-[11px] font-mono text-slate-500 hover:text-purple-700 transition-all cursor-pointer group"
-        >
-          {copied ? (
-            <>
-              <Check className="w-3 h-3 text-emerald-600 stroke-[2.5]" />
-              <span className="text-emerald-700 font-sans font-semibold">Deep link copied!</span>
-            </>
-          ) : (
-            <>
-              <Link2 className="w-3 h-3 text-slate-400 group-hover:text-purple-600 transition-colors" />
-              <span className="text-slate-600 group-hover:text-purple-700 truncate max-w-[200px]">
-                {currentDisplayPath}
-              </span>
-              <span className="text-[10px] text-slate-400 font-sans font-normal ml-0.5 group-hover:text-purple-600">
-                (Copy)
-              </span>
-            </>
-          )}
-        </button>
-      </div>
-      
-      <div className="flex-1 max-w-md mx-6 relative">
-        <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
-          <Search className="w-4 h-4 stroke-[2]" />
-        </div>
-        <input 
-          type="text"
+      <button
+        type="button"
+        onClick={handleCopyLink}
+        className="phx-btn hidden md:inline-flex"
+        data-variant="tertiary"
+        data-size="sm"
+        data-tooltip="Copy a link to this page"
+        aria-label={`Copy link to this page: ${currentDisplayPath}`}
+      >
+        {copied ? <Check className="w-4 h-4" aria-hidden="true" /> : <Link2 className="w-4 h-4" aria-hidden="true" />}
+        <span className="truncate max-w-[220px]">{copied ? 'Link copied' : currentDisplayPath}</span>
+      </button>
+
+      <span className="phx-topbar-spacer" />
+
+      <div className="phx-input-icon">
+        <Search aria-hidden="true" />
+        <input
+          type="search"
+          aria-label="Search candidates, roles and projects"
           placeholder="Search candidates, roles, projects..."
-          className="w-full h-8.5 bg-slate-50 border border-slate-200 rounded-full pl-9 pr-4 text-xs focus:outline-none focus:border-purple-500 focus:bg-white focus:ring-1 focus:ring-purple-500 transition-all text-slate-800 placeholder:text-slate-400"
+          className="phx-search"
+          style={{ width: 360 }}
         />
       </div>
 
-      <div className="flex items-center gap-3 text-slate-500">
+      <div className="flex items-center gap-1">
+        <button type="button" onClick={handleCopyLink} className="phx-topbar-action md:hidden" aria-label="Copy link to this page">
+          {copied ? <Check className="w-5 h-5" aria-hidden="true" /> : <Link2 className="w-5 h-5" aria-hidden="true" />}
+        </button>
+        <button type="button" className="phx-topbar-action" aria-label="Create new">
+          <Plus className="w-5 h-5" aria-hidden="true" />
+        </button>
+        <button type="button" className="phx-topbar-action" aria-label="Notifications">
+          <Bell className="w-5 h-5" aria-hidden="true" />
+        </button>
+        <button type="button" className="phx-topbar-action hidden sm:inline-flex" aria-label="Help">
+          <HelpCircle className="w-5 h-5" aria-hidden="true" />
+        </button>
+        <button type="button" className="phx-topbar-action hidden sm:inline-flex" aria-label="Settings">
+          <Settings className="w-5 h-5" aria-hidden="true" />
+        </button>
+        <button type="button" className="phx-topbar-action hidden sm:inline-flex" aria-label="Apps">
+          <Grid className="w-5 h-5" aria-hidden="true" />
+        </button>
         <button
-          onClick={handleCopyLink}
-          title="Copy Deep Link"
-          className="md:hidden flex items-center justify-center w-8 h-8 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 transition-colors"
+          type="button"
+          aria-label="Account: Brian Stepan"
+          className="ml-2 w-8 h-8 rounded-full bg-(--bg-brand-secondary-subtle) text-(--text-brand-secondary-default) font-semibold text-sm flex items-center justify-center border border-(--border-light) cursor-pointer"
         >
-          {copied ? <Check className="w-4 h-4 text-emerald-600" /> : <Link2 className="w-4 h-4 text-purple-600" />}
-        </button>
-
-        <button className="w-8 h-8 rounded-full border border-slate-200 flex items-center justify-center hover:bg-slate-50 transition-colors">
-          <Plus className="w-4 h-4 stroke-[2] text-slate-600" />
-        </button>
-        <button className="hover:text-slate-800 transition-colors">
-          <Bell className="w-4.5 h-4.5 stroke-[1.5]" />
-        </button>
-        <button className="hover:text-slate-800 transition-colors hidden sm:block">
-          <HelpCircle className="w-4.5 h-4.5 stroke-[1.5]" />
-        </button>
-        <button className="hover:text-slate-800 transition-colors hidden sm:block">
-          <Settings className="w-4.5 h-4.5 stroke-[1.5]" />
-        </button>
-        <button className="hover:text-slate-800 transition-colors hidden sm:block">
-          <Grid className="w-4.5 h-4.5 stroke-[1.5]" />
-        </button>
-        <div className="w-8 h-8 rounded-full bg-(--bg-brand-secondary-subtle) text-(--text-brand-secondary-dark) font-semibold text-xs flex items-center justify-center ml-1 cursor-pointer border border-(--color-secondary-50)">
           BS
-        </div>
+        </button>
       </div>
     </header>
   );

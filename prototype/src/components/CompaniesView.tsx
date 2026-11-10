@@ -4,6 +4,7 @@ import { CompanyDetail } from './CompanyDetail';
 import { RecommendedCompanyDetail } from './RecommendedCompanyDetail';
 import { Company, RecommendedCompany } from '../types';
 import { mockCompanies, mockRecommendedCompanies } from '../data/mockData';
+import { findCompanyProfile } from '../data/projectTargetCompanies';
 import { useRouter } from '../context/RouterContext';
 
 export function CompaniesView() {
@@ -17,7 +18,8 @@ export function CompaniesView() {
     return (
       companiesList.find(c => c.id === selectedCompanyId) || 
       recommendedCompaniesList.find(c => c.id === selectedCompanyId) || 
-      null
+      // Companies opened from a project's Target Companies tab
+      findCompanyProfile(selectedCompanyId)
     );
   }, [selectedCompanyId, companiesList, recommendedCompaniesList]);
 

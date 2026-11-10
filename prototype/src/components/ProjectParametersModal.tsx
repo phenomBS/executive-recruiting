@@ -52,7 +52,7 @@ export function ProjectParametersModal({ isOpen, onOpenChange, project, onSave, 
   const isEdit = !!project;
 
   // Active parameter block tab for quick jumping
-  const [activeBlock, setActiveBlock] = useState<number>(1);
+  const [activeBlock, setActiveBlock] = useState<number>(6);
 
   // Start from a tracked role (Roles & Succession): populates details and carries over the succession bench
   const [sourceRoleId, setSourceRoleId] = useState<string>('');
@@ -359,7 +359,7 @@ export function ProjectParametersModal({ isOpen, onOpenChange, project, onSave, 
                 {isEdit ? 'Edit In-House Project Search Parameters' : 'Create In-House Executive Search Project'}
               </h2>
               <p className="text-xs text-slate-400 mt-0.5">
-                Configure the six core parameter blocks feeding CMA, SFA, Master Graph filtering, and Market Calibration benchmarks.
+                Configure the six inputs feeding CMA, SFA, Master Graph filtering, and Market Calibration benchmarks.
               </p>
             </div>
 
@@ -371,16 +371,16 @@ export function ProjectParametersModal({ isOpen, onOpenChange, project, onSave, 
             </button>
           </div>
 
-          {/* Quick Block Jump Nav */}
+          {/* Quick Input Jump Nav */}
           <div className="px-6 py-2.5 bg-slate-100 border-b border-slate-200 flex items-center gap-2 overflow-x-auto text-xs shrink-0 no-scrollbar">
-            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mr-1">Blocks:</span>
+            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mr-1">Inputs:</span>
             {[
-              { id: 1, label: '1. Role & Leveling', icon: Briefcase },
-              { id: 2, label: '2. Compensation', icon: DollarSign },
-              { id: 3, label: '3. Scope & Scale', icon: Scale },
-              { id: 4, label: '4. Location & Work', icon: MapPin },
-              { id: 5, label: '5. Timeline & Notice', icon: Calendar },
-              { id: 6, label: '6. Project Identity', icon: FolderKanban }
+              { id: 6, label: '1. Project Details', icon: FolderKanban },
+              { id: 1, label: '2. Role & Leveling', icon: Briefcase },
+              { id: 2, label: '3. Compensation', icon: DollarSign },
+              { id: 3, label: '4. Scope & Scale', icon: Scale },
+              { id: 4, label: '5. Location & Work', icon: MapPin },
+              { id: 5, label: '6. Timeline & Notice', icon: Calendar }
             ].map(b => {
               const Icon = b.icon;
               return (
@@ -408,34 +408,41 @@ export function ProjectParametersModal({ isOpen, onOpenChange, project, onSave, 
           <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 space-y-8 bg-(--bg-neutral-minimal)">
             
             {/* ================================================================= */}
-            {/* BLOCK 0: Start from a tracked role (create mode only) */}
+            {/* BLOCK 6: Project Details (shown first) */}
             {/* ================================================================= */}
-            {!isEdit && (
-              <div id="block-0" className="bg-white rounded-xl border border-slate-200 p-5 shadow-xs space-y-4">
+            <div id="block-6" className="bg-white rounded-xl border border-slate-200 p-5 shadow-xs space-y-4">
+              <div className="border-b border-slate-100 pb-3 flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <div className="w-7 h-7 rounded-lg bg-purple-50 text-purple-600 flex items-center justify-center">
-                    <Users className="w-4 h-4" />
+                  <div className="w-7 h-7 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold text-xs">
+                    1
                   </div>
                   <div>
-                    <h3 className="text-sm font-bold text-slate-900">Start from a tracked role</h3>
+                    <h3 className="text-sm font-bold text-slate-900">Project Details</h3>
                     <p className="text-[11px] text-slate-500">
-                      Is this search filling a position already tracked in Roles &amp; Succession? Select it to populate the project and carry over its succession bench.
+                      The role being searched, the recruiter assignment and the search strategy notes.
                     </p>
                   </div>
                 </div>
+                <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-indigo-50 text-indigo-700 border border-indigo-200">
+                  Project Record
+                </span>
+              </div>
 
-                <div>
-                  <label htmlFor="source-role" className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                    Role (optional)
-                  </label>
+
+              {/* Role / Title: pick a role tracked in Roles & Succession, or type one */}
+              <div>
+                <label htmlFor="role-select" className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                  Role / Title *
+                </label>
+                {!isEdit && (
                   <select
-                    id="source-role"
+                    id="role-select"
                     value={sourceRoleId}
-                    onChange={e => applyRole(e.target.value)}
+                    onChange={e => (e.target.value ? applyRole(e.target.value) : clearRole())}
                     className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs font-semibold bg-white text-slate-800"
                   >
-                    <option value="">None: set up the project manually</option>
-                    <optgroup label="Active requisitions">
+                    <option value="">Enter a role manually</option>
+                    <optgroup label="Active requisitions (Roles & Succession)">
                       {trackedRoles
                         .filter(r => r.type === 'active_requisition')
                         .map(r => (
@@ -444,7 +451,7 @@ export function ProjectParametersModal({ isOpen, onOpenChange, project, onSave, 
                           </option>
                         ))}
                     </optgroup>
-                    <optgroup label="Succession benches">
+                    <optgroup label="Succession benches (Roles & Succession)">
                       {trackedRoles
                         .filter(r => r.type === 'succession_bench')
                         .map(r => (
@@ -454,57 +461,182 @@ export function ProjectParametersModal({ isOpen, onOpenChange, project, onSave, 
                         ))}
                     </optgroup>
                   </select>
+                )}
+                {(isEdit || !sourceRoleId) && (
+                  <input
+                    id="role-title"
+                    type="text"
+                    required
+                    aria-label="Role / Title"
+                    placeholder="e.g. Chief Financial Officer or VP of Engineering"
+                    value={primaryTitle}
+                    onChange={e => {
+                      const v = e.target.value;
+                      if (!title || title === primaryTitle) setTitle(v);
+                      setPrimaryTitle(v);
+                    }}
+                    className={`w-full px-3 py-2 border border-slate-300 rounded-lg text-xs font-bold outline-none ${isEdit ? '' : 'mt-2'}`}
+                  />
+                )}
+                <span className="text-[10px] text-slate-500 mt-1 block">
+                  {isEdit
+                    ? 'The core benchmark title for the search.'
+                    : 'Pick a role you already track to fill this project in and carry over its succession bench, or enter the role yourself.'}
+                </span>
+              </div>
+
+              {sourceRole && (
+                <div className="rounded-lg border border-purple-200 bg-purple-50/60 p-4 space-y-3" role="status">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <div className="text-sm font-bold text-slate-900">
+                        Populated from {cleanRoleTitle(sourceRole.roleTitle)}
+                      </div>
+                      <div className="text-[11px] text-slate-600 mt-0.5">
+                        Hiring manager: {sourceRole.hiringManager}, {sourceRole.hiringManagerTitle} · Target date: {sourceRole.targetDate}
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={clearRole}
+                      className="text-xs font-semibold text-purple-700 hover:text-purple-900 shrink-0 cursor-pointer"
+                    >
+                      Clear role
+                    </button>
+                  </div>
+                  <div className="flex flex-wrap gap-1.5 text-[11px] font-semibold">
+                    {[sourceRole.department, sourceRole.level, sourceRole.priorityLevel, sourceRole.anchors.targetRevenueScale, sourceRole.anchors.geographicFlexibility].map(chip => (
+                      <span key={chip} className="px-2 py-0.5 rounded bg-white border border-purple-200 text-purple-800">
+                        {chip}
+                      </span>
+                    ))}
+                  </div>
+                  <label className="flex items-start gap-2.5 text-xs text-slate-800 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={includeBench}
+                      onChange={e => setIncludeBench(e.target.checked)}
+                      className="mt-0.5 w-4 h-4 accent-(--color-secondary-200)"
+                    />
+                    <span>
+                      <span className="font-semibold">
+                        Add the succession bench to this project ({benchSeed.length} candidate{benchSeed.length === 1 ? '' : 's'})
+                      </span>
+                      <span className="block text-[11px] text-slate-500 mt-0.5">
+                        Bench candidates are added to the project pipeline with their EMI scores, and warm outreach stages carry over.
+                      </span>
+                    </span>
+                  </label>
+                  <p className="text-[11px] text-slate-500">
+                    Review and adjust any populated field below before creating the project.
+                  </p>
+                </div>
+              )}
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                    Project Display Name *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. Chief Financial Officer or VP of Engineering"
+                    value={title}
+                    onChange={e => setTitle(e.target.value)}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs font-bold outline-none"
+                  />
                 </div>
 
-                {sourceRole && (
-                  <div className="rounded-lg border border-purple-200 bg-purple-50/60 p-4 space-y-3" role="status">
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0">
-                        <div className="text-sm font-bold text-slate-900">
-                          Populated from {cleanRoleTitle(sourceRole.roleTitle)}
-                        </div>
-                        <div className="text-[11px] text-slate-600 mt-0.5">
-                          Hiring manager: {sourceRole.hiringManager}, {sourceRole.hiringManagerTitle} · Target date: {sourceRole.targetDate}
-                        </div>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={clearRole}
-                        className="text-xs font-semibold text-purple-700 hover:text-purple-900 shrink-0 cursor-pointer"
-                      >
-                        Clear role
-                      </button>
-                    </div>
-                    <div className="flex flex-wrap gap-1.5 text-[11px] font-semibold">
-                      {[sourceRole.department, sourceRole.level, sourceRole.priorityLevel, sourceRole.anchors.targetRevenueScale, sourceRole.anchors.geographicFlexibility].map(chip => (
-                        <span key={chip} className="px-2 py-0.5 rounded bg-white border border-purple-200 text-purple-800">
-                          {chip}
-                        </span>
-                      ))}
-                    </div>
-                    <label className="flex items-start gap-2.5 text-xs text-slate-800 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={includeBench}
-                        onChange={e => setIncludeBench(e.target.checked)}
-                        className="mt-0.5 w-4 h-4 accent-(--color-secondary-200)"
-                      />
-                      <span>
-                        <span className="font-semibold">
-                          Add the succession bench to this project ({benchSeed.length} candidate{benchSeed.length === 1 ? '' : 's'})
-                        </span>
-                        <span className="block text-[11px] text-slate-500 mt-0.5">
-                          Bench candidates are added to the project pipeline with their EMI scores, and warm outreach stages carry over.
-                        </span>
-                      </span>
-                    </label>
-                    <p className="text-[11px] text-slate-500">
-                      Review and adjust any populated field below before creating the project.
-                    </p>
-                  </div>
-                )}
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                    Hiring Department / Function
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Engineering & AI, Product, or Finance"
+                    value={company === 'Client Corporation' ? 'Engineering & AI' : company}
+                    onChange={e => setCompany(e.target.value)}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs font-semibold outline-none"
+                  />
+                </div>
               </div>
-            )}
+
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 pt-2">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                    Lead Executive Recruiter
+                  </label>
+                  <input
+                    type="text"
+                    value={leadRecruiter}
+                    onChange={e => setLeadRecruiter(e.target.value)}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs font-medium outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                    Project Type
+                  </label>
+                  <select
+                    value={projectType}
+                    onChange={e => setProjectType(e.target.value)}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs font-medium bg-white"
+                  >
+                    <option value="Executive Search">Executive Search</option>
+                    <option value="Standard Search">Standard Search</option>
+                    <option value="Confidential Pipeline">Confidential Pipeline</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                    Stage
+                  </label>
+                  <select
+                    value={stage}
+                    onChange={e => setStage(e.target.value)}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs font-bold bg-white text-purple-700"
+                  >
+                    <option value="Calibration">Calibration</option>
+                    <option value="Slate Review">Slate Review</option>
+                    <option value="Client Interview">Client Interview</option>
+                    <option value="Offer & Closing">Offer & Closing</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                    Search Status
+                  </label>
+                  <select
+                    value={status}
+                    onChange={e => setStatus(e.target.value)}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs font-medium bg-white"
+                  >
+                    <option value="Active">Active</option>
+                    <option value="Intake Calibration">Intake Calibration</option>
+                    <option value="Sourcing / Slate Building">Sourcing / Slate Building</option>
+                    <option value="Client Interviews">Client Interviews</option>
+                    <option value="Final Offer">Final Offer</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                  Search Strategy & Overview Narrative
+                </label>
+                <textarea
+                  rows={3}
+                  value={description}
+                  onChange={e => setDescription(e.target.value)}
+                  placeholder="Outline the core objective, organizational context, and key milestones for this retained mandate..."
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:ring-1 focus:ring-purple-600 outline-none leading-relaxed"
+                />
+              </div>
+            </div>
 
             {/* ================================================================= */}
             {/* BLOCK 1: Role & Leveling Baseline */}
@@ -513,7 +645,7 @@ export function ProjectParametersModal({ isOpen, onOpenChange, project, onSave, 
               <div className="border-b border-slate-100 pb-3 flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <div className="w-7 h-7 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-xs">
-                    1
+                    2
                   </div>
                   <div>
                     <h3 className="text-sm font-bold text-slate-900">Role & Leveling Baseline</h3>
@@ -528,26 +660,6 @@ export function ProjectParametersModal({ isOpen, onOpenChange, project, onSave, 
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                    Target Primary Title *
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="e.g. VP of Engineering"
-                    value={primaryTitle}
-                    onChange={e => {
-                      setPrimaryTitle(e.target.value);
-                      if (!title) setTitle(e.target.value);
-                    }}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs font-semibold focus:ring-1 focus:ring-purple-600 outline-none"
-                  />
-                  <span className="text-[10px] text-slate-400 mt-1 block">
-                    The core benchmark title for the search.
-                  </span>
-                </div>
-
                 <div>
                   <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
                     Executive Role Level *
@@ -697,7 +809,7 @@ export function ProjectParametersModal({ isOpen, onOpenChange, project, onSave, 
               <div className="border-b border-slate-100 pb-3 flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <div className="w-7 h-7 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold text-xs">
-                    2
+                    3
                   </div>
                   <div>
                     <h3 className="text-sm font-bold text-slate-900">Compensation & Financial Framework</h3>
@@ -807,7 +919,7 @@ export function ProjectParametersModal({ isOpen, onOpenChange, project, onSave, 
               <div className="border-b border-slate-100 pb-3 flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <div className="w-7 h-7 rounded-lg bg-purple-50 text-purple-600 flex items-center justify-center font-bold text-xs">
-                    3
+                    4
                   </div>
                   <div>
                     <h3 className="text-sm font-bold text-slate-900">Scope & Scale Requirements</h3>
@@ -876,7 +988,7 @@ export function ProjectParametersModal({ isOpen, onOpenChange, project, onSave, 
               <div className="border-b border-slate-100 pb-3 flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <div className="w-7 h-7 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center font-bold text-xs">
-                    4
+                    5
                   </div>
                   <div>
                     <h3 className="text-sm font-bold text-slate-900">Location & Work Model</h3>
@@ -1004,7 +1116,7 @@ export function ProjectParametersModal({ isOpen, onOpenChange, project, onSave, 
               <div className="border-b border-slate-100 pb-3 flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <div className="w-7 h-7 rounded-lg bg-rose-50 text-rose-600 flex items-center justify-center font-bold text-xs">
-                    5
+                    6
                   </div>
                   <div>
                     <h3 className="text-sm font-bold text-slate-900">Timeline & Operational Constraints</h3>
@@ -1068,136 +1180,10 @@ export function ProjectParametersModal({ isOpen, onOpenChange, project, onSave, 
               </div>
             </div>
 
-            {/* ================================================================= */}
-            {/* BLOCK 6: Project Basics & Identity */}
-            {/* ================================================================= */}
-            <div id="block-6" className="bg-white rounded-xl border border-slate-200 p-5 shadow-xs space-y-4">
-              <div className="border-b border-slate-100 pb-3 flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <div className="w-7 h-7 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold text-xs">
-                    6
-                  </div>
-                  <div>
-                    <h3 className="text-sm font-bold text-slate-900">Project Identity & Recruiter Assignment</h3>
-                    <p className="text-[11px] text-slate-500">
-                      Core project record metadata and search strategy notes.
-                    </p>
-                  </div>
-                </div>
-                <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-indigo-50 text-indigo-700 border border-indigo-200">
-                  Project Record
-                </span>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                    Project Display Name *
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="e.g. Chief Financial Officer or VP of Engineering"
-                    value={title}
-                    onChange={e => setTitle(e.target.value)}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs font-bold outline-none"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                    Hiring Department / Function
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="e.g. Engineering & AI, Product, or Finance"
-                    value={company === 'Client Corporation' ? 'Engineering & AI' : company}
-                    onChange={e => setCompany(e.target.value)}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs font-semibold outline-none"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 pt-2">
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                    Lead Executive Recruiter
-                  </label>
-                  <input
-                    type="text"
-                    value={leadRecruiter}
-                    onChange={e => setLeadRecruiter(e.target.value)}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs font-medium outline-none"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                    Project Type
-                  </label>
-                  <select
-                    value={projectType}
-                    onChange={e => setProjectType(e.target.value)}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs font-medium bg-white"
-                  >
-                    <option value="Executive Search">Executive Search</option>
-                    <option value="Standard Search">Standard Search</option>
-                    <option value="Confidential Pipeline">Confidential Pipeline</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                    Stage
-                  </label>
-                  <select
-                    value={stage}
-                    onChange={e => setStage(e.target.value)}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs font-bold bg-white text-purple-700"
-                  >
-                    <option value="Calibration">Calibration</option>
-                    <option value="Slate Review">Slate Review</option>
-                    <option value="Client Interview">Client Interview</option>
-                    <option value="Offer & Closing">Offer & Closing</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                    Search Status
-                  </label>
-                  <select
-                    value={status}
-                    onChange={e => setStatus(e.target.value)}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs font-medium bg-white"
-                  >
-                    <option value="Active">Active</option>
-                    <option value="Intake Calibration">Intake Calibration</option>
-                    <option value="Sourcing / Slate Building">Sourcing / Slate Building</option>
-                    <option value="Client Interviews">Client Interviews</option>
-                    <option value="Final Offer">Final Offer</option>
-                  </select>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                  Search Strategy & Overview Narrative
-                </label>
-                <textarea
-                  rows={3}
-                  value={description}
-                  onChange={e => setDescription(e.target.value)}
-                  placeholder="Outline the core objective, organizational context, and key milestones for this retained mandate..."
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:ring-1 focus:ring-purple-600 outline-none leading-relaxed"
-                />
-              </div>
-            </div>
-
             {/* Footer Buttons */}
             <div className="pt-4 border-t border-slate-200 flex items-center justify-between sticky bottom-0 bg-white/95 backdrop-blur-xs py-3 px-2">
               <span className="text-xs text-slate-500">
-                All parameter blocks feed autonomous agent scoring and intake calibration.
+                All inputs feed autonomous agent scoring and intake calibration.
               </span>
               <div className="flex items-center gap-3">
                 <button

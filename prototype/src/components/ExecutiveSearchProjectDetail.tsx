@@ -9,6 +9,7 @@ import {
   Mail, 
   Sparkles, 
   Building2, 
+  ShieldAlert,
   UserCircle, 
   Target, 
   Edit3, 
@@ -22,10 +23,14 @@ import {
   Check
 } from 'lucide-react';
 import { cn } from '../lib/utils';
-import { ProjectCandidatesTab, ProjectPipelineCandidate, initialProjectPipeline, PIPELINE_STAGES } from './tabs/ProjectCandidatesTab';
-import { GenerateSearchBookModal, SearchBookSendSummary } from './GenerateSearchBookModal';
+import { ProjectCandidatesTab, ProjectPipelineCandidate, initialProjectPipeline } from './tabs/ProjectCandidatesTab';
+import { SearchBookDownloadModal } from './SearchBookDownloadModal';
 import { useRestricted } from '../context/RestrictedContext';
 import { ProjectRecommendationsTab } from './tabs/ProjectRecommendationsTab';
+import { ProjectTargetCompaniesTab } from './tabs/ProjectTargetCompaniesTab';
+import { ProjectOffLimitsTab } from './tabs/ProjectOffLimitsTab';
+import { getOffLimitsRows } from '../data/projectOffLimits';
+import { getProjectTargetCompanies } from '../data/projectTargetCompanies';
 import { ProjectRelationshipsTab } from './tabs/ProjectRelationshipsTab';
 import { ProjectMarketMapTab } from './tabs/ProjectMarketMapTab';
 import { ProjectParametersModal } from './ProjectParametersModal';
@@ -47,11 +52,11 @@ interface ExecutiveSearchProjectDetailProps {
   onUpdateProject?: (project: Project) => void;
 }
 
-type TabType = 'overview' | 'recommendations' | 'candidates' | 'market-map' | 'market-calibration' | 'relationships' | 'nurture';
+type TabType = 'overview' | 'target-companies' | 'off-limits' | 'recommendations' | 'candidates' | 'market-map' | 'market-calibration' | 'relationships' | 'nurture';
 
 export function ExecutiveSearchProjectDetail({ project, onBack, onUpdateProject }: ExecutiveSearchProjectDetailProps) {
   const router = useRouter();
-  const validTabs: TabType[] = ['overview', 'recommendations', 'candidates', 'market-map', 'market-calibration', 'relationships', 'nurture'];
+  const validTabs: TabType[] = ['overview', 'target-companies', 'off-limits', 'recommendations', 'candidates', 'market-map', 'market-calibration', 'relationships', 'nurture'];
   const activeTab: TabType = (router.activeTab && validTabs.includes(router.activeTab as TabType))
     ? (router.activeTab as TabType)
     : 'overview';
@@ -76,12 +81,8 @@ export function ExecutiveSearchProjectDetail({ project, onBack, onUpdateProject 
     [pipeline, restrictedCompanies]
   );
 
-  const handleSendSearchBook = (summary: SearchBookSendSummary) => {
-    setShowSearchBookModal(false);
-    const n = summary.recipients.length;
-    setToastMessage(
-      `Search book (${summary.templateName}, ${summary.candidateCount} candidate${summary.candidateCount === 1 ? '' : 's'}) sent to ${n} recipient${n === 1 ? '' : 's'}.`
-    );
+  const showToast = (message: string) => {
+    setToastMessage(message);
     setTimeout(() => setToastMessage(null), 5000);
   };
 
@@ -89,8 +90,19 @@ export function ExecutiveSearchProjectDetail({ project, onBack, onUpdateProject 
   const recommendationsData = useMemo(() => getRecommendationsForProject(project), [project]);
   const recommendationsCount = recommendationsData.totalCount;
 
+  const [targetCompanyCount, setTargetCompanyCount] = useState<number>(
+    () =>
+      getProjectTargetCompanies(project).filter(
+        c => !restrictedCompanies.some(r => r.name.trim().toLowerCase() === c.name.trim().toLowerCase())
+      ).length
+  );
+
+  const [offLimitsCount, setOffLimitsCount] = useState<number>(() => getOffLimitsRows(project, restrictedCompanies).length);
+
   const tabs: { id: TabType; label: string; icon: any; count?: number }[] = [
     { id: 'overview', label: 'Overview', icon: Briefcase },
+    { id: 'target-companies', label: 'Target Companies', icon: Building2, count: targetCompanyCount },
+    { id: 'off-limits', label: 'Off-Limits Companies', icon: ShieldAlert, count: offLimitsCount },
     { id: 'recommendations', label: 'Recommendations', icon: Sparkles, count: recommendationsCount },
     { id: 'candidates', label: 'Candidates', icon: Users },
     { id: 'market-map', label: 'Market Map', icon: Map },
@@ -123,16 +135,13 @@ export function ExecutiveSearchProjectDetail({ project, onBack, onUpdateProject 
         }}
       />
 
-      {showSearchBookModal && (
-        <GenerateSearchBookModal
-          projectTitle={project.title}
-          leadRecruiter={project.leadRecruiter}
-          candidates={searchBookCandidates}
-          stages={PIPELINE_STAGES}
-          onClose={() => setShowSearchBookModal(false)}
-          onSend={handleSendSearchBook}
-        />
-      )}
+      <SearchBookDownloadModal
+        isOpen={showSearchBookModal}
+        onOpenChange={setShowSearchBookModal}
+        project={project}
+        pipeline={searchBookCandidates}
+        onDownloaded={showToast}
+      />
 
       {toastMessage && (
         <div role="status" className="fixed bottom-6 right-6 z-50 bg-slate-900 text-white px-5 py-3 rounded-xl shadow-xl flex items-center gap-3 border border-slate-700 animate-slideUp">
@@ -143,103 +152,94 @@ export function ExecutiveSearchProjectDetail({ project, onBack, onUpdateProject 
         </div>
       )}
 
-      <div className="bg-slate-900 border-b border-slate-800 shrink-0 sticky top-0 z-20">
+      <div className="bg-(--bg-default) border-b border-(--border-light) shrink-0 sticky top-0 z-20">
         <div className="max-w-[1400px] mx-auto w-full">
           <div className="px-8 py-4">
-            <button 
-              onClick={onBack}
-              className="flex items-center gap-2 text-slate-400 hover:text-white transition-colors text-sm font-semibold mb-6 cursor-pointer"
-            >
-              <ArrowLeft className="w-4 h-4" /> Back to Projects
+            <button type="button" onClick={onBack} className="phx-crumb mb-4">
+              <ArrowLeft aria-hidden="true" /> Back to Projects
             </button>
 
             <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6 mb-6">
               <div className="flex items-center gap-6">
-                <div className="w-16 h-16 bg-purple-500/20 rounded-2xl border border-purple-500/30 flex items-center justify-center shrink-0 shadow-[0_0_15px_rgba(168,85,247,0.15)]">
-                  <Target className="w-8 h-8 text-purple-400" />
+                <div className="w-20 h-20 bg-(--bg-neutral-soft) rounded-2xl border border-(--border-light) flex items-center justify-center shrink-0">
+                  <Target className="w-10 h-10 text-(--color-secondary-200)" aria-hidden="true" />
                 </div>
                 <div>
-                  <div className="flex items-center gap-3 mb-2">
-                    <span className="bg-purple-500/20 text-purple-300 text-[10px] font-bold px-2 py-0.5 rounded border border-purple-500/30 uppercase tracking-wider">
-                      {project.type || 'Executive Search'}
-                    </span>
+                  <div className="flex items-center gap-2 mb-2 flex-wrap">
+                    <span className="phx-tag">{project.type || 'Executive Search'}</span>
                     <select
                       aria-label="Project status"
                       value={lifecycle}
                       onChange={e => handleStatusChange(e.target.value as ProjectLifecycle)}
-                      style={{ width: 'auto', height: 'auto', minHeight: 0 }}
-                      className={cn(
-                        "shrink-0 whitespace-nowrap text-[10px] font-bold pl-2 pr-1 py-0.5 rounded border uppercase tracking-wider cursor-pointer focus:outline-none focus:ring-1 focus:ring-white/60",
-                        lifecycle === 'open' && "bg-emerald-500/20 text-emerald-300 border-emerald-500/30",
-                        lifecycle === 'in-progress' && "bg-sky-500/20 text-sky-200 border-sky-400/40",
-                        lifecycle === 'closed' && "bg-slate-500/20 text-slate-300 border-slate-500/40"
-                      )}
+                      style={{
+                        width: 'auto',
+                        height: 24,
+                        minHeight: 0,
+                        padding: '0 8px',
+                        borderRadius: 6,
+                        fontSize: 'var(--font-size-sm)',
+                        fontWeight: 600,
+                        background:
+                          lifecycle === 'open'
+                            ? 'var(--feedback-success-bg-light)'
+                            : lifecycle === 'in-progress'
+                              ? 'var(--feedback-info-bg-light)'
+                              : 'var(--bg-neutral-soft)',
+                        color:
+                          lifecycle === 'open'
+                            ? 'var(--feedback-success-text-strong)'
+                            : lifecycle === 'in-progress'
+                              ? 'var(--feedback-info-text-strong)'
+                              : 'var(--text-default)',
+                      }}
+                      className="shrink-0 whitespace-nowrap cursor-pointer"
                     >
-                      <option value="open" className="text-slate-900 normal-case">Open</option>
-                      <option value="in-progress" className="text-slate-900 normal-case">In Progress</option>
-                      <option value="closed" className="text-slate-900 normal-case">Closed</option>
+                      <option value="open">Open</option>
+                      <option value="in-progress">In Progress</option>
+                      <option value="closed">Closed</option>
                     </select>
-                    {params?.roleLevel && (
-                      <span className="bg-blue-500/20 text-blue-300 text-[10px] font-bold px-2 py-0.5 rounded border border-blue-500/30 uppercase tracking-wider">
-                        {params.roleLevel}
-                      </span>
-                    )}
+                    {params?.roleLevel && <span className="phx-tag">{params.roleLevel}</span>}
                   </div>
-                  <h1 className="text-3xl font-bold text-white mb-2">{project.title}</h1>
-                  <div className="flex flex-wrap items-center gap-4 text-sm text-slate-400">
-                    <span className="flex items-center gap-1.5"><UserCircle className="w-4 h-4"/> Lead: {project.leadRecruiter}</span>
+                  <h1 className="text-3xl font-bold text-(--text-strong) mb-2">{project.title}</h1>
+                  <div className="flex flex-wrap items-center gap-4 text-sm text-(--text-default)">
+                    <span className="flex items-center gap-1.5"><UserCircle className="w-4 h-4 text-(--text-subtle)" aria-hidden="true" /> Lead: {project.leadRecruiter}</span>
                     {params?.workModel && (
-                      <span className="flex items-center gap-1.5"><MapPin className="w-4 h-4"/> {params.workModel} {params.hybridDaysPerWeek ? `(${params.hybridDaysPerWeek}d/wk)` : ''}</span>
+                      <span className="flex items-center gap-1.5"><MapPin className="w-4 h-4 text-(--text-subtle)" aria-hidden="true" /> {params.workModel} {params.hybridDaysPerWeek ? `(${params.hybridDaysPerWeek}d/wk)` : ''}</span>
                     )}
                     {params?.targetBaseSalary && (
-                      <span className="flex items-center gap-1.5"><DollarSign className="w-4 h-4"/> Target Base: ${(params.targetBaseSalary / 1000).toFixed(0)}K</span>
+                      <span className="flex items-center gap-1.5"><DollarSign className="w-4 h-4 text-(--text-subtle)" aria-hidden="true" /> Target Base: ${(params.targetBaseSalary / 1000).toFixed(0)}K</span>
                     )}
                   </div>
                 </div>
               </div>
 
-              <div className="flex items-center gap-3">
-                <button 
-                  onClick={() => setShowSettingsModal(true)}
-                  className="px-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm font-semibold text-white hover:bg-slate-700 shadow-sm transition-colors flex items-center gap-1.5 cursor-pointer"
-                >
-                  <Sliders className="w-4 h-4 text-purple-400" />
+              <div className="flex flex-wrap sm:flex-nowrap items-center gap-3 w-full lg:w-auto">
+                <button type="button" className="phx-btn" data-variant="secondary" onClick={() => setShowSettingsModal(true)}>
+                  <Sliders className="w-4 h-4" aria-hidden="true" />
                   Project Settings & Parameters
                 </button>
-                <button
-                  type="button"
-                  onClick={() => setShowSearchBookModal(true)}
-                  className="px-4 py-2 bg-purple-600 rounded-lg text-sm font-semibold text-white hover:bg-purple-500 shadow-sm transition-colors inline-block text-center cursor-pointer"
-                >
+                <button type="button" className="phx-btn" data-variant="primary" onClick={() => setShowSearchBookModal(true)}>
                   Generate Search Book
                 </button>
               </div>
             </div>
           </div>
 
-          <div className="px-8 flex gap-8 overflow-x-auto no-scrollbar">
+          <div role="tablist" aria-label="Project sections" className="px-8 gap-8 border-t border-(--border-faint)">
             {tabs.map(tab => {
               const Icon = tab.icon;
               return (
                 <button
                   key={tab.id}
+                  type="button"
+                  role="tab"
+                  aria-selected={activeTab === tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={cn(
-                    "py-4 text-sm font-semibold border-b-2 whitespace-nowrap transition-colors flex items-center gap-2 cursor-pointer",
-                    activeTab === tab.id 
-                      ? "border-purple-400 text-purple-400" 
-                      : "border-transparent text-slate-400 hover:text-slate-200"
-                  )}
                 >
-                  <Icon className="w-4 h-4" />
+                  <Icon className="w-4 h-4" aria-hidden="true" />
                   <span>{tab.label}</span>
                   {typeof tab.count === 'number' && (
-                    <span className={cn(
-                      "px-2 py-0.5 rounded-full text-xs font-bold transition-colors",
-                      activeTab === tab.id 
-                        ? "bg-purple-500/30 text-purple-200 border border-purple-400/40" 
-                        : "bg-slate-800 text-slate-300 border border-slate-700"
-                    )}>
+                    <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-(--bg-neutral-soft) text-(--text-default) border border-(--border-light)">
                       {tab.count}
                     </span>
                   )}
@@ -530,6 +530,14 @@ export function ExecutiveSearchProjectDetail({ project, onBack, onUpdateProject 
 
           {activeTab === 'market-calibration' && (
             <RoleMarketCalibrationTab key={project.id} project={project} />
+          )}
+
+          {activeTab === 'target-companies' && (
+            <ProjectTargetCompaniesTab key={project.id} project={project} onCountChange={setTargetCompanyCount} />
+          )}
+
+          {activeTab === 'off-limits' && (
+            <ProjectOffLimitsTab key={project.id} project={project} onCountChange={setOffLimitsCount} />
           )}
 
           {activeTab === 'recommendations' && (

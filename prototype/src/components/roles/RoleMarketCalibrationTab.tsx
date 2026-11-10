@@ -1,10 +1,10 @@
-import React, { useMemo, useRef, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { RoleSuccessionItem, initialRolesSuccessionData } from '../../data/rolesSuccessionData';
 import { getSearchIntelligenceForRole, getSearchIntelligenceForProject, SearchIntelligenceData } from '../../data/projectSearchIntelligenceData';
 import type { Project } from '../../types';
 import { downloadBlob } from '../../lib/simplePdf';
-import { buildCalibrationBriefPdf, type ClientLogo } from '../../lib/calibrationBriefPdf';
-import { readClientLogo } from '../../lib/clientLogo';
+import { buildCalibrationBriefPdf } from '../../lib/calibrationBriefPdf';
+import { DownloadBriefModal, type BriefExportChoices } from './DownloadBriefModal';
 import { buildBriefModel } from '../../lib/calibrationBrief';
 import {
   Clock,
@@ -14,8 +14,6 @@ import {
   Info,
   Download,
   Check,
-  ImagePlus,
-  X,
 } from 'lucide-react';
 import { IntakeMeetingModal } from '../IntakeMeetingModal';
 import { CalibrationScenario, computeDifficulty, getCompetitionSnapshot, initialScenario } from '../../lib/hireDifficulty';
@@ -52,25 +50,12 @@ export function RoleMarketCalibrationTab({ role, project }: RoleMarketCalibratio
 
   const [showIntakeModal, setShowIntakeModal] = useState<boolean>(false);
   const [downloaded, setDownloaded] = useState<boolean>(false);
-  const [clientLogo, setClientLogo] = useState<{ preview: string; logo: ClientLogo } | null>(null);
-  const [logoError, setLogoError] = useState<string | null>(null);
-  const logoInput = useRef<HTMLInputElement>(null);
+  const [showDownloadModal, setShowDownloadModal] = useState<boolean>(false);
+  const defaultBriefName = `Executive Search Calibration Brief: ${data.roleTitle}`;
 
-  const handleLogoFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    e.target.value = '';
-    if (!file) return;
-    try {
-      setClientLogo(await readClientLogo(file));
-      setLogoError(null);
-    } catch {
-      setLogoError('That file could not be read as an image. Try a PNG, JPG or SVG.');
-    }
-  };
-
-  const handleDownloadReport = () => {
-    const slug = data.roleTitle.replace(/[^a-z0-9]+/gi, '-').replace(/^-+|-+$/g, '');
-    downloadBlob(buildCalibrationBriefPdf(model, clientLogo?.logo ?? null), `Executive-Search-Calibration-Brief-${slug}.pdf`);
+  const handleDownloadReport = ({ name, clientLogo, companyLogo }: BriefExportChoices) => {
+    const slug = name.replace(/[^a-z0-9]+/gi, '-').replace(/^-+|-+$/g, '') || 'Calibration-Brief';
+    downloadBlob(buildCalibrationBriefPdf(model, { title: name, clientLogo, companyLogo }), `${slug}.pdf`);
     setDownloaded(true);
     setTimeout(() => setDownloaded(false), 3000);
   };
@@ -79,6 +64,13 @@ export function RoleMarketCalibrationTab({ role, project }: RoleMarketCalibratio
 
   return (
     <div className="flex flex-col gap-8 max-w-7xl mx-auto w-full pb-20">
+
+      <DownloadBriefModal
+        isOpen={showDownloadModal}
+        onOpenChange={setShowDownloadModal}
+        defaultName={defaultBriefName}
+        onDownload={handleDownloadReport}
+      />
 
       {showIntakeModal && (
         <IntakeMeetingModal onClose={() => setShowIntakeModal(false)} />
@@ -111,32 +103,8 @@ export function RoleMarketCalibrationTab({ role, project }: RoleMarketCalibratio
         </div>
 
         <div className="flex items-center gap-3 shrink-0 flex-wrap">
-          <input ref={logoInput} type="file" accept="image/png,image/jpeg,image/svg+xml,image/webp" className="sr-only" aria-label="Upload client logo" onChange={handleLogoFile} />
-          {clientLogo ? (
-            <div className="flex items-center gap-2 bg-white rounded-xl pl-2 pr-1.5 py-1.5">
-              <img src={clientLogo.preview} alt="Client logo for the brief" className="h-7 max-w-24 object-contain" />
-              <button
-                type="button"
-                onClick={() => setClientLogo(null)}
-                aria-label="Remove client logo"
-                className="p-1 rounded-md text-slate-500 hover:bg-slate-100 cursor-pointer"
-              >
-                <X className="w-3.5 h-3.5" />
-              </button>
-            </div>
-          ) : (
-            <button
-              type="button"
-              onClick={() => logoInput.current?.click()}
-              className="px-4 py-2.5 bg-slate-800/80 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-xl text-xs font-semibold shadow-sm transition-all flex items-center gap-2 cursor-pointer"
-            >
-              <ImagePlus className="w-4 h-4 text-slate-400" />
-              Add client logo
-            </button>
-          )}
-
           <button
-            onClick={handleDownloadReport}
+            onClick={() => setShowDownloadModal(true)}
             className="px-4 py-2.5 bg-slate-800/80 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-xl text-xs font-semibold shadow-sm transition-all flex items-center gap-2 cursor-pointer"
           >
             {downloaded ? <Check className="w-4 h-4 text-emerald-400" /> : <Download className="w-4 h-4 text-slate-400" />}
@@ -152,7 +120,6 @@ export function RoleMarketCalibrationTab({ role, project }: RoleMarketCalibratio
           </button>
         </div>
       </div>
-      {logoError && <p role="alert" className="text-xs text-red-700 -mt-4">{logoError}</p>}
 
       <ExecutiveScorecard {...sectionProps} />
       <ScarcityCalculator {...sectionProps} />

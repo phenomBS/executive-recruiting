@@ -75,76 +75,63 @@ export function CompanyDetail({ company, onBack }: CompanyDetailProps) {
 
   return (
     <div className="flex flex-col h-full bg-(--bg-surface-base) overflow-y-auto w-full relative">
-      <div className="bg-white border-b border-slate-200 shrink-0 sticky top-0 z-20">
+      <div className="bg-(--bg-default) border-b border-(--border-light) shrink-0 sticky top-0 z-20">
         <div className="max-w-[1400px] mx-auto w-full">
           <div className="px-8 py-4">
             
-            <button 
-              onClick={onBack}
-              className="flex items-center gap-2 text-slate-500 hover:text-slate-800 transition-colors text-sm font-semibold mb-4"
-            >
-              <ArrowLeft className="w-4 h-4" /> Back to Companies
+            <button type="button" onClick={onBack} className="phx-crumb mb-4">
+              <ArrowLeft aria-hidden="true" /> Back to Companies
             </button>
             
             {restrictedInfo && (
-              <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-6 flex items-start gap-3 shadow-sm">
-                <AlertTriangle className="w-5 h-5 text-red-600 shrink-0 mt-0.5" />
-                <div>
-                  <h4 className="text-sm font-bold text-red-800 uppercase tracking-wider">Restricted: Do Not Contact</h4>
-                  <p className="text-sm text-red-600 mt-0.5">This company is on the restricted list. Reason: <span className="font-medium">{restrictedInfo.reason}</span></p>
-                </div>
+              <div className="phx-feedback mb-6" data-tone="error" role="alert">
+                <strong>Restricted: Do not contact.</strong> This company is on the restricted list. Reason: {restrictedInfo.reason}
               </div>
             )}
 
 
             <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6 mb-6">
               <div className="flex items-center gap-6">
-                <div className="w-20 h-20 bg-slate-100 rounded-2xl border border-slate-200 flex items-center justify-center shrink-0">
-                  <Building2 className="w-10 h-10 text-slate-400" />
+                <div className="w-20 h-20 bg-(--bg-neutral-soft) rounded-2xl border border-(--border-light) flex items-center justify-center shrink-0">
+                  <Building2 className="w-10 h-10 text-(--color-secondary-200)" aria-hidden="true" />
                 </div>
                 <div>
-                  <h1 className="text-3xl font-bold text-slate-900 mb-2">{company.name}</h1>
-                  <div className="flex flex-wrap items-center gap-4 text-sm text-slate-600">
-                    <span className="flex items-center gap-1.5"><Building2 className="w-4 h-4 text-slate-400"/> {company.industry}</span>
-                    <span className="flex items-center gap-1.5"><MapPin className="w-4 h-4 text-slate-400"/> {company.headquarters}</span>
-                    <span className="flex items-center gap-1.5"><Users className="w-4 h-4 text-slate-400"/> {company.size}</span>
-                    <span className="flex items-center gap-1.5"><LineChart className="w-4 h-4 text-slate-400"/> {company.revenue}</span>
-                    <span className="flex items-center gap-1.5"><Globe className="w-4 h-4 text-slate-400"/> {company.website}</span>
+                  <h1 className="text-3xl font-bold text-(--text-strong) mb-2">{company.name}</h1>
+                  <div className="flex flex-wrap items-center gap-4 text-sm text-(--text-default)">
+                    <span className="flex items-center gap-1.5"><Building2 className="w-4 h-4 text-(--text-subtle)" aria-hidden="true"/> {company.industry}</span>
+                    <span className="flex items-center gap-1.5"><MapPin className="w-4 h-4 text-(--text-subtle)" aria-hidden="true"/> {company.headquarters}</span>
+                    <span className="flex items-center gap-1.5"><Users className="w-4 h-4 text-(--text-subtle)" aria-hidden="true"/> {company.size}</span>
+                    <span className="flex items-center gap-1.5"><LineChart className="w-4 h-4 text-(--text-subtle)" aria-hidden="true"/> {company.revenue}</span>
+                    <span className="flex items-center gap-1.5"><Globe className="w-4 h-4 text-(--text-subtle)" aria-hidden="true"/> {company.website}</span>
                   </div>
                 </div>
               </div>
 
               <div className="flex flex-wrap sm:flex-nowrap items-center gap-3 w-full lg:w-auto">
-                <button className="flex-1 sm:flex-none justify-center px-4 py-2 bg-white border border-slate-300 rounded-lg text-sm font-semibold text-slate-700 hover:bg-slate-50 shadow-sm flex items-center gap-2 transition-colors whitespace-nowrap h-[38px]">
-                  <Map className="w-4 h-4 shrink-0" /> Add to Market Map
+                <button type="button" className="phx-btn" data-variant="secondary">
+                  <Map className="w-4 h-4" aria-hidden="true" /> Add to Market Map
                 </button>
-                <button className="flex-1 sm:flex-none justify-center px-4 py-2 bg-white border border-slate-300 rounded-lg text-sm font-semibold text-slate-700 hover:bg-slate-50 shadow-sm flex items-center gap-2 transition-colors whitespace-nowrap h-[38px]">
-                  <Plus className="w-4 h-4 shrink-0" /> Add to Search
+                <button type="button" className="phx-btn" data-variant="secondary">
+                  <Plus className="w-4 h-4" aria-hidden="true" /> Add to Search
                 </button>
-                <button className="flex-1 sm:flex-none justify-center px-4 py-2 bg-white border border-slate-300 rounded-lg text-sm font-semibold text-slate-700 hover:bg-slate-50 shadow-sm flex items-center gap-2 transition-colors whitespace-nowrap h-[38px]">
-                  <Star className="w-4 h-4 shrink-0" /> Follow
+                <button type="button" className="phx-btn" data-variant="secondary">
+                  <Star className="w-4 h-4" aria-hidden="true" /> Follow
                 </button>
-                <button 
-                  onClick={() => setIsAiOpen(true)}
-                  className="flex-1 sm:flex-none justify-center px-4 py-2 bg-(--color-secondary-200) rounded-lg text-sm font-semibold text-white hover:bg-blue-800 shadow-sm flex items-center gap-2 transition-colors whitespace-nowrap h-[38px]"
-                >
-                  <Sparkles className="w-4 h-4 shrink-0" /> Ask AI
+                <button type="button" className="phx-btn" data-variant="primary" onClick={() => setIsAiOpen(true)}>
+                  <Sparkles className="w-4 h-4" aria-hidden="true" /> Ask AI
                 </button>
               </div>
             </div>
           </div>
 
-          <div className="px-8 flex gap-8 border-t border-slate-100 overflow-x-auto no-scrollbar">
+          <div role="tablist" aria-label="Company sections" className="px-8 gap-8 border-t border-(--border-faint)">
             {tabs.map(tab => (
               <button
                 key={tab.id}
+                type="button"
+                role="tab"
+                aria-selected={activeTab === tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={cn(
-                  "py-4 text-sm font-semibold border-b-2 whitespace-nowrap transition-colors",
-                  activeTab === tab.id 
-                    ? "border-(--color-secondary-200) text-(--color-secondary-200)" 
-                    : "border-transparent text-slate-500 hover:text-slate-800"
-                )}
               >
                 {tab.label}
               </button>

@@ -166,8 +166,8 @@ export class Canvas {
     return lines.length;
   }
 
-  image(x: number, top: number, w: number, h: number) {
-    this.ops.push(`q ${n2(w)} 0 0 ${n2(h)} ${n2(x)} ${n2(this.y(top + h))} cm /Im1 Do Q`);
+  image(x: number, top: number, w: number, h: number, name: 'Im1' | 'Im2' = 'Im1') {
+    this.ops.push(`q ${n2(w)} 0 0 ${n2(h)} ${n2(x)} ${n2(this.y(top + h))} cm /${name} Do Q`);
   }
 }
 
@@ -242,7 +242,18 @@ function drawDial(cv: Canvas, cx: number, cy: number, R: number, score: number, 
 
 /* ------------------------------------------------------------------ */
 
-export function buildCalibrationBriefPdf(model: BriefModel, clientLogo?: ClientLogo | null): Blob {
+export interface BriefOptions {
+  /** Title printed in the header. Defaults to the standard brief title for the role. */
+  title?: string;
+  /** Logo of the client the search is for (top right). */
+  clientLogo?: ClientLogo | null;
+  /** Logo of the recruiting firm preparing the brief (top left, replaces the default mark). */
+  companyLogo?: ClientLogo | null;
+}
+
+/** Draw the one-page brief. Image names follow `assemble`: Im1 is the client logo when present, else the company logo. */
+export function drawCalibrationBrief(model: BriefModel, options: BriefOptions = {}): Canvas {
+  const { clientLogo = null, companyLogo = null } = options;
   const W = 792;
   const H = 612;
   const M = 28;
@@ -257,14 +268,21 @@ export function buildCalibrationBriefPdf(model: BriefModel, clientLogo?: ClientL
   cv.rect(0, 0, W, 72, C.navy);
   cv.rect(0, 72, W, 2.5, C.indigo);
 
-  drawPhenomMark(cv, M, 17, 36, C.white);
-  cv.text(M + 42, 36, 'Phenom', 16, { bold: true, color: C.white });
-  cv.text(M + 43, 48, 'Market Intelligence', 7, { color: hex('#a9acd6') });
-
   const logoW = 128;
   const logoH = 46;
   const logoX = W - M - logoW;
   const logoTop = 13;
+  if (companyLogo) {
+    cv.rrect(M, logoTop, logoW, logoH, 5, { fill: C.white });
+    const cs = Math.min((logoW - 12) / companyLogo.width, (logoH - 10) / companyLogo.height);
+    const cw = companyLogo.width * cs;
+    const ch = companyLogo.height * cs;
+    cv.image(M + (logoW - cw) / 2, logoTop + (logoH - ch) / 2, cw, ch, clientLogo ? 'Im2' : 'Im1');
+  } else {
+    drawPhenomMark(cv, M, 17, 36, C.white);
+    cv.text(M + 42, 36, 'Phenom', 16, { bold: true, color: C.white });
+    cv.text(M + 43, 48, 'Market Intelligence', 7, { color: hex('#a9acd6') });
+  }
   if (clientLogo) {
     cv.rrect(logoX, logoTop, logoW, logoH, 5, { fill: C.white });
     const scale = Math.min((logoW - 12) / clientLogo.width, (logoH - 10) / clientLogo.height);
@@ -276,7 +294,7 @@ export function buildCalibrationBriefPdf(model: BriefModel, clientLogo?: ClientL
     cv.text(logoX + logoW / 2, logoTop + logoH / 2 + 2.5, 'CLIENT LOGO', 7.5, { bold: true, color: hex('#8f93c4'), align: 'center' });
   }
 
-  const title = `Executive Search Calibration Brief: ${data.roleTitle}`;
+  const title = options.title?.trim() || `Executive Search Calibration Brief: ${data.roleTitle}`;
   const titleLines = wrap(toWinAnsi(title), 15, true, 440);
   const titleTop = titleLines.length > 1 ? 30 : 38;
   titleLines.slice(0, 2).forEach((l, i) => cv.text(W / 2, titleTop + i * 17, l, 15, { bold: true, color: C.white, align: 'center' }));
@@ -517,13 +535,25 @@ export function buildCalibrationBriefPdf(model: BriefModel, clientLogo?: ClientL
   cv.paragraph(M + 16, sumTop + 25, model.summary, 8.6, CW - 32, 10.4, { color: C.ink });
 
   /* ---------------- Footer ---------------- */
-  cv.text(M, 598, 'Phenom Market Intelligence  |  Confidential: prepared for the executive search intake', 6.5, { color: C.muted });
+  cv.text(
+    M,
+    598,
+    companyLogo ? 'Confidential: prepared for the executive search intake' : 'Phenom Market Intelligence  |  Confidential: prepared for the executive search intake',
+    6.5,
+    { color: C.muted }
+  );
   cv.text(W - M, 598, 'Sources: People Data Labs, BLS, SEC DEF 14A, SerpApi, The Org', 6.5, { color: C.muted, align: 'right' });
 
-  return assemble(cv, clientLogo ?? null);
+  return cv;
 }
 
-export function assemble(cv: Canvas, logo: ClientLogo | null): Blob {
+export function buildCalibrationBriefPdf(model: BriefModel, options: BriefOptions = {}): Blob {
+  const { clientLogo = null, companyLogo = null } = options;
+  // The client logo is Im1 when present; the company logo is Im1 only when it is the sole image.
+  return assemble(drawCalibrationBrief(model, options), clientLogo ?? companyLogo, clientLogo && companyLogo ? companyLogo : null);
+}
+
+export function assemble(cv: Canvas, logo: ClientLogo | null, logo2: ClientLogo | null = null): Blob {
   const objects: string[] = [];
   objects[1] = '<< /Type /Catalog /Pages 2 0 R >>';
   objects[2] = '<< /Type /Pages /Kids [6 0 R] /Count 1 >>';
@@ -533,12 +563,67 @@ export function assemble(cv: Canvas, logo: ClientLogo | null): Blob {
   objects[5] = `<< /Length ${stream.length} >>\nstream\n${stream}\nendstream`;
   objects[6] =
     `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${cv.W} ${cv.H}] ` +
-    `/Resources << /Font << /F1 3 0 R /F2 4 0 R >>${logo ? ' /XObject << /Im1 7 0 R >>' : ''} >> /Contents 5 0 R >>`;
+    `/Resources << /Font << /F1 3 0 R /F2 4 0 R >>${logo ? ` /XObject << /Im1 7 0 R${logo2 ? ' /Im2 8 0 R' : ''} >>` : ''} >> /Contents 5 0 R >>`;
   if (logo) {
     objects[7] =
       `<< /Type /XObject /Subtype /Image /Width ${logo.width} /Height ${logo.height} /ColorSpace /DeviceRGB ` +
       `/BitsPerComponent 8 /Filter /DCTDecode /Length ${logo.jpeg.length} >>\nstream\n${logo.jpeg}\nendstream`;
   }
+  if (logo2) {
+    objects[8] =
+      `<< /Type /XObject /Subtype /Image /Width ${logo2.width} /Height ${logo2.height} /ColorSpace /DeviceRGB ` +
+      `/BitsPerComponent 8 /Filter /DCTDecode /Length ${logo2.jpeg.length} >>\nstream\n${logo2.jpeg}\nendstream`;
+  }
+
+  let pdf = '%PDF-1.4\n';
+  const offsets: number[] = [];
+  for (let id = 1; id < objects.length; id++) {
+    offsets[id] = pdf.length;
+    pdf += `${id} 0 obj\n${objects[id]}\nendobj\n`;
+  }
+  const xref = pdf.length;
+  pdf += `xref\n0 ${objects.length}\n0000000000 65535 f \n`;
+  for (let id = 1; id < objects.length; id++) pdf += `${String(offsets[id]).padStart(10, '0')} 00000 n \n`;
+  pdf += `trailer\n<< /Size ${objects.length} /Root 1 0 R >>\nstartxref\n${xref}\n%%EOF\n`;
+
+  const bytes = new Uint8Array(pdf.length);
+  for (let i = 0; i < pdf.length; i++) bytes[i] = pdf.charCodeAt(i) & 0xff;
+  return new Blob([bytes], { type: 'application/pdf' });
+}
+
+/** Multi-page variant of `assemble`: every page shares the same fonts and (optional) logo images. */
+export function assemblePages(pages: Canvas[], logo: ClientLogo | null, logo2: ClientLogo | null = null): Blob {
+  const objects: string[] = [];
+  objects[1] = '<< /Type /Catalog /Pages 2 0 R >>';
+  objects[3] = '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>';
+  objects[4] = '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>';
+
+  let next = 5;
+  const imageRefs: string[] = [];
+  const addImage = (img: ClientLogo, name: string) => {
+    objects[next] =
+      `<< /Type /XObject /Subtype /Image /Width ${img.width} /Height ${img.height} /ColorSpace /DeviceRGB ` +
+      `/BitsPerComponent 8 /Filter /DCTDecode /Length ${img.jpeg.length} >>\nstream\n${img.jpeg}\nendstream`;
+    imageRefs.push(`/${name} ${next} 0 R`);
+    next += 1;
+  };
+  if (logo) addImage(logo, 'Im1');
+  if (logo2) addImage(logo2, 'Im2');
+  const xobjects = imageRefs.length ? ` /XObject << ${imageRefs.join(' ')} >>` : '';
+
+  const kids: string[] = [];
+  pages.forEach(cv => {
+    const stream = cv.ops.join('\n');
+    const contentId = next;
+    const pageId = next + 1;
+    next += 2;
+    objects[contentId] = `<< /Length ${stream.length} >>\nstream\n${stream}\nendstream`;
+    objects[pageId] =
+      `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${cv.W} ${cv.H}] ` +
+      `/Resources << /Font << /F1 3 0 R /F2 4 0 R >>${xobjects} >> /Contents ${contentId} 0 R >>`;
+    kids.push(`${pageId} 0 R`);
+  });
+  objects[2] = `<< /Type /Pages /Kids [${kids.join(' ')}] /Count ${kids.length} >>`;
 
   let pdf = '%PDF-1.4\n';
   const offsets: number[] = [];

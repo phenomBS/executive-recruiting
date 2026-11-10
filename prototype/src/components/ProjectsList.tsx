@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { Project } from '../types';
-import { Search, Filter, FolderKanban, Calendar, User, Sparkles, CalendarPlus } from 'lucide-react';
+import { Search, Filter, FolderKanban, Calendar, User, CalendarPlus } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { isProjectLive, isProjectOpen, projectStatusLabel } from '../lib/projectStatus';
 import { IntakeMeetingModal } from './IntakeMeetingModal';
@@ -12,7 +12,7 @@ interface ProjectsListProps {
   onAddProject?: (project: Project) => void;
 }
 
-type ProjectTab = 'all' | 'recommendations' | 'open' | 'mine' | 'closed' | 'executive';
+type ProjectTab = 'all' | 'open' | 'mine' | 'closed' | 'executive';
 
 function projectCode(id: string) {
   const n = Number(id.replace(/\D/g, '')) || 1;
@@ -42,10 +42,7 @@ export function ProjectsList({ projects, onSelectProject, onAddProject }: Projec
     [projects]
   );
 
-  const recommended = projects.filter(project => Boolean(project.nextAction));
-
   const displayed = projects.filter(project => {
-    if (activeTab === 'recommendations' && !project.nextAction) return false;
     if (activeTab === 'open' && !isProjectLive(project.status)) return false;
     if (activeTab === 'mine' && !(project.leadRecruiter === 'Brian Stepan' && isProjectLive(project.status))) return false;
     if (activeTab === 'closed' && isProjectLive(project.status)) return false;
@@ -67,7 +64,6 @@ export function ProjectsList({ projects, onSelectProject, onAddProject }: Projec
 
   const tabs: { id: ProjectTab; label: string; count: number }[] = [
     { id: 'all', label: 'All Projects', count: projects.length },
-    { id: 'recommendations', label: 'Recommendations', count: recommended.length },
     { id: 'open', label: 'Open Projects', count: projects.filter(p => isProjectLive(p.status)).length },
     { id: 'mine', label: 'My Projects', count: projects.filter(p => p.leadRecruiter === 'Brian Stepan' && isProjectLive(p.status)).length },
     { id: 'closed', label: 'Closed Projects', count: projects.filter(p => !isProjectLive(p.status)).length },
@@ -180,24 +176,12 @@ export function ProjectsList({ projects, onSelectProject, onAddProject }: Projec
                 className={cn(
                   "px-5 py-3 text-sm font-semibold border-r border-slate-200 transition-colors flex items-center gap-1.5",
                   activeTab === tab.id
-                    ? tab.id === 'recommendations'
-                      ? "bg-white text-(--color-secondary-200) border-b-2 border-b-(--color-secondary-200)"
-                      : "bg-white text-slate-900 border-b-2 border-b-(--color-secondary-200)"
+                    ? "bg-white text-slate-900 border-b-2 border-b-(--color-secondary-200)"
                     : "bg-transparent text-slate-600 hover:bg-slate-100 font-medium"
                 )}
               >
-                {tab.id === 'recommendations' && <Sparkles className="w-4 h-4 text-purple-600 fill-purple-100" />}
                 {tab.label}
-                {tab.id === 'recommendations' ? (
-                  <span className={cn(
-                    "px-1.5 py-0.2 rounded-full text-xs font-bold ml-1",
-                    activeTab === 'recommendations' ? "bg-purple-100 text-purple-700" : "bg-purple-50 text-purple-600 border border-purple-200"
-                  )}>
-                    {tab.count}
-                  </span>
-                ) : (
-                  <span className="text-slate-500 font-normal ml-1">{tab.count}</span>
-                )}
+                <span className="text-slate-500 font-normal ml-1">{tab.count}</span>
               </button>
             ))}
           </div>
@@ -215,15 +199,6 @@ export function ProjectsList({ projects, onSelectProject, onAddProject }: Projec
             >
               Deselect All
             </button>
-          </div>
-        )}
-
-        {activeTab === 'recommendations' && selectedIds.length === 0 && (
-          <div className="bg-purple-50/50 border-b border-purple-100 px-6 py-2.5 flex items-center gap-2 text-xs text-purple-900">
-            <Sparkles className="w-4 h-4 text-purple-600" />
-            <span>
-              <strong>Aura Agent Recommendations:</strong> Projects with a suggested next step. Open one to continue the mandate.
-            </span>
           </div>
         )}
 
@@ -248,18 +223,12 @@ export function ProjectsList({ projects, onSelectProject, onAddProject }: Projec
                   <th className="px-6 py-4">Leads</th>
                   <th className="px-6 py-4">Assigned To</th>
                   <th className="px-6 py-4">Target Date</th>
-                  {activeTab === 'recommendations' && (
-                    <>
-                      <th className="px-6 py-4">Recommendation Reason</th>
-                      <th className="px-6 py-4 text-right">Action</th>
-                    </>
-                  )}
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {displayed.length === 0 ? (
                   <tr>
-                    <td colSpan={activeTab === 'recommendations' ? 9 : 7} className="px-6 py-12 text-center text-slate-500 text-sm">
+                    <td colSpan={7} className="px-6 py-12 text-center text-slate-500 text-sm">
                       No projects match the selected filters or search query.
                     </td>
                   </tr>
@@ -324,25 +293,6 @@ export function ProjectsList({ projects, onSelectProject, onAddProject }: Projec
                           {endDate(project)}
                         </div>
                       </td>
-                      {activeTab === 'recommendations' && (
-                        <>
-                          <td className="px-6 py-3.5 text-xs max-w-sm truncate text-slate-600">
-                            <div className="flex items-center gap-1.5" title={project.nextAction?.action}>
-                              <Sparkles className="w-3.5 h-3.5 text-purple-600 shrink-0" />
-                              <span className="truncate">{project.nextAction?.action}</span>
-                            </div>
-                          </td>
-                          <td className="px-6 py-3.5 text-right" onClick={e => e.stopPropagation()}>
-                            <button
-                              type="button"
-                              onClick={() => onSelectProject(project)}
-                              className="inline-flex items-center gap-1 px-3 py-1 rounded-lg bg-white border border-(--color-secondary-200) text-(--color-secondary-200) hover:bg-(--color-secondary-200) hover:text-white text-xs font-semibold transition-colors shadow-2xs"
-                            >
-                              Open
-                            </button>
-                          </td>
-                        </>
-                      )}
                     </tr>
                   );
                 })}
