@@ -115,11 +115,23 @@ export function findCompanyByName(name: string): boolean {
   return masterRepository().some(c => c.name.toLowerCase() === n);
 }
 
+/** Companies already on the Companies tab, so a project starts with real targets rather than only recommendations. */
+function companiesAlreadyOnFile(project: Project): TargetCompany[] {
+  return mockCompanies.map(c =>
+    toTarget(
+      c,
+      `Already on your Companies list, with ${c.crmCandidatesCount} candidates tracked for the ${project.title} search.`,
+      'added'
+    )
+  );
+}
+
 export function getProjectTargetCompanies(project: Project): TargetCompany[] {
   const hit = byProject.get(project.id);
   if (hit) return hit;
-  byProject.set(project.id, []);
-  return [];
+  const initial = companiesAlreadyOnFile(project);
+  byProject.set(project.id, initial);
+  return initial;
 }
 
 /** The agent's recommendation set for a project. Adding one removes it from this set; it does not pull in a replacement. */
