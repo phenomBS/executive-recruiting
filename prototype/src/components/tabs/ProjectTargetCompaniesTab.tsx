@@ -6,6 +6,7 @@ import { useRestricted } from '../../context/RestrictedContext';
 import {
   TargetCompany,
   getProjectTargetCompanies,
+  recommendCompaniesForProject,
   saveProjectTargetCompanies,
 } from '../../data/projectTargetCompanies';
 import { AddTargetCompanyModal } from './AddTargetCompanyModal';
@@ -26,17 +27,157 @@ const SOURCE_LABEL: Record<TargetCompany['source'], string> = {
   created: 'Created by you',
 };
 
+type CompanyView = 'list' | 'recommendations';
+
+function CompanyCard({
+  company,
+  tone,
+  onOpen,
+  onAdd,
+  onRemove,
+}: {
+  company: TargetCompany;
+  /** added is on the list; pending is a gray recommendation on that list; review is the recommendations view */
+  tone: 'added' | 'pending' | 'review';
+  onOpen: () => void;
+  onAdd?: () => void;
+  onRemove?: () => void;
+}) {
+  const pending = tone === 'pending';
+  const suggestion = tone !== 'added';
+  return (
+    <li
+      className="relative rounded-2xl border p-5 flex flex-col gap-4 focus-within:outline-2 focus-within:outline-offset-2"
+      style={
+        pending
+          ? { background: 'var(--bg-neutral-soft)', borderStyle: 'dashed', borderColor: 'var(--border-default)' }
+          : { background: 'var(--bg-default)', borderColor: 'var(--border-light)' }
+      }
+    >
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-3 min-w-0">
+          <div
+            className="w-11 h-11 rounded-xl font-bold flex items-center justify-center text-base shrink-0"
+            style={{
+              background: pending ? 'var(--bg-default)' : 'var(--bg-neutral-soft)',
+              color: pending ? 'var(--text-subtle)' : 'var(--text-strong)',
+            }}
+            aria-hidden="true"
+          >
+            {company.name.charAt(0)}
+          </div>
+          <div className="min-w-0">
+            <h3 className="m-0! text-lg! leading-6! font-bold mb-0">
+              <button
+                type="button"
+                onClick={onOpen}
+                aria-label={`Open ${company.name} company profile`}
+                className="text-left font-bold hover:underline focus:outline-none after:absolute after:inset-0 after:rounded-2xl after:content-['']"
+                style={{ color: pending ? 'var(--text-default)' : 'var(--text-strong)' }}
+              >
+                {company.name}
+              </button>
+            </h3>
+            <p className="m-0! text-sm" style={{ color: pending ? 'var(--text-subtle)' : 'var(--text-default)' }}>{company.industry}</p>
+          </div>
+        </div>
+        <span className="phx-tag shrink-0 relative z-10">
+          {(suggestion || company.source === 'agent') && <Sparkles className="w-3.5 h-3.5" aria-hidden="true" />}
+          {suggestion ? 'Recommendation' : SOURCE_LABEL[company.source]}
+        </span>
+      </div>
+
+      <p className="m-0! text-sm" style={{ color: pending ? 'var(--text-default)' : 'var(--text-strong)' }}>
+        <span className="font-semibold">Why it fits: </span>
+        {company.matchReason}
+      </p>
+
+      <div
+        className="grid grid-cols-3 gap-3 rounded-xl p-3 text-center"
+        style={{ background: pending ? 'var(--bg-default)' : 'var(--bg-neutral-soft)' }}
+      >
+        <div>
+          <div className="text-lg font-bold" style={{ color: pending ? 'var(--text-default)' : 'var(--text-strong)' }}>{company.relevantCandidatesCount}</div>
+          <div className="text-sm text-(--text-subtle)">Relevant executives</div>
+        </div>
+        <div>
+          <div className="text-lg font-bold" style={{ color: pending ? 'var(--text-default)' : 'var(--text-strong)' }}>{company.activeLeadershipChanges}</div>
+          <div className="text-sm text-(--text-subtle)">Leadership changes</div>
+        </div>
+        <div>
+          <div className="text-lg font-bold" style={{ color: pending ? 'var(--text-default)' : 'var(--text-strong)' }}>{company.activeSearchesCount}</div>
+          <div className="text-sm text-(--text-subtle)">Open searches</div>
+        </div>
+      </div>
+
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-(--text-subtle)">
+        <span className="inline-flex items-center gap-1.5">
+          <MapPin className="w-4 h-4" aria-hidden="true" /> {company.headquarters}
+        </span>
+        <span>{company.size}</span>
+        {company.stage && <span>{company.stage}</span>}
+      </div>
+
+      <div className="flex items-center justify-between gap-3 pt-1">
+        {company.website ? (
+          <a
+            href={`https://${company.website.replace(/^https?:\/\//, '')}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="relative z-10 text-sm text-(--text-default) hover:underline inline-flex items-center gap-1.5"
+          >
+            {company.website} <ExternalLink className="w-3.5 h-3.5" aria-hidden="true" />
+          </a>
+        ) : (
+          <span className="inline-flex items-center gap-1.5 text-sm text-(--text-subtle)">
+            <Users className="w-4 h-4" aria-hidden="true" /> No website listed
+          </span>
+        )}
+        {suggestion ? (
+          <button
+            type="button"
+            className="phx-btn relative z-10"
+            data-variant="secondary"
+            data-size="sm"
+            onClick={onAdd}
+            aria-label={`Add ${company.name} to target companies`}
+          >
+            <Plus className="w-4 h-4" aria-hidden="true" /> Add
+          </button>
+        ) : (
+          <button
+            type="button"
+            className="phx-btn relative z-10"
+            data-variant="secondary"
+            data-size="sm"
+            onClick={onRemove}
+            aria-label={`Remove ${company.name} from this project`}
+          >
+            <Trash2 className="w-4 h-4" aria-hidden="true" /> Remove
+          </button>
+        )}
+      </div>
+    </li>
+  );
+}
+
 export function ProjectTargetCompaniesTab({ project, onCountChange }: ProjectTargetCompaniesTabProps) {
   const router = useRouter();
   const { restrictedCompanies } = useRestricted();
   const [companies, setCompanies] = useState<TargetCompany[]>(() => getProjectTargetCompanies(project));
+  const [view, setView] = useState<CompanyView>('list');
   const [showAdd, setShowAdd] = useState(false);
   const [showExport, setShowExport] = useState(false);
   const [notice, setNotice] = useState<{ message: string; undo?: () => void } | null>(null);
 
-  const visible = useMemo(
-    () => companies.filter(c => !restrictedCompanies.some(r => r.name.trim().toLowerCase() === c.name.trim().toLowerCase())),
-    [companies, restrictedCompanies]
+  const isRestricted = (name: string) =>
+    restrictedCompanies.some(r => r.name.trim().toLowerCase() === name.trim().toLowerCase());
+
+  const added = useMemo(() => companies.filter(c => !isRestricted(c.name)), [companies, restrictedCompanies]);
+
+  const recommendations = useMemo(
+    () => recommendCompaniesForProject(project, companies.map(c => c.name)).filter(c => !isRestricted(c.name)),
+    [project, companies, restrictedCompanies]
   );
 
   const commit = (next: TargetCompany[]) => {
@@ -45,8 +186,8 @@ export function ProjectTargetCompaniesTab({ project, onCountChange }: ProjectTar
   };
 
   useEffect(() => {
-    onCountChange?.(visible.length);
-  }, [visible.length]);
+    onCountChange?.(added.length);
+  }, [added.length]);
 
   const flash = (message: string, undo?: () => void) => {
     setNotice({ message, undo });
@@ -60,6 +201,8 @@ export function ProjectTargetCompaniesTab({ project, onCountChange }: ProjectTar
     commit([...fresh, ...companies]);
     flash(fresh.length === 1 ? `Added ${fresh[0].name} to this project.` : `Added ${fresh.length} companies to this project.`);
   };
+
+  const addRecommendation = (c: TargetCompany) => add([{ ...c, source: 'agent' }]);
 
   const remove = (c: TargetCompany) => {
     const before = companies;
@@ -76,14 +219,14 @@ export function ProjectTargetCompaniesTab({ project, onCountChange }: ProjectTar
 
   const exportCompanies = ({ format, name, clientLogo, companyLogo }: TargetCompaniesExportChoices) => {
     if (format === 'csv') {
-      downloadBlob(buildTargetCompaniesCsv(visible), `${fileSlug(`${project.title} target companies`)}.csv`);
+      downloadBlob(buildTargetCompaniesCsv(added), `${fileSlug(`${project.title} target companies`)}.csv`);
     } else {
       downloadBlob(
-        buildTargetCompaniesPdf(visible, { title: name, projectTitle: project.title, clientLogo, companyLogo }),
+        buildTargetCompaniesPdf(added, { title: name, projectTitle: project.title, clientLogo, companyLogo }),
         `${fileSlug(name)}.pdf`
       );
     }
-    flash(`Exported ${visible.length} ${visible.length === 1 ? 'company' : 'companies'} as ${format.toUpperCase()}.`);
+    flash(`Exported ${added.length} ${added.length === 1 ? 'company' : 'companies'} as ${format.toUpperCase()}.`);
   };
 
   const p = project.parameters;
@@ -95,7 +238,7 @@ export function ProjectTargetCompaniesTab({ project, onCountChange }: ProjectTar
         <div>
           <h2 className="text-2xl font-bold text-(--text-strong)">Target Companies</h2>
           <p className="text-base text-(--text-default) mt-1 max-w-3xl">
-            Companies that fit this project&apos;s details. The agent matched these to the search, and you can add or remove any of them.
+            Companies on this search. Recommendations stay on the list until you add them, and they are not part of the search until then.
           </p>
           {criteria.length > 0 && (
             <div className="flex flex-wrap items-center gap-2 mt-3">
@@ -113,7 +256,7 @@ export function ProjectTargetCompaniesTab({ project, onCountChange }: ProjectTar
             data-variant="secondary"
             data-size="sm"
             onClick={() => setShowExport(true)}
-            disabled={visible.length === 0}
+            disabled={added.length === 0}
           >
             <Download className="w-4 h-4" aria-hidden="true" /> Export
           </button>
@@ -121,6 +264,45 @@ export function ProjectTargetCompaniesTab({ project, onCountChange }: ProjectTar
             <Plus className="w-4 h-4" aria-hidden="true" /> Add company
           </button>
         </div>
+      </div>
+
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div role="tablist" aria-label="Target company views">
+          <button
+            type="button"
+            role="tab"
+            id="target-companies-list-tab"
+            aria-selected={view === 'list'}
+            aria-controls="target-companies-panel"
+            onClick={() => setView('list')}
+          >
+            Target companies
+            <span className="px-2 py-0.5 rounded-md text-xs font-semibold bg-(--bg-neutral-soft) text-(--text-default) border border-(--border-light)">{added.length}</span>
+          </button>
+          <button
+            type="button"
+            role="tab"
+            id="target-companies-recommendations-tab"
+            aria-selected={view === 'recommendations'}
+            aria-controls="target-companies-panel"
+            onClick={() => setView('recommendations')}
+          >
+            <Sparkles className="w-4 h-4" aria-hidden="true" />
+            Recommendations
+            <span className="px-2 py-0.5 rounded-md text-xs font-semibold bg-(--bg-neutral-soft) text-(--text-default) border border-(--border-light)">{recommendations.length}</span>
+          </button>
+        </div>
+        {view === 'recommendations' && recommendations.length > 0 && (
+          <button
+            type="button"
+            className="phx-btn mb-2"
+            data-variant="secondary"
+            data-size="sm"
+            onClick={() => add(recommendations.map(c => ({ ...c, source: 'agent' as const })))}
+          >
+            <Plus className="w-4 h-4" aria-hidden="true" /> Add all
+          </button>
+        )}
       </div>
 
       {notice && (
@@ -134,112 +316,58 @@ export function ProjectTargetCompaniesTab({ project, onCountChange }: ProjectTar
         </div>
       )}
 
-      {visible.length === 0 ? (
-        <div className="rounded-2xl border border-(--border-light) bg-white p-10 text-center">
-          <Building2 className="w-8 h-8 text-(--text-subtle) mx-auto mb-3" aria-hidden="true" />
-          <p className="text-base font-bold text-(--text-strong)">No target companies yet</p>
-          <p className="text-sm text-(--text-default) mt-1">Add companies you track, create a new one, or describe what you want and let the agent find them.</p>
-          <button type="button" className="phx-btn mt-4" data-variant="primary" data-size="sm" onClick={() => setShowAdd(true)}>
-            <Plus className="w-4 h-4" aria-hidden="true" /> Add company
-          </button>
-        </div>
-      ) : (
-        <ul className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          {visible.map(c => (
-            <li
-              key={c.id}
-              className="relative rounded-2xl border border-(--border-light) bg-white p-5 flex flex-col gap-4 cursor-pointer transition-colors hover:border-(--color-secondary-100) hover:bg-(--bg-neutral-soft) focus-within:outline-2 focus-within:outline-offset-2"
-            >
-              <div className="flex items-start justify-between gap-3">
-                <div className="flex items-start gap-3 min-w-0">
-                  <div className="w-11 h-11 rounded-xl bg-(--bg-neutral-soft) text-(--text-strong) font-bold flex items-center justify-center text-base shrink-0" aria-hidden="true">
-                    {c.name.charAt(0)}
-                  </div>
-                  <div className="min-w-0">
-                    <h3 className="text-lg font-bold text-(--text-strong) mb-0 leading-tight">
-                      {/* The ::after layer stretches this button over the whole card so the card opens the profile */}
-                      <button
-                        type="button"
-                        onClick={() => openProfile(c)}
-                        aria-label={`Open ${c.name} company profile`}
-                        className="text-left font-bold hover:underline focus:outline-none after:absolute after:inset-0 after:rounded-2xl after:content-['']"
-                      >
-                        {c.name}
-                      </button>
-                    </h3>
-                    <p className="text-sm text-(--text-default)">{c.industry}</p>
-                  </div>
-                </div>
-                <span className="phx-tag shrink-0">
-                  {c.source === 'agent' && <Sparkles className="w-3.5 h-3.5" aria-hidden="true" />}
-                  {SOURCE_LABEL[c.source]}
-                </span>
-              </div>
+      <div role="tabpanel" id="target-companies-panel" aria-labelledby={view === 'list' ? 'target-companies-list-tab' : 'target-companies-recommendations-tab'}>
+        {view === 'list' && added.length === 0 && recommendations.length === 0 && (
+          <div className="rounded-2xl border border-(--border-light) bg-(--bg-default) p-10 text-center">
+            <Building2 className="w-8 h-8 text-(--text-subtle) mx-auto mb-3" aria-hidden="true" />
+            <p className="text-base font-bold text-(--text-strong)">No target companies yet</p>
+            <p className="text-sm text-(--text-default) mt-1">Add companies you track, create a new one, or describe what you want and let the agent find them.</p>
+            <button type="button" className="phx-btn mt-4" data-variant="primary" data-size="sm" onClick={() => setShowAdd(true)}>
+              <Plus className="w-4 h-4" aria-hidden="true" /> Add company
+            </button>
+          </div>
+        )}
 
-              <p className="text-base text-(--text-strong)">
-                <span className="font-semibold">Why it fits: </span>
-                {c.matchReason}
+        {view === 'list' && (added.length > 0 || recommendations.length > 0) && (
+          <div className="flex flex-col gap-4">
+            {added.length === 0 && (
+              <p className="phx-feedback m-0!" data-tone="info">
+                No companies added yet. Recommendations appear below until you add them.
               </p>
+            )}
+            <ul className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              {added.map(c => (
+                <CompanyCard key={c.id} company={c} tone="added" onOpen={() => openProfile(c)} onRemove={() => remove(c)} />
+              ))}
+              {recommendations.map(c => (
+                <CompanyCard key={c.id} company={c} tone="pending" onOpen={() => openProfile(c)} onAdd={() => addRecommendation(c)} />
+              ))}
+            </ul>
+          </div>
+        )}
 
-              <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-(--text-default)">
-                <span className="inline-flex items-center gap-1.5">
-                  <MapPin className="w-4 h-4" aria-hidden="true" /> {c.headquarters}
-                </span>
-                <span>{c.size}</span>
-                {c.stage && <span>{c.stage}</span>}
-              </div>
+        {view === 'recommendations' && recommendations.length === 0 && (
+          <div className="rounded-2xl border border-(--border-light) bg-(--bg-default) p-10 text-center">
+            <Sparkles className="w-8 h-8 text-(--text-subtle) mx-auto mb-3" aria-hidden="true" />
+            <p className="text-base font-bold text-(--text-strong)">No recommendations left</p>
+            <p className="text-sm text-(--text-default) mt-1">Every company the agent matched is already on your target list.</p>
+          </div>
+        )}
 
-              <div className="grid grid-cols-3 gap-3 rounded-xl bg-(--bg-neutral-soft) p-3 text-center">
-                <div>
-                  <div className="text-lg font-bold text-(--text-strong)">{c.relevantCandidatesCount}</div>
-                  <div className="text-sm text-(--text-default)">Relevant executives</div>
-                </div>
-                <div>
-                  <div className="text-lg font-bold text-(--text-strong)">{c.activeLeadershipChanges}</div>
-                  <div className="text-sm text-(--text-default)">Leadership changes</div>
-                </div>
-                <div>
-                  <div className="text-lg font-bold text-(--text-strong)">{c.activeSearchesCount}</div>
-                  <div className="text-sm text-(--text-default)">Open searches</div>
-                </div>
-              </div>
-
-              <div className="flex items-center justify-between gap-3 pt-1">
-                {c.website ? (
-                  <a
-                    href={`https://${c.website.replace(/^https?:\/\//, '')}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="relative z-10 text-sm text-(--text-default) hover:text-(--color-secondary-200) inline-flex items-center gap-1.5"
-                  >
-                    {c.website} <ExternalLink className="w-3.5 h-3.5" aria-hidden="true" />
-                  </a>
-                ) : (
-                  <span className="inline-flex items-center gap-1.5 text-sm text-(--text-default)">
-                    <Users className="w-4 h-4" aria-hidden="true" /> No website listed
-                  </span>
-                )}
-                <button
-                  type="button"
-                  className="phx-btn relative z-10"
-                  data-variant="secondary"
-                  data-size="sm"
-                  onClick={() => remove(c)}
-                  aria-label={`Remove ${c.name} from this project`}
-                >
-                  <Trash2 className="w-4 h-4" aria-hidden="true" /> Remove
-                </button>
-              </div>
-            </li>
-          ))}
-        </ul>
-      )}
+        {view === 'recommendations' && recommendations.length > 0 && (
+          <ul className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            {recommendations.map(c => (
+              <CompanyCard key={`rec-${c.id}`} company={c} tone="review" onOpen={() => openProfile(c)} onAdd={() => addRecommendation(c)} />
+            ))}
+          </ul>
+        )}
+      </div>
 
       <ExportTargetCompaniesModal
         isOpen={showExport}
         onOpenChange={setShowExport}
         defaultName={`${project.title}: Target Companies`}
-        companyCount={visible.length}
+        companyCount={added.length}
         onExport={exportCompanies}
       />
 

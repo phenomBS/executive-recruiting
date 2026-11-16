@@ -8,6 +8,7 @@ import {
   drawFooter,
   drawHeader,
   drawOrgChart,
+  drawOrgTree,
   newPage,
   stampPageNumbers,
 } from './pdfChrome';
@@ -18,7 +19,7 @@ import { computeDifficulty, getCompetitionSnapshot, initialScenario } from './hi
 import { getSearchIntelligenceForProject, getSearchIntelligenceForRole } from '../data/projectSearchIntelligenceData';
 import { initialRolesSuccessionData } from '../data/rolesSuccessionData';
 import { getMarketMapForProject, getCompanyOrgChart, MappedCompany } from '../data/projectMarketMapData';
-import { fromMarketMap } from '../data/companyOrgCharts';
+import { fromMarketMap, getCompanyOrgChartTree } from '../data/companyOrgCharts';
 import { getProjectTargetCompanies } from '../data/projectTargetCompanies';
 import { getOffLimitsRows } from '../data/projectOffLimits';
 
@@ -44,7 +45,7 @@ export const REPORTS: ReportDef[] = [
   {
     id: 'target-companies',
     label: 'Target Companies',
-    description: 'The target universe by relevance tier, plus the off-limits list of companies you cannot approach.',
+    description: 'The target universe by relevance tier, the leadership org chart for each company, and the off-limits list.',
   },
   {
     id: 'market-map',
@@ -112,7 +113,7 @@ export function describeReport(id: ReportId, ctx: SearchBookContext): { detail: 
       const { open, closed } = marketMapCompanies(ctx);
       const extra = targetOnlyCompanies(ctx).length;
       const off = offLimitsRows(ctx).length;
-      return { detail: `${plural(open.length + extra, 'company', 'companies')}, ${off} off-limits`, available: open.length + extra + off > 0 || closed.length > 0 };
+      return { detail: `${plural(open.length + extra, 'company', 'companies')} with org charts, ${off} off-limits`, available: open.length + extra + off > 0 || closed.length > 0 };
     }
     case 'market-map': {
       const { open } = marketMapCompanies(ctx);
@@ -339,7 +340,24 @@ function targetCompaniesPages(ctx: SearchBookContext, chrome: (sub: string) => C
   }
 
   if (!items.length) items.push({ kind: 'group', title: 'No target companies yet', note: 'Add companies on the Target Companies tab.' });
-  return paginate(items, () => chrome(`${open.length + extra.length} target companies, ${off.length} off-limits`));
+  const pages = paginate(items, () => chrome(`${open.length + extra.length} target companies, ${off.length} off-limits`));
+
+  // One page per target company: the same leadership chart as the company Organization tab.
+  const charts = [
+    ...open.map(c => ({ name: c.name, line: `${c.industry}  |  ${c.headquarters}`, tag: c.tier })),
+    ...extra.map(c => ({ name: c.name, line: `${c.industry}  |  ${c.headquarters}`, tag: 'Added to this search' })),
+  ];
+  charts.forEach((co, i) => {
+    const cv = chrome(`Organization chart ${i + 1} of ${charts.length}`);
+    pages.push(cv);
+    cv.fit(M, 108, co.name, 22, 520, { bold: true, color: C.ink });
+    cv.fit(M, 124, co.line, 8.5, 520, { color: C.muted });
+    const tw = textWidth(toWinAnsi(co.tag), 7.2, true) + 18;
+    cv.rrect(W - M - tw, 94, tw, 20, 5, { fill: C.lavender });
+    cv.text(W - M - tw / 2, 107.5, co.tag, 7.2, { bold: true, color: C.navy2, align: 'center' });
+    drawOrgTree(cv, getCompanyOrgChartTree(co.name), M, 140, W - M * 2, H - 28 - 140);
+  });
+  return pages;
 }
 
 /* ------------------------------------------------------------------ */

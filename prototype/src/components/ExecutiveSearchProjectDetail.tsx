@@ -26,7 +26,6 @@ import { cn } from '../lib/utils';
 import { ProjectCandidatesTab, ProjectPipelineCandidate, initialProjectPipeline } from './tabs/ProjectCandidatesTab';
 import { SearchBookDownloadModal } from './SearchBookDownloadModal';
 import { useRestricted } from '../context/RestrictedContext';
-import { ProjectRecommendationsTab } from './tabs/ProjectRecommendationsTab';
 import { ProjectTargetCompaniesTab } from './tabs/ProjectTargetCompaniesTab';
 import { ProjectOffLimitsTab } from './tabs/ProjectOffLimitsTab';
 import { getOffLimitsRows } from '../data/projectOffLimits';
@@ -34,7 +33,6 @@ import { getProjectTargetCompanies } from '../data/projectTargetCompanies';
 import { ProjectRelationshipsTab } from './tabs/ProjectRelationshipsTab';
 import { ProjectMarketMapTab } from './tabs/ProjectMarketMapTab';
 import { ProjectParametersModal } from './ProjectParametersModal';
-import { getRecommendationsForProject } from '../data/projectRecommendationsData';
 import { useRouter } from '../context/RouterContext';
 import { RoleMarketCalibrationTab } from './roles/RoleMarketCalibrationTab';
 import {
@@ -52,11 +50,11 @@ interface ExecutiveSearchProjectDetailProps {
   onUpdateProject?: (project: Project) => void;
 }
 
-type TabType = 'overview' | 'target-companies' | 'off-limits' | 'recommendations' | 'candidates' | 'market-map' | 'market-calibration' | 'relationships' | 'nurture';
+type TabType = 'overview' | 'target-companies' | 'off-limits' | 'candidates' | 'market-map' | 'market-calibration' | 'relationships' | 'nurture';
 
 export function ExecutiveSearchProjectDetail({ project, onBack, onUpdateProject }: ExecutiveSearchProjectDetailProps) {
   const router = useRouter();
-  const validTabs: TabType[] = ['overview', 'target-companies', 'off-limits', 'recommendations', 'candidates', 'market-map', 'market-calibration', 'relationships', 'nurture'];
+  const validTabs: TabType[] = ['overview', 'target-companies', 'off-limits', 'candidates', 'market-map', 'market-calibration', 'relationships', 'nurture'];
   const activeTab: TabType = (router.activeTab && validTabs.includes(router.activeTab as TabType))
     ? (router.activeTab as TabType)
     : 'overview';
@@ -86,10 +84,6 @@ export function ExecutiveSearchProjectDetail({ project, onBack, onUpdateProject 
     setTimeout(() => setToastMessage(null), 5000);
   };
 
-  // Compute master graph recommendations dynamically for this project
-  const recommendationsData = useMemo(() => getRecommendationsForProject(project), [project]);
-  const recommendationsCount = recommendationsData.totalCount;
-
   const [targetCompanyCount, setTargetCompanyCount] = useState<number>(
     () =>
       getProjectTargetCompanies(project).filter(
@@ -103,7 +97,6 @@ export function ExecutiveSearchProjectDetail({ project, onBack, onUpdateProject 
     { id: 'overview', label: 'Overview', icon: Briefcase },
     { id: 'target-companies', label: 'Target Companies', icon: Building2, count: targetCompanyCount },
     { id: 'off-limits', label: 'Off-Limits Companies', icon: ShieldAlert, count: offLimitsCount },
-    { id: 'recommendations', label: 'Recommendations', icon: Sparkles, count: recommendationsCount },
     { id: 'candidates', label: 'Candidates', icon: Users },
     { id: 'market-map', label: 'Market Map', icon: Map },
     { id: 'market-calibration', label: 'Market Calibration', icon: SlidersHorizontal },
@@ -198,7 +191,6 @@ export function ExecutiveSearchProjectDetail({ project, onBack, onUpdateProject 
                       <option value="in-progress">In Progress</option>
                       <option value="closed">Closed</option>
                     </select>
-                    {params?.roleLevel && <span className="phx-tag">{params.roleLevel}</span>}
                   </div>
                   <h1 className="text-3xl font-bold text-(--text-strong) mb-2">{project.title}</h1>
                   <div className="flex flex-wrap items-center gap-4 text-sm text-(--text-default)">
@@ -297,7 +289,7 @@ export function ExecutiveSearchProjectDetail({ project, onBack, onUpdateProject 
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
                             <span className="w-6 h-6 rounded-md bg-blue-100 text-blue-700 font-bold text-xs flex items-center justify-center">1</span>
-                            <h4 className="text-xs font-bold text-slate-900 uppercase tracking-wider">Role & Leveling Baseline</h4>
+                            <h4 className="m-0! text-xs! leading-6! font-bold text-slate-900 uppercase tracking-wider">Role & Leveling Baseline</h4>
                           </div>
                           <span className="text-[10px] font-semibold text-blue-700 bg-blue-50 px-2 py-0.5 rounded border border-blue-200">
                             Feeds CMA Step-Up Delta & Master Graph
@@ -346,7 +338,7 @@ export function ExecutiveSearchProjectDetail({ project, onBack, onUpdateProject 
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
                             <span className="w-6 h-6 rounded-md bg-emerald-100 text-emerald-700 font-bold text-xs flex items-center justify-center">2</span>
-                            <h4 className="text-xs font-bold text-slate-900 uppercase tracking-wider">Compensation & Financial Framework</h4>
+                            <h4 className="m-0! text-xs! leading-6! font-bold text-slate-900 uppercase tracking-wider">Compensation & Financial Framework</h4>
                           </div>
                           <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
                             Feeds SFA Compensation Parity
@@ -385,7 +377,7 @@ export function ExecutiveSearchProjectDetail({ project, onBack, onUpdateProject 
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
                             <span className="w-6 h-6 rounded-md bg-purple-100 text-purple-700 font-bold text-xs flex items-center justify-center">3</span>
-                            <h4 className="text-xs font-bold text-slate-900 uppercase tracking-wider">Scope & Scale Requirements</h4>
+                            <h4 className="m-0! text-xs! leading-6! font-bold text-slate-900 uppercase tracking-wider">Scope & Scale Requirements</h4>
                           </div>
                           <span className="text-[10px] font-semibold text-purple-700 bg-purple-50 px-2 py-0.5 rounded border border-purple-200">
                             Feeds CMA Scale Expansion
@@ -412,7 +404,7 @@ export function ExecutiveSearchProjectDetail({ project, onBack, onUpdateProject 
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
                             <span className="w-6 h-6 rounded-md bg-amber-100 text-amber-700 font-bold text-xs flex items-center justify-center">4</span>
-                            <h4 className="text-xs font-bold text-slate-900 uppercase tracking-wider">Location & Work Model</h4>
+                            <h4 className="m-0! text-xs! leading-6! font-bold text-slate-900 uppercase tracking-wider">Location & Work Model</h4>
                           </div>
                           <span className="text-[10px] font-semibold text-amber-700 bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
                             Feeds CMA Geo/Lifestyle Match
@@ -445,7 +437,7 @@ export function ExecutiveSearchProjectDetail({ project, onBack, onUpdateProject 
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
                             <span className="w-6 h-6 rounded-md bg-rose-100 text-rose-700 font-bold text-xs flex items-center justify-center">5</span>
-                            <h4 className="text-xs font-bold text-slate-900 uppercase tracking-wider">Timeline & Operational Constraints</h4>
+                            <h4 className="m-0! text-xs! leading-6! font-bold text-slate-900 uppercase tracking-wider">Timeline & Operational Constraints</h4>
                           </div>
                           <span className="text-[10px] font-semibold text-rose-700 bg-rose-50 px-2 py-0.5 rounded border border-rose-200">
                             Feeds SFA Notice Period & Availability
@@ -538,10 +530,6 @@ export function ExecutiveSearchProjectDetail({ project, onBack, onUpdateProject 
 
           {activeTab === 'off-limits' && (
             <ProjectOffLimitsTab key={project.id} project={project} onCountChange={setOffLimitsCount} />
-          )}
-
-          {activeTab === 'recommendations' && (
-            <ProjectRecommendationsTab project={project} />
           )}
 
           {activeTab === 'candidates' && (

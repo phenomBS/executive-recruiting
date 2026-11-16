@@ -1,5 +1,5 @@
 import { Canvas, C, ClientLogo, RGB, drawPhenomMark, hex } from './calibrationBriefPdf';
-import { toWinAnsi, wrap } from './simplePdf';
+import { textWidth, toWinAnsi, wrap } from './simplePdf';
 import type { OrgChartNode } from '../data/companyOrgCharts';
 
 /** Shared page furniture for the landscape US-Letter reports (target companies, search book). */
@@ -164,4 +164,128 @@ export function drawOrgChart(cv: Canvas, tree: OrgChartNode, x: number, top: num
     cv.text(x + 25, top + h - 10.5, 'Mapped candidate in this search', 6.5, { color: C.muted });
   }
   if (hidden > 0) cv.text(x + w - 12, top + h - 10, `+${hidden} more direct reports not shown`, 6.5, { color: C.muted, align: 'right' });
+}
+
+/**
+ * A top-down leadership chart, the same arrangement as the company Organization tab:
+ * each person in a card, their reports in a row underneath, joined by connector lines.
+ */
+export function drawOrgTree(cv: Canvas, tree: OrgChartNode, x: number, top: number, w: number, h: number) {
+  drawCard(cv, x, top, w, h, 'Organization chart');
+  cv.text(x + w - 12, top + 17, 'Executive reporting lines', 6.8, { color: C.muted, align: 'right' });
+
+  const pad = 18;
+  const areaX = x + pad;
+  const areaTop = top + 32;
+  const areaW = w - pad * 2;
+  const areaH = h - 32 - 18;
+
+  const kidsOf = (n: OrgChartNode) => n.children ?? [];
+  const levels = (n: OrgChartNode): number => {
+    const kids = kidsOf(n);
+    return kids.length ? 1 + Math.max(...kids.map(levels)) : 1;
+  };
+  const leaves = (n: OrgChartNode): number => {
+    const kids = kidsOf(n);
+    return kids.length ? kids.reduce((s, k) => s + leaves(k), 0) : 1;
+  };
+
+  const depth = levels(tree);
+  const leafCount = leaves(tree);
+  const gapY = depth > 3 ? 30 : 40;
+  const boxH = Math.max(40, Math.min(56, (areaH - gapY * (depth - 1)) / depth));
+
+  const widthAt = (n: OrgChartNode, boxW: number, gapX: number): number => {
+    const kids = kidsOf(n);
+    if (!kids.length) return boxW;
+    const sum = kids.reduce((s, k) => s + widthAt(k, boxW, gapX), 0) + gapX * (kids.length - 1);
+    return Math.max(boxW, sum);
+  };
+
+  let gapX = 14;
+  let boxW = Math.min(170, (areaW - gapX * Math.max(leafCount - 1, 0)) / leafCount);
+  while (boxW > 78 && widthAt(tree, boxW, gapX) > areaW) boxW -= 2;
+  if (widthAt(tree, boxW, gapX) > areaW) {
+    gapX = 8;
+    while (boxW > 68 && widthAt(tree, boxW, gapX) > areaW) boxW -= 2;
+  }
+
+  interface Placed {
+    node: OrgChartNode;
+    x: number;
+    y: number;
+    root: boolean;
+  }
+  const placed: Placed[] = [];
+  const lines: [number, number, number, number][] = [];
+
+  const place = (n: OrgChartNode, left: number, y: number, root: boolean): number => {
+    const kids = kidsOf(n);
+    const subW = widthAt(n, boxW, gapX);
+    const bx = left + (subW - boxW) / 2;
+    placed.push({ node: n, x: bx, y, root });
+    if (kids.length) {
+      const childY = y + boxH + gapY;
+      const busY = y + boxH + gapY / 2;
+      const parentCx = bx + boxW / 2;
+      lines.push([parentCx, y + boxH, parentCx, busY]);
+      let cx = left + (subW - (kids.reduce((s, k) => s + widthAt(k, boxW, gapX), 0) + gapX * (kids.length - 1))) / 2;
+      const centers: number[] = [];
+      kids.forEach(k => {
+        const kw = widthAt(k, boxW, gapX);
+        centers.push(cx + kw / 2);
+        place(k, cx, childY, false);
+        cx += kw + gapX;
+      });
+      if (centers.length > 1) lines.push([centers[0], busY, centers[centers.length - 1], busY]);
+      centers.forEach(c => lines.push([c, busY, c, childY]));
+    }
+    return subW;
+  };
+
+  const treeW = place(tree, 0, 0, true);
+  const treeH = depth * boxH + (depth - 1) * gapY;
+  const shiftX = areaX + Math.max(0, (areaW - treeW) / 2);
+  const shiftY = areaTop + Math.max(8, (areaH - treeH) / 2);
+
+  lines.forEach(([x1, y1, x2, y2]) => cv.line(x1 + shiftX, y1 + shiftY, x2 + shiftX, y2 + shiftY, C.indigoSoft, 0.9));
+
+  const nameSize = boxW < 110 ? 7.4 : 8.4;
+  const titleSize = boxW < 110 ? 6.2 : 6.8;
+  let anyMapped = false;
+  placed.forEach(({ node, x: bx, y: by, root }) => {
+    const px = bx + shiftX;
+    const py = by + shiftY;
+    cv.rrect(px, py, boxW, boxH, 6, { fill: C.card, stroke: root ? C.indigo : C.border, lw: root ? 1.4 : 0.7 });
+
+    const initials = node.name
+      .split(/\s+/)
+      .filter(p => /[A-Za-z]/.test(p[0] ?? ''))
+      .slice(0, 2)
+      .map(p => p[0]!.toUpperCase())
+      .join('');
+    const avatarR = 10;
+    const textX = px + (initials ? 30 : 8);
+    if (initials) {
+      cv.circle(px + 16, py + boxH / 2 + 1, avatarR, { fill: root ? C.lavender : C.page, stroke: root ? C.indigoSoft : C.border, lw: 0.6 });
+      cv.text(px + 16, py + boxH / 2 + 4, initials, 6.5, { bold: true, color: C.navy2, align: 'center' });
+    }
+    cv.fit(textX, py + boxH / 2 - 1, node.name, nameSize, px + boxW - 8 - textX, { bold: true, color: C.ink });
+    cv.fit(textX, py + boxH / 2 + 10, node.title, titleSize, px + boxW - 8 - textX, { color: C.muted });
+
+    const chip = node.level.toUpperCase();
+    const chipW = textWidth(toWinAnsi(chip), 6, true) + 12;
+    cv.rrect(px + boxW / 2 - chipW / 2, py - 7, chipW, 13, 4, { fill: root ? C.indigo : C.lavender });
+    cv.text(px + boxW / 2, py + 2.5, chip, 6, { bold: true, color: root ? C.white : C.navy2, align: 'center' });
+
+    if (node.mapped) {
+      anyMapped = true;
+      cv.circle(px + boxW - 8, py + 8, 3, { fill: C.indigo });
+    }
+  });
+
+  if (anyMapped) {
+    cv.circle(x + 20, top + h - 12, 3, { fill: C.indigo });
+    cv.text(x + 28, top + h - 9.5, 'Mapped candidate in this search', 6.5, { color: C.muted });
+  }
 }

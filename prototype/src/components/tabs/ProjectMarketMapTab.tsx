@@ -419,9 +419,6 @@ export function ProjectMarketMapTab({ project }: ProjectMarketMapTabProps) {
               <h2 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
                 Market Talent Map & Sourcing Universe
               </h2>
-              <span className="hidden sm:inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold bg-purple-50 text-purple-700 border border-purple-200">
-                Board Presentation Format
-              </span>
             </div>
             <p className="text-xs text-slate-500 mt-1 max-w-3xl">
               Calibrated market mapping across direct scale competitors, adjacent ecosystem leaders, high-growth disruptors, and executive academies for {project.company || 'this search mandate'}.
@@ -765,174 +762,97 @@ export function ProjectMarketMapTab({ project }: ProjectMarketMapTabProps) {
                         className="bg-white rounded-xl border border-slate-200 shadow-xs overflow-hidden flex flex-col transition-all hover:border-slate-300"
                       >
                         {/* Company Card Header */}
-                        <div className="p-4 sm:p-5 border-b border-slate-100 bg-slate-50/50 flex flex-col gap-2.5">
-                          <div className="flex items-start justify-between gap-3">
-                            <div>
-                              <div className="flex items-center gap-2">
-                                <h4 className="text-base font-bold text-slate-900">{company.name}</h4>
-                                {company.poachStatus === 'Clear Target' ? (
-                                  <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                                    Clear Target
-                                  </span>
-                                ) : (
-                                  <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-amber-50 text-amber-800 border border-amber-200 flex items-center gap-1">
-                                    <ShieldAlert className="w-3 h-3 text-amber-600" />
-                                    {company.poachStatus}
-                                  </span>
-                                )}
-                              </div>
-                              <div className="flex items-center gap-2 text-xs text-slate-500 mt-1 flex-wrap">
-                                <span>{company.industry}</span>
-                                <span>·</span>
-                                <span>{company.headquarters}</span>
-                                <span>·</span>
-                                <span className="font-medium text-slate-700">{company.stage}</span>
-                              </div>
+                        <div className="p-4 sm:p-5 border-b border-(--border-faint) flex flex-col gap-2">
+                          <div className="flex items-center justify-between gap-3">
+                            <div className="flex items-center gap-2 min-w-0">
+                              <h4 className="m-0! text-base! leading-6! font-bold text-(--text-strong) truncate">{company.name}</h4>
+                              <span className="phx-tag shrink-0">
+                                {company.poachStatus === 'Clear Target' ? 'Clear target' : company.poachStatus}
+                              </span>
                             </div>
-
                             <button
+                              type="button"
                               onClick={() => {
                                 setSelectedCompanyForExec(company.id);
                                 setNewExecutive(prev => ({ ...prev, companyId: company.id }));
                                 setIsAddExecutiveModalOpen(true);
                               }}
-                              className="px-2.5 py-1 text-[11px] font-semibold text-purple-700 bg-purple-50 hover:bg-purple-100 rounded-md transition-colors cursor-pointer shrink-0"
+                              className="phx-btn shrink-0"
+                              data-variant="secondary"
+                              data-size="sm"
                             >
-                              + Add Leader
+                              <Plus className="w-4 h-4" aria-hidden="true" /> Add leader
                             </button>
                           </div>
-
-                          {/* Recruiter Strategic Rationale */}
-                          <div className="text-[11px] text-slate-600 bg-white p-2.5 rounded-lg border border-slate-200/80 leading-relaxed">
-                            <span className="font-semibold text-slate-800">Sourcing Rationale: </span>
-                            {company.strategicRationale}
-                            {company.poachReason && (
-                              <div className="mt-1 text-amber-800 font-medium flex items-center gap-1">
-                                <AlertTriangle className="w-3 h-3 text-amber-600 shrink-0" />
-                                <span>Governance Note: {company.poachReason}</span>
-                              </div>
-                            )}
-                          </div>
+                          <p className="m-0! text-sm text-(--text-default)">
+                            {company.industry} · {company.headquarters} · {company.stage}
+                          </p>
+                          <p className="m-0! text-sm text-(--text-default)">{company.strategicRationale}</p>
+                          {company.poachReason && (
+                            <p className="m-0! text-sm text-(--text-strong) flex items-center gap-1.5">
+                              <AlertTriangle className="w-4 h-4 shrink-0" aria-hidden="true" />
+                              {company.poachReason}
+                            </p>
+                          )}
                         </div>
 
-                        {/* Mapped Executives Roster within Company */}
-                        <div className="p-4 sm:p-5 flex-1 divide-y divide-slate-100 space-y-4">
+                        <div className="p-4 sm:p-5 flex-1 flex flex-col gap-5">
                           {company.executives.length === 0 ? (
-                            <div className="text-center py-6 text-xs text-slate-400">
-                              No executives mapped under this company yet. Click "+ Add Leader" above.
-                            </div>
+                            <p className="m-0! text-center py-6 text-sm text-(--text-subtle)">
+                              No executives mapped yet.
+                            </p>
                           ) : (
-                            company.executives.map((exec, idx) => (
-                              <div key={exec.id} className={cn("pt-4 first:pt-0 space-y-2.5", idx > 0 ? "pt-4" : "")}>
-                                
-                                {/* Exec Top Row */}
-                                <div className="flex items-start justify-between gap-3">
-                                  <div className="flex items-center gap-3">
+                            company.executives.map(exec => (
+                              <div key={exec.id} className="flex flex-col gap-2 border-t border-(--border-faint) pt-5 first:border-0 first:pt-0">
+                                <div className="flex items-center justify-between gap-3">
+                                  <div className="flex items-center gap-3 min-w-0">
                                     {exec.avatarUrl ? (
-                                      <img 
-                                        src={exec.avatarUrl} 
-                                        alt={exec.name} 
-                                        className="w-10 h-10 rounded-full object-cover border border-slate-200 shrink-0" 
+                                      <img
+                                        src={exec.avatarUrl}
+                                        alt=""
+                                        className="w-10 h-10 rounded-full object-cover border border-(--border-light) shrink-0"
                                       />
                                     ) : (
-                                      <div className="w-10 h-10 rounded-full bg-purple-100 text-purple-700 font-bold flex items-center justify-center text-xs shrink-0">
+                                      <div className="w-10 h-10 rounded-full bg-(--bg-neutral-soft) text-(--text-strong) font-bold flex items-center justify-center text-sm shrink-0">
                                         {exec.firstName[0]}{exec.lastName[0]}
                                       </div>
                                     )}
-                                    <div>
+                                    <div className="min-w-0">
                                       <div className="flex items-center gap-2">
                                         {exec.candidateId ? (
                                           <button
+                                            type="button"
                                             onClick={() => router.navigateToView('candidates', { candidateId: exec.candidateId })}
-                                            className="font-bold text-slate-900 text-sm hover:text-purple-700 hover:underline transition-colors text-left cursor-pointer"
+                                            className="font-bold text-sm text-(--text-strong) leading-6 hover:underline text-left truncate"
                                           >
                                             {exec.name}
                                           </button>
                                         ) : (
-                                          <span className="font-bold text-slate-900 text-sm">{exec.name}</span>
+                                          <span className="font-bold text-sm text-(--text-strong) leading-6 truncate">{exec.name}</span>
                                         )}
-                                        <span className="text-xs font-semibold text-purple-700 bg-purple-50 px-1.5 py-0.5 rounded">
-                                          {exec.matchScore}% Match
-                                        </span>
+                                        <span className="phx-tag shrink-0">EMI {exec.mobilityScore}</span>
                                       </div>
-                                      <div className="text-xs font-medium text-slate-700">{exec.role}</div>
-                                      <div className="text-[11px] text-slate-400 mt-0.5">
-                                        Reports to: {exec.reportsTo || 'Executive Leadership'}
-                                      </div>
+                                      <div className="text-sm text-(--text-default) truncate">{exec.role}</div>
                                     </div>
                                   </div>
-
-                                  {/* Outreach Status Selector */}
                                   <select
                                     value={exec.outreachStatus}
+                                    aria-label={`Outreach status for ${exec.name}`}
                                     onChange={(e) => handleUpdateExecStatus(exec.id, company.id, e.target.value as any)}
-                                    className={cn(
-                                      "text-[10px] font-bold px-2 py-1 rounded-md border focus:outline-none cursor-pointer",
-                                      exec.outreachStatus === 'Clear Target' ? "bg-emerald-50 text-emerald-800 border-emerald-200" :
-                                      exec.outreachStatus === 'In Dialogue' ? "bg-purple-50 text-purple-800 border-purple-200" :
-                                      exec.outreachStatus === 'Pipelined' ? "bg-blue-50 text-blue-800 border-blue-200" :
-                                      exec.outreachStatus === 'Off-Limits' ? "bg-red-50 text-red-800 border-red-200" :
-                                      "bg-slate-50 text-slate-700 border-slate-200"
-                                    )}
+                                    className="w-auto! shrink-0"
                                   >
-                                    <option value="Clear Target">Clear Target</option>
-                                    <option value="In Dialogue">In Dialogue</option>
+                                    <option value="Clear Target">Clear target</option>
+                                    <option value="In Dialogue">In dialogue</option>
                                     <option value="Pipelined">Pipelined</option>
                                     <option value="Approached">Approached</option>
-                                    <option value="Benchmark Only">Benchmark Only</option>
-                                    <option value="Off-Limits">Off-Limits</option>
+                                    <option value="Benchmark Only">Benchmark only</option>
+                                    <option value="Off-Limits">Off-limits</option>
                                   </select>
                                 </div>
-
-                                {/* Exec Pedigree & Compensation Details */}
-                                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px] bg-slate-50 p-2.5 rounded-lg border border-slate-200/60">
-                                  <div>
-                                    <span className="text-[10px] text-slate-400 block font-semibold">TENURE</span>
-                                    <span className="text-slate-800 font-medium">{exec.tenureFormatted} in role</span>
-                                  </div>
-                                  <div>
-                                    <span className="text-[10px] text-slate-400 block font-semibold">MOBILITY INDICATOR</span>
-                                    <span className="text-emerald-700 font-bold">{exec.mobilityScore}% ({exec.mobilityLevel})</span>
-                                  </div>
-                                  <div>
-                                    <span className="text-[10px] text-slate-400 block font-semibold">LOCATION</span>
-                                    <span className="text-slate-800 font-medium truncate block">{exec.location}</span>
-                                  </div>
-                                  <div>
-                                    <span className="text-[10px] text-slate-400 block font-semibold">EST. COMP</span>
-                                    <span className="text-slate-800 font-medium">{exec.estimatedComp.baseSalary}</span>
-                                  </div>
-                                </div>
-
-                                {/* Mobility Catalyst & Recruiter Confidential Note */}
-                                <div className="text-[11px] space-y-1">
-                                  <div className="text-slate-700 flex items-start gap-1.5">
-                                    <Flame className="w-3 h-3 text-amber-500 shrink-0 mt-0.5" />
-                                    <span><strong>Flight Risk Catalyst:</strong> {exec.mobilityCatalyst}</span>
-                                  </div>
-                                  <div className="text-slate-500 pl-4 italic">
-                                    "{exec.confidentialNotes}"
-                                  </div>
-                                </div>
-
-                                {/* Quick Action Bar */}
-                                <div className="flex items-center justify-between pt-1">
-                                  <span className="text-[10px] font-semibold text-purple-800 bg-purple-50/60 px-2 py-0.5 rounded">
-                                    Archetype: {exec.archetypeMatch}
-                                  </span>
-
-                                  <div className="flex items-center gap-2">
-                                    {exec.candidateId && (
-                                      <button
-                                        onClick={() => router.navigateToView('candidates', { candidateId: exec.candidateId })}
-                                        className="text-[11px] font-semibold text-purple-700 hover:text-purple-900 transition-colors flex items-center gap-1 cursor-pointer"
-                                      >
-                                        <span>Full Profile</span>
-                                        <ArrowRight className="w-3 h-3" />
-                                      </button>
-                                    )}
-                                  </div>
-                                </div>
+                                <p className="m-0! text-sm text-(--text-default)">
+                                  {exec.tenureFormatted} in role · {exec.location} · {exec.estimatedComp.baseSalary} base
+                                </p>
+                                <p className="m-0! text-sm text-(--text-default)">{exec.mobilityCatalyst}</p>
                               </div>
                             ))
                           )}
@@ -1459,7 +1379,7 @@ export function ProjectMarketMapTab({ project }: ProjectMarketMapTabProps) {
                                         <span className="font-semibold text-slate-800">{e.name}</span>
                                         <span className="text-[11px] text-slate-500 ml-1.5">({e.role})</span>
                                       </div>
-                                      <span className="font-bold text-purple-700 text-[11px]">{e.matchScore}% Match</span>
+                                      <span className="phx-tag shrink-0">EMI {e.mobilityScore}</span>
                                     </div>
                                   ))}
                                 </div>
@@ -1591,7 +1511,7 @@ export function ProjectMarketMapTab({ project }: ProjectMarketMapTabProps) {
                                       <span className="font-semibold text-slate-800">{e.name}</span>
                                       <span className="text-[11px] text-slate-500 ml-1.5">({e.role})</span>
                                     </div>
-                                    <span className="font-bold text-purple-700 text-[11px]">{e.matchScore}% Match</span>
+                                    <span className="phx-tag shrink-0">EMI {e.mobilityScore}</span>
                                   </div>
                                 ))}
                               </div>

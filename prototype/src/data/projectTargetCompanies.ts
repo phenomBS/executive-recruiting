@@ -118,9 +118,21 @@ export function findCompanyByName(name: string): boolean {
 export function getProjectTargetCompanies(project: Project): TargetCompany[] {
   const hit = byProject.get(project.id);
   if (hit) return hit;
-  const initial = matchCompaniesToProject(project, 6);
-  byProject.set(project.id, initial);
-  return initial;
+  byProject.set(project.id, []);
+  return [];
+}
+
+/** The agent's recommendation set for a project. Adding one removes it from this set; it does not pull in a replacement. */
+const recommendedByProject = new Map<string, TargetCompany[]>();
+
+export function recommendCompaniesForProject(project: Project, excludeNames: string[], limit = 6): TargetCompany[] {
+  let pool = recommendedByProject.get(project.id);
+  if (!pool) {
+    pool = matchCompaniesToProject(project, limit);
+    recommendedByProject.set(project.id, pool);
+  }
+  const exclude = new Set(excludeNames.map(n => n.trim().toLowerCase()));
+  return pool.filter(c => !exclude.has(c.name.trim().toLowerCase()));
 }
 
 export function saveProjectTargetCompanies(projectId: string, list: TargetCompany[]) {

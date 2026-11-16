@@ -340,64 +340,50 @@ export function ProjectParametersModal({ isOpen, onOpenChange, project, onSave, 
   return (
     <Dialog.Root open={isOpen} onOpenChange={onOpenChange}>
       <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 animate-fadeIn" />
-        <Dialog.Content className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-4xl max-h-[92vh] overflow-hidden flex flex-col z-50 animate-scaleIn">
-          
-          {/* Header */}
-          <div className="px-6 py-5 border-b border-slate-200 flex items-center justify-between bg-slate-900 text-white shrink-0">
+        <Dialog.Overlay
+          className="fixed inset-0 z-(--z-overlay) animate-fadeIn"
+          style={{ background: 'var(--bg-overlay-blanket)' }}
+        />
+        <Dialog.Content className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-(--bg-default) rounded-2xl shadow-2xl border border-(--border-light) w-full max-w-4xl max-h-[92vh] overflow-hidden flex flex-col z-(--z-modal) animate-scaleIn">
+          <div className="px-6 py-5 border-b border-(--border-light) flex items-start justify-between gap-4 shrink-0">
             <div>
-              <div className="flex items-center gap-2">
-                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold tracking-wider bg-purple-500/20 text-purple-300 border border-purple-500/30 uppercase">
-                  {isEdit ? 'Project Parameters & Setup' : 'New Executive Project'}
-                </span>
-                <span className="text-slate-500">•</span>
-                <span className="text-xs text-slate-300">
-                  {isEdit ? project?.title : 'In-House Executive Search Setup'}
-                </span>
-              </div>
-              <h2 className="text-xl font-bold tracking-tight mt-1">
-                {isEdit ? 'Edit In-House Project Search Parameters' : 'Create In-House Executive Search Project'}
-              </h2>
-              <p className="text-xs text-slate-400 mt-0.5">
-                Configure the six inputs feeding CMA, SFA, Master Graph filtering, and Market Calibration benchmarks.
-              </p>
+              <span className="phx-tag">{isEdit ? 'Project parameters' : 'New executive project'}</span>
+              <Dialog.Title className="m-0! mt-2! text-xl! font-bold text-(--text-strong)">
+                {isEdit ? 'Edit project search parameters' : 'Create executive search project'}
+              </Dialog.Title>
+              <Dialog.Description className="text-sm text-(--text-default) m-0! mt-1!">
+                {isEdit ? project?.title : 'In-house executive search setup'}. These inputs feed scoring, filtering, and market calibration.
+              </Dialog.Description>
             </div>
-
-            <button
-              onClick={() => onOpenChange(false)}
-              className="w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
-            >
-              <X className="w-5 h-5" />
-            </button>
+            <Dialog.Close asChild>
+              <button type="button" className="phx-btn" data-variant="tertiary" data-size="sm" aria-label="Close">
+                <X className="w-4 h-4" aria-hidden="true" />
+              </button>
+            </Dialog.Close>
           </div>
 
-          {/* Quick Input Jump Nav */}
-          <div className="px-6 py-2.5 bg-slate-100 border-b border-slate-200 flex items-center gap-2 overflow-x-auto text-xs shrink-0 no-scrollbar">
-            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mr-1">Inputs:</span>
+          <div role="tablist" aria-label="Project inputs" className="px-6 shrink-0">
             {[
-              { id: 6, label: '1. Project Details', icon: FolderKanban },
-              { id: 1, label: '2. Role & Leveling', icon: Briefcase },
-              { id: 2, label: '3. Compensation', icon: DollarSign },
-              { id: 3, label: '4. Scope & Scale', icon: Scale },
-              { id: 4, label: '5. Location & Work', icon: MapPin },
-              { id: 5, label: '6. Timeline & Notice', icon: Calendar }
+              { id: 6, label: 'Project Details', icon: FolderKanban },
+              { id: 1, label: 'Role & Leveling', icon: Briefcase },
+              { id: 2, label: 'Compensation', icon: DollarSign },
+              { id: 3, label: 'Scope & Scale', icon: Scale },
+              { id: 4, label: 'Location & Work', icon: MapPin },
+              { id: 5, label: 'Timeline & Notice', icon: Calendar }
             ].map(b => {
               const Icon = b.icon;
               return (
                 <button
                   key={b.id}
                   type="button"
+                  role="tab"
+                  aria-selected={activeBlock === b.id}
                   onClick={() => {
                     setActiveBlock(b.id);
                     document.getElementById(`block-${b.id}`)?.scrollIntoView({ behavior: 'smooth' });
                   }}
-                  className={`px-3 py-1 rounded-lg font-semibold flex items-center gap-1.5 whitespace-nowrap transition-colors ${
-                    activeBlock === b.id
-                      ? 'bg-purple-600 text-white shadow-xs'
-                      : 'bg-white text-slate-700 hover:bg-slate-200 border border-slate-200'
-                  }`}
                 >
-                  <Icon className="w-3.5 h-3.5" />
+                  <Icon className="w-4 h-4" aria-hidden="true" />
                   {b.label}
                 </button>
               );
@@ -410,20 +396,20 @@ export function ProjectParametersModal({ isOpen, onOpenChange, project, onSave, 
             {/* ================================================================= */}
             {/* BLOCK 6: Project Details (shown first) */}
             {/* ================================================================= */}
-            <div id="block-6" className="bg-white rounded-xl border border-slate-200 p-5 shadow-xs space-y-4">
-              <div className="border-b border-slate-100 pb-3 flex items-center justify-between">
+            <div id="block-6" className="bg-white rounded-2xl border border-(--border-light) p-5 space-y-4">
+              <div className="border-b border-(--border-faint) pb-3 flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <div className="w-7 h-7 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold text-xs">
+                  <div className="w-6 h-6 rounded-md flex items-center justify-center text-sm font-bold shrink-0" style={{ background: 'var(--bg-brand-secondary-subtle)', color: 'var(--text-brand-secondary-default)' }}>
                     1
                   </div>
                   <div>
-                    <h3 className="text-sm font-bold text-slate-900">Project Details</h3>
-                    <p className="text-[11px] text-slate-500">
+                    <h3 className="m-0! text-base! leading-6! font-bold text-(--text-strong)">Project Details</h3>
+                    <p className="text-sm text-(--text-default) m-0!">
                       The role being searched, the recruiter assignment and the search strategy notes.
                     </p>
                   </div>
                 </div>
-                <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-indigo-50 text-indigo-700 border border-indigo-200">
+                <span className="phx-tag shrink-0">
                   Project Record
                 </span>
               </div>
@@ -431,7 +417,7 @@ export function ProjectParametersModal({ isOpen, onOpenChange, project, onSave, 
 
               {/* Role / Title: pick a role tracked in Roles & Succession, or type one */}
               <div>
-                <label htmlFor="role-select" className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                <label htmlFor="role-select" className="phx-label">
                   Role / Title *
                 </label>
                 {!isEdit && (
@@ -439,7 +425,7 @@ export function ProjectParametersModal({ isOpen, onOpenChange, project, onSave, 
                     id="role-select"
                     value={sourceRoleId}
                     onChange={e => (e.target.value ? applyRole(e.target.value) : clearRole())}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs font-semibold bg-white text-slate-800"
+                    className="w-full"
                   >
                     <option value="">Enter a role manually</option>
                     <optgroup label="Active requisitions (Roles & Succession)">
@@ -475,10 +461,10 @@ export function ProjectParametersModal({ isOpen, onOpenChange, project, onSave, 
                       if (!title || title === primaryTitle) setTitle(v);
                       setPrimaryTitle(v);
                     }}
-                    className={`w-full px-3 py-2 border border-slate-300 rounded-lg text-xs font-bold outline-none ${isEdit ? '' : 'mt-2'}`}
+                    className={`w-full ${isEdit ? '' : 'mt-2'}`}
                   />
                 )}
-                <span className="text-[10px] text-slate-500 mt-1 block">
+                <span className="text-sm text-(--text-default) mt-1 block">
                   {isEdit
                     ? 'The core benchmark title for the search.'
                     : 'Pick a role you already track to fill this project in and carry over its succession bench, or enter the role yourself.'}
@@ -486,32 +472,32 @@ export function ProjectParametersModal({ isOpen, onOpenChange, project, onSave, 
               </div>
 
               {sourceRole && (
-                <div className="rounded-lg border border-purple-200 bg-purple-50/60 p-4 space-y-3" role="status">
+                <div className="phx-feedback flex flex-col gap-3" data-tone="info" role="status">
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
-                      <div className="text-sm font-bold text-slate-900">
+                      <div className="m-0! text-base! leading-6! font-bold text-(--text-strong)">
                         Populated from {cleanRoleTitle(sourceRole.roleTitle)}
                       </div>
-                      <div className="text-[11px] text-slate-600 mt-0.5">
+                      <div className="text-sm text-(--text-default) mt-0.5">
                         Hiring manager: {sourceRole.hiringManager}, {sourceRole.hiringManagerTitle} · Target date: {sourceRole.targetDate}
                       </div>
                     </div>
                     <button
                       type="button"
                       onClick={clearRole}
-                      className="text-xs font-semibold text-purple-700 hover:text-purple-900 shrink-0 cursor-pointer"
+                      className="phx-btn shrink-0" data-variant="tertiary" data-size="sm"
                     >
                       Clear role
                     </button>
                   </div>
-                  <div className="flex flex-wrap gap-1.5 text-[11px] font-semibold">
+                  <div className="flex flex-wrap gap-1.5">
                     {[sourceRole.department, sourceRole.level, sourceRole.priorityLevel, sourceRole.anchors.targetRevenueScale, sourceRole.anchors.geographicFlexibility].map(chip => (
-                      <span key={chip} className="px-2 py-0.5 rounded bg-white border border-purple-200 text-purple-800">
+                      <span key={chip} className="phx-tag">
                         {chip}
                       </span>
                     ))}
                   </div>
-                  <label className="flex items-start gap-2.5 text-xs text-slate-800 cursor-pointer">
+                  <label className="flex items-start gap-2.5 text-sm text-(--text-strong) cursor-pointer">
                     <input
                       type="checkbox"
                       checked={includeBench}
@@ -522,12 +508,12 @@ export function ProjectParametersModal({ isOpen, onOpenChange, project, onSave, 
                       <span className="font-semibold">
                         Add the succession bench to this project ({benchSeed.length} candidate{benchSeed.length === 1 ? '' : 's'})
                       </span>
-                      <span className="block text-[11px] text-slate-500 mt-0.5">
+                      <span className="block text-sm text-(--text-default) mt-0.5">
                         Bench candidates are added to the project pipeline with their EMI scores, and warm outreach stages carry over.
                       </span>
                     </span>
                   </label>
-                  <p className="text-[11px] text-slate-500">
+                  <p className="text-sm text-(--text-default) m-0!">
                     Review and adjust any populated field below before creating the project.
                   </p>
                 </div>
@@ -535,7 +521,7 @@ export function ProjectParametersModal({ isOpen, onOpenChange, project, onSave, 
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                  <label className="phx-label">
                     Project Display Name *
                   </label>
                   <input
@@ -544,12 +530,12 @@ export function ProjectParametersModal({ isOpen, onOpenChange, project, onSave, 
                     placeholder="e.g. Chief Financial Officer or VP of Engineering"
                     value={title}
                     onChange={e => setTitle(e.target.value)}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs font-bold outline-none"
+                    className="w-full"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                  <label className="phx-label">
                     Hiring Department / Function
                   </label>
                   <input
@@ -557,32 +543,32 @@ export function ProjectParametersModal({ isOpen, onOpenChange, project, onSave, 
                     placeholder="e.g. Engineering & AI, Product, or Finance"
                     value={company === 'Client Corporation' ? 'Engineering & AI' : company}
                     onChange={e => setCompany(e.target.value)}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs font-semibold outline-none"
+                    className="w-full"
                   />
                 </div>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4 pt-2">
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                  <label className="phx-label">
                     Lead Executive Recruiter
                   </label>
                   <input
                     type="text"
                     value={leadRecruiter}
                     onChange={e => setLeadRecruiter(e.target.value)}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs font-medium outline-none"
+                    className="w-full"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                  <label className="phx-label">
                     Project Type
                   </label>
                   <select
                     value={projectType}
                     onChange={e => setProjectType(e.target.value)}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs font-medium bg-white"
+                    className="w-full"
                   >
                     <option value="Executive Search">Executive Search</option>
                     <option value="Standard Search">Standard Search</option>
@@ -591,13 +577,13 @@ export function ProjectParametersModal({ isOpen, onOpenChange, project, onSave, 
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                  <label className="phx-label">
                     Stage
                   </label>
                   <select
                     value={stage}
                     onChange={e => setStage(e.target.value)}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs font-bold bg-white text-purple-700"
+                    className="w-full"
                   >
                     <option value="Calibration">Calibration</option>
                     <option value="Slate Review">Slate Review</option>
@@ -607,13 +593,13 @@ export function ProjectParametersModal({ isOpen, onOpenChange, project, onSave, 
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                  <label className="phx-label">
                     Search Status
                   </label>
                   <select
                     value={status}
                     onChange={e => setStatus(e.target.value)}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs font-medium bg-white"
+                    className="w-full"
                   >
                     <option value="Active">Active</option>
                     <option value="Intake Calibration">Intake Calibration</option>
@@ -625,7 +611,7 @@ export function ProjectParametersModal({ isOpen, onOpenChange, project, onSave, 
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                <label className="phx-label">
                   Search Strategy & Overview Narrative
                 </label>
                 <textarea
@@ -633,7 +619,7 @@ export function ProjectParametersModal({ isOpen, onOpenChange, project, onSave, 
                   value={description}
                   onChange={e => setDescription(e.target.value)}
                   placeholder="Outline the core objective, organizational context, and key milestones for this retained mandate..."
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:ring-1 focus:ring-purple-600 outline-none leading-relaxed"
+                  className="w-full"
                 />
               </div>
             </div>
@@ -641,33 +627,33 @@ export function ProjectParametersModal({ isOpen, onOpenChange, project, onSave, 
             {/* ================================================================= */}
             {/* BLOCK 1: Role & Leveling Baseline */}
             {/* ================================================================= */}
-            <div id="block-1" className="bg-white rounded-xl border border-slate-200 p-5 shadow-xs space-y-4">
-              <div className="border-b border-slate-100 pb-3 flex items-center justify-between">
+            <div id="block-1" className="bg-white rounded-2xl border border-(--border-light) p-5 space-y-4">
+              <div className="border-b border-(--border-faint) pb-3 flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <div className="w-7 h-7 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-xs">
+                  <div className="w-6 h-6 rounded-md flex items-center justify-center text-sm font-bold shrink-0" style={{ background: 'var(--bg-brand-secondary-subtle)', color: 'var(--text-brand-secondary-default)' }}>
                     2
                   </div>
                   <div>
-                    <h3 className="text-sm font-bold text-slate-900">Role & Leveling Baseline</h3>
-                    <p className="text-[11px] text-slate-500">
+                    <h3 className="m-0! text-base! leading-6! font-bold text-(--text-strong)">Role & Leveling Baseline</h3>
+                    <p className="text-sm text-(--text-default) m-0!">
                       Feeds the CMA "Step-Up Delta" and initial Master Graph search filters.
                     </p>
                   </div>
                 </div>
-                <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200">
+                <span className="phx-tag shrink-0">
                   CMA Core
                 </span>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                  <label className="phx-label">
                     Executive Role Level *
                   </label>
                   <select
                     value={roleLevel}
                     onChange={e => setRoleLevel(e.target.value as ProjectRoleLevel)}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs font-semibold bg-white text-slate-800"
+                    className="w-full"
                   >
                     <option value="C-Suite">C-Suite (CEO, CFO, CTO, CISO, CMO, CPO)</option>
                     <option value="Executive Vice President">Executive Vice President (EVP)</option>
@@ -675,7 +661,7 @@ export function ProjectParametersModal({ isOpen, onOpenChange, project, onSave, 
                     <option value="Vice President">Vice President (VP)</option>
                     <option value="Senior Director">Senior Director / Head of</option>
                   </select>
-                  <span className="text-[10px] text-slate-400 mt-1 block">
+                  <span className="text-sm text-(--text-subtle) mt-1 block">
                     Used to calculate step-up delta vs. candidate current level.
                   </span>
                 </div>
@@ -683,20 +669,20 @@ export function ProjectParametersModal({ isOpen, onOpenChange, project, onSave, 
 
               {/* Acceptable Equivalent Titles */}
               <div>
-                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                <label className="phx-label">
                   Acceptable Equivalent Titles (Chips)
                 </label>
                 <div className="flex flex-wrap gap-1.5 mb-2">
                   {equivalentTitles.map(eq => (
                     <span
                       key={eq}
-                      className="px-2.5 py-1 bg-slate-100 text-slate-800 rounded-lg text-xs font-medium border border-slate-200 flex items-center gap-1.5"
+                      className="phx-tag"
                     >
                       {eq}
                       <button
                         type="button"
                         onClick={() => removeEquivalentTitle(eq)}
-                        className="text-slate-400 hover:text-slate-700"
+                        className="phx-btn" data-variant="tertiary" data-size="sm" aria-label={`Remove ${eq}`}
                       >
                         <X className="w-3 h-3" />
                       </button>
@@ -715,12 +701,12 @@ export function ProjectParametersModal({ isOpen, onOpenChange, project, onSave, 
                         addEquivalentTitle();
                       }
                     }}
-                    className="flex-1 px-3 py-1.5 border border-slate-300 rounded-lg text-xs outline-none"
+                    className="flex-1"
                   />
                   <button
                     type="button"
                     onClick={addEquivalentTitle}
-                    className="px-3 py-1.5 bg-slate-800 text-white rounded-lg text-xs font-medium hover:bg-slate-700"
+                    className="phx-btn shrink-0" data-variant="secondary" data-size="sm"
                   >
                     + Add Title
                   </button>
@@ -728,9 +714,9 @@ export function ProjectParametersModal({ isOpen, onOpenChange, project, onSave, 
               </div>
 
               {/* Functional Domain & Keywords */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2 border-t border-slate-100">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2 border-t border-(--border-faint)">
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                  <label className="phx-label">
                     Core Functional Domain *
                   </label>
                   <input
@@ -739,7 +725,7 @@ export function ProjectParametersModal({ isOpen, onOpenChange, project, onSave, 
                     placeholder="e.g. Infrastructure, B2B SaaS, Platform Security"
                     value={functionalDomain}
                     onChange={e => setFunctionalDomain(e.target.value)}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs outline-none"
+                    className="w-full"
                   />
                   <div className="flex flex-wrap gap-1 mt-1.5">
                     {COMMON_DOMAINS.slice(0, 3).map(dom => (
@@ -747,7 +733,7 @@ export function ProjectParametersModal({ isOpen, onOpenChange, project, onSave, 
                         key={dom}
                         type="button"
                         onClick={() => setFunctionalDomain(dom)}
-                        className="text-[10px] bg-slate-100 hover:bg-slate-200 text-slate-600 px-2 py-0.5 rounded cursor-pointer"
+                        className="phx-btn" data-variant="tertiary" data-size="sm"
                       >
                         {dom}
                       </button>
@@ -756,20 +742,20 @@ export function ProjectParametersModal({ isOpen, onOpenChange, project, onSave, 
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                  <label className="phx-label">
                     Required Tech Stack & Domain Tags
                   </label>
                   <div className="flex flex-wrap gap-1.5 mb-2">
                     {domainKeywords.map(kw => (
                       <span
                         key={kw}
-                        className="px-2 py-0.5 bg-blue-50 text-blue-700 border border-blue-200 rounded text-xs font-medium flex items-center gap-1"
+                        className="phx-tag"
                       >
                         {kw}
                         <button
                           type="button"
                           onClick={() => removeKeyword(kw)}
-                          className="text-blue-400 hover:text-blue-700"
+                          className="phx-btn" data-variant="tertiary" data-size="sm" aria-label={`Remove ${kw}`}
                         >
                           <X className="w-3 h-3" />
                         </button>
@@ -788,12 +774,12 @@ export function ProjectParametersModal({ isOpen, onOpenChange, project, onSave, 
                           addKeyword();
                         }
                       }}
-                      className="flex-1 px-3 py-1.5 border border-slate-300 rounded-lg text-xs outline-none"
+                      className="flex-1"
                     />
                     <button
                       type="button"
                       onClick={addKeyword}
-                      className="px-3 py-1.5 bg-slate-800 text-white rounded-lg text-xs font-medium hover:bg-slate-700"
+                      className="phx-btn shrink-0" data-variant="secondary" data-size="sm"
                     >
                       + Add Tag
                     </button>
@@ -805,65 +791,65 @@ export function ProjectParametersModal({ isOpen, onOpenChange, project, onSave, 
             {/* ================================================================= */}
             {/* BLOCK 2: Compensation & Financial Framework */}
             {/* ================================================================= */}
-            <div id="block-2" className="bg-white rounded-xl border border-slate-200 p-5 shadow-xs space-y-4">
-              <div className="border-b border-slate-100 pb-3 flex items-center justify-between">
+            <div id="block-2" className="bg-white rounded-2xl border border-(--border-light) p-5 space-y-4">
+              <div className="border-b border-(--border-faint) pb-3 flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <div className="w-7 h-7 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold text-xs">
+                  <div className="w-6 h-6 rounded-md flex items-center justify-center text-sm font-bold shrink-0" style={{ background: 'var(--bg-brand-secondary-subtle)', color: 'var(--text-brand-secondary-default)' }}>
                     3
                   </div>
                   <div>
-                    <h3 className="text-sm font-bold text-slate-900">Compensation & Financial Framework</h3>
-                    <p className="text-[11px] text-slate-500">
+                    <h3 className="m-0! text-base! leading-6! font-bold text-(--text-strong)">Compensation & Financial Framework</h3>
+                    <p className="text-sm text-(--text-default) m-0!">
                       Feeds the SFA "Compensation Parity" scoring rule and Market Calibration salary benchmarks.
                     </p>
                   </div>
                 </div>
-                <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200">
+                <span className="phx-tag shrink-0">
                   SFA Parity
                 </span>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                  <label className="phx-label">
                     Target Base Salary (Midpoint) *
                   </label>
                   <div className="relative">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-semibold">$</span>
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-(--text-subtle)">$</span>
                     <input
                       type="number"
                       step={5000}
                       value={targetBaseSalary}
                       onChange={e => setTargetBaseSalary(Number(e.target.value))}
-                      className="w-full pl-8 pr-3 py-2 border border-slate-300 rounded-lg text-xs font-bold text-slate-900 outline-none"
+                      className="w-full pl-8"
                       required
                     />
                   </div>
-                  <span className="text-[10px] text-slate-400 mt-1 block">Expected target hire base salary.</span>
+                  <span className="text-sm text-(--text-subtle) mt-1 block">Expected target hire base salary.</span>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                  <label className="phx-label">
                     Max Base Budget (Ceiling) *
                   </label>
                   <div className="relative">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-semibold">$</span>
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-(--text-subtle)">$</span>
                     <input
                       type="number"
                       step={5000}
                       value={maxBaseBudget}
                       onChange={e => setMaxBaseBudget(Number(e.target.value))}
-                      className="w-full pl-8 pr-3 py-2 border border-slate-300 rounded-lg text-xs font-bold text-slate-900 outline-none"
+                      className="w-full pl-8"
                       required
                     />
                   </div>
-                  <span className="text-[10px] text-slate-400 mt-1 block">Absolute maximum base budget approved by CFO/Board.</span>
+                  <span className="text-sm text-(--text-subtle) mt-1 block">Absolute maximum base budget approved by CFO/Board.</span>
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2 border-t border-slate-100">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2 border-t border-(--border-faint)">
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                  <label className="phx-label">
                     Variable / OTE (On-Target Earnings)
                   </label>
                   <input
@@ -871,13 +857,13 @@ export function ProjectParametersModal({ isOpen, onOpenChange, project, onSave, 
                     placeholder="e.g. $180,000 (50% bonus)"
                     value={variableOTE}
                     onChange={e => setVariableOTE(e.target.value)}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs outline-none font-medium"
+                    className="w-full"
                   />
-                  <span className="text-[10px] text-slate-400 mt-1 block">Annual target incentive / commission structure.</span>
+                  <span className="text-sm text-(--text-subtle) mt-1 block">Annual target incentive / commission structure.</span>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                  <label className="phx-label">
                     Equity / LTI Grant Value
                   </label>
                   <input
@@ -885,27 +871,27 @@ export function ProjectParametersModal({ isOpen, onOpenChange, project, onSave, 
                     placeholder="e.g. $450,000 / 0.50% ownership"
                     value={equityGrantValue}
                     onChange={e => setEquityGrantValue(e.target.value)}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs outline-none font-medium"
+                    className="w-full"
                   />
-                  <span className="text-[10px] text-slate-400 mt-1 block">Allocated long-term incentive or shares.</span>
+                  <span className="text-sm text-(--text-subtle) mt-1 block">Allocated long-term incentive or shares.</span>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                  <label className="phx-label">
                     Max Total Comp Package Ceiling *
                   </label>
                   <div className="relative">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-semibold">$</span>
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-(--text-subtle)">$</span>
                     <input
                       type="number"
                       step={10000}
                       value={maxTotalCompensationCeiling}
                       onChange={e => setMaxTotalCompensationCeiling(Number(e.target.value))}
-                      className="w-full pl-8 pr-3 py-2 border border-slate-300 rounded-lg text-xs font-bold text-rose-700 outline-none"
+                      className="w-full pl-8"
                       required
                     />
                   </div>
-                  <span className="text-[10px] text-slate-400 mt-1 block">
+                  <span className="text-sm text-(--text-subtle) mt-1 block">
                     If candidate comp exceeds this by &gt;15%, SFA triggers a red friction flag.
                   </span>
                 </div>
@@ -915,27 +901,27 @@ export function ProjectParametersModal({ isOpen, onOpenChange, project, onSave, 
             {/* ================================================================= */}
             {/* BLOCK 3: Scope & Scale Requirements */}
             {/* ================================================================= */}
-            <div id="block-3" className="bg-white rounded-xl border border-slate-200 p-5 shadow-xs space-y-4">
-              <div className="border-b border-slate-100 pb-3 flex items-center justify-between">
+            <div id="block-3" className="bg-white rounded-2xl border border-(--border-light) p-5 space-y-4">
+              <div className="border-b border-(--border-faint) pb-3 flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <div className="w-7 h-7 rounded-lg bg-purple-50 text-purple-600 flex items-center justify-center font-bold text-xs">
+                  <div className="w-6 h-6 rounded-md flex items-center justify-center text-sm font-bold shrink-0" style={{ background: 'var(--bg-brand-secondary-subtle)', color: 'var(--text-brand-secondary-default)' }}>
                     4
                   </div>
                   <div>
-                    <h3 className="text-sm font-bold text-slate-900">Scope & Scale Requirements</h3>
-                    <p className="text-[11px] text-slate-500">
+                    <h3 className="m-0! text-base! leading-6! font-bold text-(--text-strong)">Scope & Scale Requirements</h3>
+                    <p className="text-sm text-(--text-default) m-0!">
                       Feeds the CMA "Scale Expansion" calculation (comparing past P&L/headcount to open position).
                     </p>
                   </div>
                 </div>
-                <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-purple-50 text-purple-700 border border-purple-200">
+                <span className="phx-tag shrink-0">
                   Scale Fit
                 </span>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                  <label className="phx-label">
                     Target Co. Stage / Revenue *
                   </label>
                   <input
@@ -944,13 +930,13 @@ export function ProjectParametersModal({ isOpen, onOpenChange, project, onSave, 
                     placeholder="e.g. Series B–D ($20M–$100M ARR)"
                     value={targetCompanyStage}
                     onChange={e => setTargetCompanyStage(e.target.value)}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs outline-none"
+                    className="w-full"
                   />
-                  <span className="text-[10px] text-slate-400 mt-1 block">Expected target company maturity.</span>
+                  <span className="text-sm text-(--text-subtle) mt-1 block">Expected target company maturity.</span>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                  <label className="phx-label">
                     Required P&L Scope *
                   </label>
                   <input
@@ -959,13 +945,13 @@ export function ProjectParametersModal({ isOpen, onOpenChange, project, onSave, 
                     placeholder="e.g. $10M+ ARR / $50M Budget"
                     value={requiredPandLScope}
                     onChange={e => setRequiredPandLScope(e.target.value)}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs outline-none"
+                    className="w-full"
                   />
-                  <span className="text-[10px] text-slate-400 mt-1 block">Minimum financial responsibility managed.</span>
+                  <span className="text-sm text-(--text-subtle) mt-1 block">Minimum financial responsibility managed.</span>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                  <label className="phx-label">
                     Team / Headcount Scale *
                   </label>
                   <input
@@ -974,9 +960,9 @@ export function ProjectParametersModal({ isOpen, onOpenChange, project, onSave, 
                     placeholder="e.g. 50+ engineers / 4 Directors"
                     value={teamHeadcountScale}
                     onChange={e => setTeamHeadcountScale(e.target.value)}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs outline-none"
+                    className="w-full"
                   />
-                  <span className="text-[10px] text-slate-400 mt-1 block">Direct + indirect organizational scale.</span>
+                  <span className="text-sm text-(--text-subtle) mt-1 block">Direct + indirect organizational scale.</span>
                 </div>
               </div>
             </div>
@@ -984,27 +970,27 @@ export function ProjectParametersModal({ isOpen, onOpenChange, project, onSave, 
             {/* ================================================================= */}
             {/* BLOCK 4: Location & Work Model */}
             {/* ================================================================= */}
-            <div id="block-4" className="bg-white rounded-xl border border-slate-200 p-5 shadow-xs space-y-4">
-              <div className="border-b border-slate-100 pb-3 flex items-center justify-between">
+            <div id="block-4" className="bg-white rounded-2xl border border-(--border-light) p-5 space-y-4">
+              <div className="border-b border-(--border-faint) pb-3 flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <div className="w-7 h-7 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center font-bold text-xs">
+                  <div className="w-6 h-6 rounded-md flex items-center justify-center text-sm font-bold shrink-0" style={{ background: 'var(--bg-brand-secondary-subtle)', color: 'var(--text-brand-secondary-default)' }}>
                     5
                   </div>
                   <div>
-                    <h3 className="text-sm font-bold text-slate-900">Location & Work Model</h3>
-                    <p className="text-[11px] text-slate-500">
+                    <h3 className="m-0! text-base! leading-6! font-bold text-(--text-strong)">Location & Work Model</h3>
+                    <p className="text-sm text-(--text-default) m-0!">
                       Feeds the CMA "Geo/Lifestyle" match and Market Calibration geographic heatmaps.
                     </p>
                   </div>
                 </div>
-                <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-amber-50 text-amber-700 border border-amber-200">
+                <span className="phx-tag shrink-0">
                   Geo & Lifestyle
                 </span>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
+                  <label className="phx-label">
                     Work Model *
                   </label>
                   <div className="grid grid-cols-3 gap-2">
@@ -1013,11 +999,11 @@ export function ProjectParametersModal({ isOpen, onOpenChange, project, onSave, 
                         key={wm}
                         type="button"
                         onClick={() => setWorkModel(wm)}
-                        className={`py-2 px-3 rounded-lg text-xs font-bold border transition-all ${
-                          workModel === wm
-                            ? 'bg-blue-600 text-white border-blue-600 shadow-xs'
-                            : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
-                        }`}
+                        className="phx-btn"
+                        data-variant="secondary"
+                        data-size="sm"
+                        aria-pressed={workModel === wm}
+                        style={workModel === wm ? { background: 'var(--bg-brand-secondary-subtle)', color: 'var(--text-brand-secondary-default)', borderColor: 'var(--text-brand-secondary-default)' } : undefined}
                       >
                         {wm}
                       </button>
@@ -1025,19 +1011,20 @@ export function ProjectParametersModal({ isOpen, onOpenChange, project, onSave, 
                   </div>
 
                   {workModel === 'Hybrid' && (
-                    <div className="mt-3 p-3 bg-blue-50/50 rounded-lg border border-blue-100 flex items-center justify-between">
-                      <span className="text-xs text-blue-900 font-semibold">Required Days Per Week On-Site:</span>
+                    <div className="mt-3 p-3 rounded-xl border border-(--border-light) bg-(--bg-neutral-soft) flex items-center justify-between">
+                      <span className="text-sm font-semibold text-(--text-strong)">Required days per week on site</span>
                       <div className="flex items-center gap-2">
                         {[1, 2, 3, 4].map(days => (
                           <button
                             key={days}
                             type="button"
                             onClick={() => setHybridDaysPerWeek(days)}
-                            className={`w-7 h-7 rounded text-xs font-bold ${
-                              hybridDaysPerWeek === days
-                                ? 'bg-blue-600 text-white'
-                                : 'bg-white text-slate-700 border border-slate-200'
-                            }`}
+                            className="phx-btn"
+                            data-variant="secondary"
+                            data-size="sm"
+                            aria-pressed={hybridDaysPerWeek === days}
+                            aria-label={`${days} days on site`}
+                            style={hybridDaysPerWeek === days ? { background: 'var(--bg-brand-secondary-subtle)', color: 'var(--text-brand-secondary-default)', borderColor: 'var(--text-brand-secondary-default)' } : undefined}
                           >
                             {days}d
                           </button>
@@ -1047,21 +1034,21 @@ export function ProjectParametersModal({ isOpen, onOpenChange, project, onSave, 
                   )}
 
                   {/* Relocation Willingness Toggle */}
-                  <div className="mt-4 p-3 bg-slate-50 rounded-xl border border-slate-200 flex items-center justify-between">
+                  <div className="mt-4 p-3 rounded-xl border border-(--border-light) bg-(--bg-neutral-soft) flex items-center justify-between">
                     <div>
-                      <span className="text-xs font-bold text-slate-800 block">
-                        Relocation Support / Willingness Filter
+                      <span className="text-sm font-semibold text-(--text-strong) block">
+                        Relocation support
                       </span>
-                      <span className="text-[11px] text-slate-500">
+                      <span className="text-sm text-(--text-default) m-0!">
                         Client is open to paying relocation or considering candidates willing to move.
                       </span>
                     </div>
                     <Switch.Root
                       checked={relocationWillingness}
                       onCheckedChange={setRelocationWillingness}
-                      className={`w-10 h-6 rounded-full relative transition-colors ${
-                        relocationWillingness ? 'bg-blue-600' : 'bg-slate-300'
-                      }`}
+                      className="w-10 h-6 rounded-full relative"
+                      style={{ background: relocationWillingness ? 'var(--bg-brand-secondary-default)' : 'var(--color-neutrals-100)' }}
+                      aria-label="Relocation support"
                     >
                       <Switch.Thumb
                         className={`block w-4 h-4 bg-white rounded-full transition-transform shadow-xs ${
@@ -1075,17 +1062,17 @@ export function ProjectParametersModal({ isOpen, onOpenChange, project, onSave, 
                 {/* Target Metropolitan Markets */}
                 <div>
                   <div className="flex items-center justify-between mb-1.5">
-                    <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">
+                    <label className="phx-label">
                       Target Metropolitan Markets *
                     </label>
-                    <span className="text-[11px] text-slate-400">
+                    <span className="text-sm text-(--text-subtle)">
                       {targetMetropolitanMarkets.length} selected
                     </span>
                   </div>
-                  <p className="text-[11px] text-slate-500 mb-2">
+                  <p className="text-sm text-(--text-default) mb-2">
                     Click to select primary metro clusters where candidate sourcing is authorized.
                   </p>
-                  <div className="flex flex-wrap gap-1.5 max-h-36 overflow-y-auto p-2 bg-slate-50 rounded-lg border border-slate-200">
+                  <div className="flex flex-wrap gap-1.5 max-h-36 overflow-y-auto p-2 bg-(--bg-neutral-soft) rounded-xl border border-(--border-light)">
                     {DEFAULT_METROS.map(metro => {
                       const isSelected = targetMetropolitanMarkets.includes(metro);
                       return (
@@ -1093,11 +1080,11 @@ export function ProjectParametersModal({ isOpen, onOpenChange, project, onSave, 
                           key={metro}
                           type="button"
                           onClick={() => toggleMetro(metro)}
-                          className={`px-2.5 py-1 rounded-md text-[11px] font-semibold transition-colors flex items-center gap-1 border ${
-                            isSelected
-                              ? 'bg-blue-600 text-white border-blue-600'
-                              : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100'
-                          }`}
+                          className="phx-btn"
+                          data-variant="secondary"
+                          data-size="sm"
+                          aria-pressed={isSelected}
+                          style={isSelected ? { background: 'var(--bg-brand-secondary-subtle)', color: 'var(--text-brand-secondary-default)', borderColor: 'var(--text-brand-secondary-default)' } : undefined}
                         >
                           {metro}
                           {isSelected && <Check className="w-3 h-3" />}
@@ -1112,27 +1099,27 @@ export function ProjectParametersModal({ isOpen, onOpenChange, project, onSave, 
             {/* ================================================================= */}
             {/* BLOCK 5: Timeline & Operational Constraints */}
             {/* ================================================================= */}
-            <div id="block-5" className="bg-white rounded-xl border border-slate-200 p-5 shadow-xs space-y-4">
-              <div className="border-b border-slate-100 pb-3 flex items-center justify-between">
+            <div id="block-5" className="bg-white rounded-2xl border border-(--border-light) p-5 space-y-4">
+              <div className="border-b border-(--border-faint) pb-3 flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <div className="w-7 h-7 rounded-lg bg-rose-50 text-rose-600 flex items-center justify-center font-bold text-xs">
+                  <div className="w-6 h-6 rounded-md flex items-center justify-center text-sm font-bold shrink-0" style={{ background: 'var(--bg-brand-secondary-subtle)', color: 'var(--text-brand-secondary-default)' }}>
                     6
                   </div>
                   <div>
-                    <h3 className="text-sm font-bold text-slate-900">Timeline & Operational Constraints</h3>
-                    <p className="text-[11px] text-slate-500">
+                    <h3 className="m-0! text-base! leading-6! font-bold text-(--text-strong)">Timeline & Operational Constraints</h3>
+                    <p className="text-sm text-(--text-default) m-0!">
                       Feeds the SFA "Notice Period & Availability" match and confidentiality protocols.
                     </p>
                   </div>
                 </div>
-                <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-rose-50 text-rose-700 border border-rose-200">
+                <span className="phx-tag shrink-0">
                   SFA Availability
                 </span>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                  <label className="phx-label">
                     Target Hiring / Start Date *
                   </label>
                   <input
@@ -1140,65 +1127,58 @@ export function ProjectParametersModal({ isOpen, onOpenChange, project, onSave, 
                     required
                     value={targetStartDate}
                     onChange={e => setTargetStartDate(e.target.value)}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs font-semibold bg-white"
+                    className="w-full"
                   />
-                  <span className="text-[10px] text-slate-400 mt-1 block">Target placement onboarding date.</span>
+                  <span className="text-sm text-(--text-subtle) mt-1 block">Target placement onboarding date.</span>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                  <label className="phx-label">
                     Max Notice Period / Garden Leave Tolerance *
                   </label>
                   <select
                     value={maxNoticePeriodTolerance}
                     onChange={e => setMaxNoticePeriodTolerance(e.target.value)}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs font-semibold bg-white text-slate-800"
+                    className="w-full"
                   >
                     <option value="30 days">30 days (Standard US)</option>
                     <option value="60 days">60 days (VP / Executive)</option>
                     <option value="90 days">90 days (C-Suite / Enterprise)</option>
                     <option value="6 months">6 months (Garden Leave / Board Approval)</option>
                   </select>
-                  <span className="text-[10px] text-slate-400 mt-1 block">Maximum acceptable transition window.</span>
+                  <span className="text-sm text-(--text-subtle) mt-1 block">Maximum acceptable transition window.</span>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                  <label className="phx-label">
                     Confidentiality Protocol
                   </label>
                   <select
                     value={confidentialityProtocol}
                     onChange={e => setConfidentialityProtocol(e.target.value)}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs font-semibold bg-white text-slate-800"
+                    className="w-full"
                   >
                     <option value="Named Enterprise Search">Named Enterprise Search</option>
                     <option value="Strictly Confidential Blind Teaser">Strictly Confidential Blind Teaser</option>
                     <option value="Board-Authorized Retained Mandate">Board-Authorized Retained Mandate</option>
                   </select>
-                  <span className="text-[10px] text-slate-400 mt-1 block">Governs outreach voice & branding disclosure.</span>
+                  <span className="text-sm text-(--text-subtle) mt-1 block">Governs outreach voice & branding disclosure.</span>
                 </div>
               </div>
             </div>
 
             {/* Footer Buttons */}
-            <div className="pt-4 border-t border-slate-200 flex items-center justify-between sticky bottom-0 bg-white/95 backdrop-blur-xs py-3 px-2">
-              <span className="text-xs text-slate-500">
+            <div className="flex items-center justify-between gap-3 px-2 py-4 border-t border-(--border-light) bg-(--bg-neutral-soft) sticky bottom-0">
+              <span className="text-sm text-(--text-default)">
                 All inputs feed autonomous agent scoring and intake calibration.
               </span>
               <div className="flex items-center gap-3">
-                <button
-                  type="button"
-                  onClick={() => onOpenChange(false)}
-                  className="px-4 py-2 border border-slate-300 rounded-xl text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors cursor-pointer"
-                >
+                <button type="button" className="phx-btn" data-variant="secondary" data-size="sm" onClick={() => onOpenChange(false)}>
                   Cancel
                 </button>
-                <button
-                  type="submit"
-                  className="px-6 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-xs font-bold shadow-md hover:shadow-purple-500/20 transition-all flex items-center gap-1.5 cursor-pointer"
-                >
-                  <Check className="w-4 h-4 stroke-[2.5]" />
-                  {isEdit ? 'Save Project Parameters' : 'Create & Calibrate Project'}
+                <button type="submit" className="phx-btn" data-variant="primary" data-size="sm">
+                  <Check className="w-4 h-4" aria-hidden="true" />
+                  {isEdit ? 'Save parameters' : 'Create project'}
                 </button>
               </div>
             </div>
