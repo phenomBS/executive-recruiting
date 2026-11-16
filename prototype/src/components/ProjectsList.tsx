@@ -5,6 +5,7 @@ import { cn } from '../lib/utils';
 import { isProjectLive, isProjectOpen, projectStatusLabel } from '../lib/projectStatus';
 import { IntakeMeetingModal } from './IntakeMeetingModal';
 import { ProjectParametersModal } from './ProjectParametersModal';
+import { AgentProjectSearch, CreateProjectChoice } from './AgentProjectSearch';
 
 interface ProjectsListProps {
   projects: Project[];
@@ -31,7 +32,7 @@ export function ProjectsList({ projects, onSelectProject, onAddProject }: Projec
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState<ProjectTab>('all');
   const [showIntakeModal, setShowIntakeModal] = useState(false);
-  const [showNewProjectModal, setShowNewProjectModal] = useState(false);
+  const [createMode, setCreateMode] = useState<'closed' | 'choose' | 'manual' | 'agent'>('closed');
   const [menuOpen, setMenuOpen] = useState(false);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [recruiterFilter, setRecruiterFilter] = useState('all');
@@ -72,9 +73,25 @@ export function ProjectsList({ projects, onSelectProject, onAddProject }: Projec
 
   return (
     <div className="p-8 max-w-[1600px] mx-auto w-full h-full flex flex-col relative">
+      <CreateProjectChoice
+        isOpen={createMode === 'choose'}
+        onOpenChange={open => { if (!open) setCreateMode('closed'); }}
+        onAgent={() => setCreateMode('agent')}
+        onManual={() => setCreateMode('manual')}
+      />
       <ProjectParametersModal
-        isOpen={showNewProjectModal}
-        onOpenChange={setShowNewProjectModal}
+        isOpen={createMode === 'manual'}
+        onOpenChange={open => { if (!open) setCreateMode('closed'); }}
+        onBack={() => setCreateMode('choose')}
+        onSave={(newProj) => {
+          if (onAddProject) onAddProject(newProj);
+        }}
+      />
+      <AgentProjectSearch
+        isOpen={createMode === 'agent'}
+        onOpenChange={open => { if (!open) setCreateMode('closed'); }}
+        onBack={() => setCreateMode('choose')}
+        projects={projects}
         onSave={(newProj) => {
           if (onAddProject) onAddProject(newProj);
         }}
@@ -132,7 +149,7 @@ export function ProjectsList({ projects, onSelectProject, onAddProject }: Projec
           <div className="w-px h-6 bg-slate-300 mx-1" />
           <button
             type="button"
-            onClick={() => setShowNewProjectModal(true)}
+            onClick={() => setCreateMode('choose')}
             className="flex items-center gap-2 px-5 py-2 rounded-full border border-slate-300 text-(--color-secondary-200) font-semibold text-sm hover:bg-slate-50 bg-white transition-colors cursor-pointer"
           >
             <span className="text-lg leading-none mb-[2px]">+</span> Create New Project

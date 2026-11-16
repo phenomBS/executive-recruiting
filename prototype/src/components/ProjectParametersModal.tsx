@@ -34,6 +34,8 @@ interface ProjectParametersModalProps {
   onSave: (project: Project) => void;
   /** Create mode only: start pre-filled from this tracked role, with its bench as the pipeline */
   initialRoleId?: string | null;
+  /** Create mode only: return to the agent-or-manual choice */
+  onBack?: () => void;
 }
 
 const DEFAULT_METROS = PROJECT_METRO_OPTIONS;
@@ -48,7 +50,7 @@ const COMMON_DOMAINS = [
   'Hardware & Systems Architecture'
 ];
 
-export function ProjectParametersModal({ isOpen, onOpenChange, project, onSave, initialRoleId }: ProjectParametersModalProps) {
+export function ProjectParametersModal({ isOpen, onOpenChange, project, onSave, initialRoleId, onBack }: ProjectParametersModalProps) {
   const isEdit = !!project;
 
   // Active parameter block tab for quick jumping
@@ -355,11 +357,18 @@ export function ProjectParametersModal({ isOpen, onOpenChange, project, onSave, 
                 {isEdit ? project?.title : 'In-house executive search setup'}. These inputs feed scoring, filtering, and market calibration.
               </Dialog.Description>
             </div>
-            <Dialog.Close asChild>
-              <button type="button" className="phx-btn" data-variant="tertiary" data-size="sm" aria-label="Close">
-                <X className="w-4 h-4" aria-hidden="true" />
-              </button>
-            </Dialog.Close>
+            <div className="flex items-center gap-2">
+              {onBack && !isEdit && (
+                <button type="button" className="phx-btn" data-variant="tertiary" data-size="sm" onClick={onBack}>
+                  Back
+                </button>
+              )}
+              <Dialog.Close asChild>
+                <button type="button" className="phx-btn" data-variant="tertiary" data-size="sm" aria-label="Close">
+                  <X className="w-4 h-4" aria-hidden="true" />
+                </button>
+              </Dialog.Close>
+            </div>
           </div>
 
           <div role="tablist" aria-label="Project inputs" className="px-6 shrink-0">

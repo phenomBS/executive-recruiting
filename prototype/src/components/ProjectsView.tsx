@@ -8,7 +8,11 @@ import { addSessionProject, getSessionProjects } from '../lib/sessionProjects';
 
 export function ProjectsView() {
   const router = useRouter();
-  const [projects, setProjects] = useState<Project[]>(() => [...getSessionProjects(), ...mockProjects]);
+  const [projects, setProjects] = useState<Project[]>(() => {
+    const session = getSessionProjects();
+    const sessionIds = new Set(session.map(project => project.id));
+    return [...session, ...mockProjects.filter(project => !sessionIds.has(project.id))];
+  });
   
   const selectedProjectId = router.projectId;
   const selectedProject = projects.find(p => p.id === selectedProjectId) || null;
