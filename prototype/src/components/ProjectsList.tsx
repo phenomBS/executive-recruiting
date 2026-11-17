@@ -5,7 +5,8 @@ import { cn } from '../lib/utils';
 import { isProjectLive, isProjectOpen, projectStatusLabel } from '../lib/projectStatus';
 import { IntakeMeetingModal } from './IntakeMeetingModal';
 import { ProjectParametersModal } from './ProjectParametersModal';
-import { AgentProjectSearch, CreateProjectChoice } from './AgentProjectSearch';
+import { CreateProjectChoice } from './AgentProjectSearch';
+import { useRouter } from '../context/RouterContext';
 
 interface ProjectsListProps {
   projects: Project[];
@@ -29,10 +30,11 @@ function endDate(project: Project) {
 }
 
 export function ProjectsList({ projects, onSelectProject, onAddProject }: ProjectsListProps) {
+  const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState<ProjectTab>('all');
   const [showIntakeModal, setShowIntakeModal] = useState(false);
-  const [createMode, setCreateMode] = useState<'closed' | 'choose' | 'manual' | 'agent'>('closed');
+  const [createMode, setCreateMode] = useState<'closed' | 'choose' | 'manual'>('closed');
   const [menuOpen, setMenuOpen] = useState(false);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [recruiterFilter, setRecruiterFilter] = useState('all');
@@ -76,7 +78,7 @@ export function ProjectsList({ projects, onSelectProject, onAddProject }: Projec
       <CreateProjectChoice
         isOpen={createMode === 'choose'}
         onOpenChange={open => { if (!open) setCreateMode('closed'); }}
-        onAgent={() => setCreateMode('agent')}
+        onAgent={() => { setCreateMode('closed'); router.navigateToView('sourcing'); }}
         onManual={() => setCreateMode('manual')}
       />
       <ProjectParametersModal
@@ -87,16 +89,6 @@ export function ProjectsList({ projects, onSelectProject, onAddProject }: Projec
           if (onAddProject) onAddProject(newProj);
         }}
       />
-      <AgentProjectSearch
-        isOpen={createMode === 'agent'}
-        onOpenChange={open => { if (!open) setCreateMode('closed'); }}
-        onBack={() => setCreateMode('choose')}
-        projects={projects}
-        onSave={(newProj) => {
-          if (onAddProject) onAddProject(newProj);
-        }}
-      />
-
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold text-(--text-strong)">Projects</h1>

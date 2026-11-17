@@ -1,6 +1,6 @@
 import React from 'react';
 import { 
-  LayoutDashboard,
+  Sparkles,
   Building2,
   Search,
   User,
@@ -23,7 +23,7 @@ import {
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 
-export type View = 'home' | 'candidates' | 'jobs' | 'projects' | 'companies' | 'agents' | 'roles' | 'dealrooms' | 'analytics';
+export type View = 'home' | 'sourcing' | 'candidates' | 'jobs' | 'projects' | 'companies' | 'agents' | 'roles' | 'dealrooms' | 'analytics';
 
 interface SidebarProps {
   currentView: View;
@@ -32,7 +32,7 @@ interface SidebarProps {
 
 export function Sidebar({ currentView, onViewChange }: SidebarProps) {
   const mainIcons = [
-    { icon: LayoutDashboard, id: 'home', label: 'Workspace' },
+    { icon: Sparkles, id: 'sourcing', label: 'Sourcing Agent' },
     { icon: FolderKanban, id: 'projects', label: 'Projects' },
     { icon: User, id: 'candidates', label: 'Candidates' },
     { icon: Building2, id: 'companies', label: 'Companies' },

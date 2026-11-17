@@ -1,9 +1,12 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import * as Dialog from '@radix-ui/react-dialog';
 import * as Switch from '@radix-ui/react-switch';
-import { ArrowRight, Bookmark, Bot, Check, ChevronDown, ChevronRight, Linkedin, PenLine, Plus, Search, Sparkles, User, X } from 'lucide-react';
+import { ArrowRight, Bookmark, Calendar, Check, ChevronDown, ChevronRight, Linkedin, MessageCircle, Plus, Search, Sparkles, User, X, Zap } from 'lucide-react';
 import type { Candidate, Project, ProjectParameters, ProjectRoleLevel } from '../types';
+import { mockProjects } from '../data/mockData';
 import { isProjectLive, projectStatusLabel } from '../lib/projectStatus';
+import { addSessionProject, getSessionProjects } from '../lib/sessionProjects';
+import { useRouter } from '../context/RouterContext';
 import { initialProjectPipeline } from './tabs/ProjectCandidatesTab';
 
 interface CreateProjectChoiceProps {
@@ -14,52 +17,108 @@ interface CreateProjectChoiceProps {
 }
 
 export function CreateProjectChoice({ isOpen, onOpenChange, onAgent, onManual }: CreateProjectChoiceProps) {
+  const [path, setPath] = useState<'manual' | 'agent'>('agent');
   return (
     <Dialog.Root open={isOpen} onOpenChange={onOpenChange}>
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 z-(--z-overlay)" style={{ background: 'var(--bg-overlay-blanket)' }} />
-        <Dialog.Content className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-(--z-modal) w-full max-w-3xl bg-(--bg-default) rounded-2xl border border-(--border-light) shadow-2xl p-6">
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <span className="phx-tag">New executive project</span>
-              <Dialog.Title className="m-0! mt-2! text-xl! font-bold text-(--text-strong)">Create executive search project</Dialog.Title>
-              <Dialog.Description className="m-0! mt-1! text-sm text-(--text-default)">
-                Start with the Phenom Sourcing Agent, or fill in the project yourself.
-              </Dialog.Description>
-            </div>
+        <Dialog.Content className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-(--z-modal) w-full max-w-4xl bg-(--bg-default) rounded-2xl border border-(--border-light) shadow-2xl p-0 overflow-hidden">
+          <div className="px-6 pt-5 pb-4 flex items-start justify-between gap-4">
+            <Dialog.Title className="m-0! text-lg! font-bold text-(--text-strong)">Create executive search project</Dialog.Title>
+            <Dialog.Description className="sr-only">Choose the Phenom Sourcing Agent or create the project manually.</Dialog.Description>
             <Dialog.Close asChild>
               <button type="button" className="phx-btn" data-variant="tertiary" data-size="sm" aria-label="Close">
                 <X className="w-4 h-4" aria-hidden="true" />
               </button>
             </Dialog.Close>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
-            <button
-              type="button"
-              onClick={onAgent}
-              className="text-left rounded-2xl border border-(--border-light) bg-(--bg-default) p-5 hover:border-(--color-secondary-100) hover:bg-(--bg-neutral-soft) focus-visible:outline-2"
-            >
-              <Bot className="w-6 h-6 text-(--color-secondary-200)" aria-hidden="true" />
-              <span className="block mt-3 text-base font-bold text-(--text-strong)">Phenom Sourcing Agent</span>
-              <span className="block mt-1 text-sm text-(--text-default)">
-                Describe the role in chat. The agent returns candidate segments, and you add the people you select to a project or create one.
-              </span>
-            </button>
-            <button
-              type="button"
-              onClick={onManual}
-              className="text-left rounded-2xl border border-(--border-light) bg-(--bg-default) p-5 hover:border-(--color-secondary-100) hover:bg-(--bg-neutral-soft) focus-visible:outline-2"
-            >
-              <PenLine className="w-6 h-6 text-(--color-secondary-200)" aria-hidden="true" />
-              <span className="block mt-3 text-base font-bold text-(--text-strong)">Create manually</span>
-              <span className="block mt-1 text-sm text-(--text-default)">
-                Enter the project details, role, compensation, scope, and location yourself.
-              </span>
-            </button>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 px-6 pb-6">
+            <PathCard
+              selected={path === 'manual'}
+              onSelect={() => setPath('manual')}
+              icon={<span className="w-9 h-9 rounded-xl bg-(--bg-neutral-soft) flex items-center justify-center"><Calendar className="w-5 h-5 text-(--text-default)" aria-hidden="true" /></span>}
+              title="Create manually"
+              description="Enter the project details, role, and scope yourself."
+              availability="You set every field"
+              steps={[
+                'Enter project details, role, and location',
+                'Set compensation, scope, and target markets',
+                'Open the project and build the slate',
+              ]}
+            />
+            <PathCard
+              selected={path === 'agent'}
+              onSelect={() => setPath('agent')}
+              icon={<span className="w-9 h-9 rounded-full flex items-center justify-center" style={{ background: 'var(--color-secondary-200)', color: 'var(--text-inverse)' }}><MessageCircle className="w-4 h-4" aria-hidden="true" /></span>}
+              title="Phenom Sourcing Agent"
+              description="Describe the role and review matching candidates in a guided search."
+              availability="Starts instantly – no scheduling required"
+              instant
+              steps={[
+                'Describe the role in the search',
+                'Review candidate segments and shortlist people',
+                'Add them to a project or create a new one',
+              ]}
+            />
+          </div>
+          <div className="px-6 py-4 border-t border-(--border-light) flex justify-end gap-2">
+            <button type="button" className="phx-btn" data-variant="tertiary" data-size="sm" onClick={() => onOpenChange(false)}>Cancel</button>
+            <button type="button" className="phx-btn" data-variant="primary" data-size="sm" onClick={() => (path === 'agent' ? onAgent() : onManual())}>Continue</button>
           </div>
         </Dialog.Content>
       </Dialog.Portal>
     </Dialog.Root>
+  );
+}
+
+function PathCard({ selected, onSelect, icon, title, description, availability, instant, steps }: {
+  selected: boolean;
+  onSelect: () => void;
+  icon: React.ReactNode;
+  title: string;
+  description: string;
+  availability: string;
+  instant?: boolean;
+  steps: string[];
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onSelect}
+      aria-pressed={selected}
+      className="text-left rounded-2xl border p-5 flex flex-col gap-4"
+      style={{
+        borderColor: selected ? 'var(--color-secondary-200)' : 'var(--border-light)',
+        background: selected ? 'var(--color-secondary-40)' : 'var(--bg-default)',
+        boxShadow: selected ? 'inset 0 0 0 1px var(--color-secondary-200)' : undefined,
+      }}
+    >
+      <span className="flex items-start gap-3">
+        <span className="shrink-0">{icon}</span>
+        <span>
+          <span className="block text-base font-bold text-(--text-strong)">{title}</span>
+          <span className="block mt-1 text-sm text-(--text-default)">{description}</span>
+        </span>
+      </span>
+      <span className="border-t border-(--border-light) pt-3">
+        <span className="block text-xs font-semibold text-(--text-subtle)">Availability</span>
+        <span className={`mt-1 flex items-center gap-1.5 text-sm ${instant ? 'text-(--color-secondary-300)' : 'text-(--text-default)'}`}>
+          {instant ? <Zap className="w-3.5 h-3.5" aria-hidden="true" /> : <Calendar className="w-3.5 h-3.5" aria-hidden="true" />}
+          {availability}
+        </span>
+      </span>
+      <span className="border-t border-(--border-light) pt-3">
+        <span className="block text-xs font-semibold text-(--text-subtle)">What to expect</span>
+        <ol className="mt-2 flex flex-col gap-2">
+          {steps.map((step, index) => (
+            <li key={step} className="flex items-start gap-2 text-sm text-(--text-default)">
+              <span className="w-5 h-5 rounded-full bg-(--bg-neutral-soft) text-xs font-semibold text-(--text-strong) flex items-center justify-center shrink-0">{index + 1}</span>
+              {step}
+            </li>
+          ))}
+        </ol>
+      </span>
+    </button>
   );
 }
 
@@ -143,13 +202,6 @@ function isCooChicago(query: string) {
 function isCfoPhiladelphia(query: string) {
   const s = query.toLowerCase();
   return (s.includes('chief financial') || /\bcfo\b/.test(s)) && s.includes('philadelphia');
-}
-
-function ackTitle(query: string) {
-  if (isCfoPhiladelphia(query)) return 'Chief Financial Officer in Philadelphia';
-  if (isCooChicago(query)) return 'Chief Operations Officer in Chicago';
-  const trimmed = query.trim();
-  return trimmed.charAt(0).toUpperCase() + trimmed.slice(1);
 }
 
 const CFO_PHILADELPHIA: Lead[] = [
@@ -369,12 +421,12 @@ function addLeadsToProject(project: Project, leads: Lead[], query: string): Proj
 interface AgentProjectSearchProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
-  onBack: () => void;
   onSave: (project: Project) => void;
   projects: Project[];
+  variant?: 'page' | 'dialog';
 }
 
-export function AgentProjectSearch({ isOpen, onOpenChange, onSave, projects }: AgentProjectSearchProps) {
+export function AgentProjectSearch({ isOpen, onOpenChange, onSave, projects, variant = 'dialog' }: AgentProjectSearchProps) {
   const [draft, setDraft] = useState('');
   const [items, setItems] = useState<ChatItem[]>([]);
   const [activeKey, setActiveKey] = useState('');
@@ -407,10 +459,6 @@ export function AgentProjectSearch({ isOpen, onOpenChange, onSave, projects }: A
     timers.current.forEach(id => window.clearTimeout(id));
   }, []);
 
-  useEffect(() => {
-    threadRef.current?.scrollTo({ top: threadRef.current.scrollHeight });
-  }, [items]);
-
   const searches = items.filter((item): item is Extract<ChatItem, { kind: 'search' }> => item.kind === 'search');
   const latestSearch = searches[searches.length - 1];
   const showSteps = Boolean(latestSearch && !latestSearch.thinking);
@@ -429,9 +477,16 @@ export function AgentProjectSearch({ isOpen, onOpenChange, onSave, projects }: A
     return selected.map(id => map.get(id)).filter((lead): lead is Lead => Boolean(lead));
   }, [searches, selected]);
 
+  const resetSearch = () => {
+    setItems([]);
+    setDraft('');
+    setSelected([]);
+    setActiveKey('');
+    setAddMenu(false);
+  };
+
   const ask = (text: string) => {
-    const query = text.trim();
-    if (!query) return;
+    const query = text.trim() || 'Chief Financial Officer in Philadelphia';
     const id = `turn-${Date.now()}`;
     const segments = buildSegments(query);
     const staged = isCfoPhiladelphia(query);
@@ -483,15 +538,8 @@ export function AgentProjectSearch({ isOpen, onOpenChange, onSave, projects }: A
   });
   const mine = filteredProjects.filter(project => project.leadRecruiter === 'Brian Stepan' && isProjectLive(project.status));
 
-  return (
-    <Dialog.Root open={isOpen} onOpenChange={onOpenChange}>
-      <Dialog.Portal>
-        <Dialog.Content
-          className="fixed z-(--z-modal) bg-(--bg-default) flex flex-col overflow-hidden outline-none"
-          style={{ top: 'var(--shell-topbar-height)', left: 'var(--shell-rail-width)', right: 0, bottom: 0 }}
-        >
-          <Dialog.Title className="sr-only m-0!">Phenom Sourcing Agent</Dialog.Title>
-          <Dialog.Description className="sr-only">Search for candidates and add them to a project.</Dialog.Description>
+  const body = (
+    <>
 
           {searches.length === 0 ? (
             <EmptySearch draft={draft} setDraft={setDraft} onAsk={ask} />
@@ -503,11 +551,6 @@ export function AgentProjectSearch({ isOpen, onOpenChange, onSave, projects }: A
                     <p key={item.id} className="m-0! text-sm text-(--text-default)">{item.text}</p>
                   ) : (
                     <div key={item.id} className="flex flex-col gap-3">
-                      <div className="flex justify-end items-center gap-2">
-                        <span className="max-w-[85%] rounded-2xl px-3 py-1.5 text-sm text-(--text-strong)" style={{ background: 'var(--bg-neutral-soft)' }}>{item.query}</span>
-                        <span className="w-8 h-8 rounded-full bg-(--bg-neutral-soft) text-(--text-strong) text-xs font-semibold flex items-center justify-center shrink-0" aria-hidden="true">BS</span>
-                      </div>
-                      <p className="m-0! text-sm text-(--text-default)">Got it — {ackTitle(item.query)}.</p>
                       {item.segments.slice(0, item.shown).map(segment => {
                         const on = active?.segment.id === segment.id && active.search.id === item.id;
                         return (
@@ -610,8 +653,8 @@ export function AgentProjectSearch({ isOpen, onOpenChange, onSave, projects }: A
                       note(`Added the candidates in “${active.segment.title}” to your list.`);
                     }}
                     onAddJob={() => { setAddMenu(false); note('Add these candidates to a project first. A job opening can be attached from that project.'); }}
-                    onNewSearch={() => { setItems([]); setDraft(''); setSelected([]); setActiveKey(''); setAddMenu(false); }}
-                    onClose={() => onOpenChange(false)}
+                    onNewSearch={resetSearch}
+                    onClose={variant === 'page' ? resetSearch : () => onOpenChange(false)}
                     onAddAll={() => setSelected(prev => Array.from(new Set([...prev, ...active.segment.leads.map(l => l.id)])))}
                   />
                 )}
@@ -659,9 +702,53 @@ export function AgentProjectSearch({ isOpen, onOpenChange, onSave, projects }: A
               </div>
             </div>
           )}
+    </>
+  );
+
+  if (variant === 'page') {
+    return (
+      <div className="relative h-full min-h-0 flex flex-col overflow-hidden bg-(--bg-default)">
+        <h1 className="sr-only">Sourcing Agent</h1>
+        {body}
+      </div>
+    );
+  }
+
+  return (
+    <Dialog.Root open={isOpen} onOpenChange={onOpenChange}>
+      <Dialog.Portal>
+        <Dialog.Content
+          className="fixed z-(--z-modal) bg-(--bg-default) flex flex-col overflow-hidden outline-none"
+          style={{ top: 'var(--shell-topbar-height)', left: 'var(--shell-rail-width)', right: 0, bottom: 0 }}
+        >
+          <Dialog.Title className="sr-only m-0!">Phenom Sourcing Agent</Dialog.Title>
+          <Dialog.Description className="sr-only">Search for candidates and add them to a project.</Dialog.Description>
+          {body}
         </Dialog.Content>
       </Dialog.Portal>
     </Dialog.Root>
+  );
+}
+
+export function SourcingAgentPage() {
+  const router = useRouter();
+  const [projects, setProjects] = useState<Project[]>(() => {
+    const session = getSessionProjects();
+    const sessionIds = new Set(session.map(project => project.id));
+    return [...session, ...mockProjects.filter(project => !sessionIds.has(project.id))];
+  });
+  return (
+    <AgentProjectSearch
+      variant="page"
+      isOpen
+      onOpenChange={() => undefined}
+      projects={projects}
+      onSave={project => {
+        addSessionProject(project);
+        setProjects(prev => [project, ...prev.filter(item => item.id !== project.id)]);
+        router.setProjectId(project.id);
+      }}
+    />
   );
 }
 
@@ -698,7 +785,7 @@ function SendButton({ disabled, label }: { disabled?: boolean; label: string }) 
 }
 
 function EmptySearch({ draft, setDraft, onAsk }: { draft: string; setDraft: (v: string) => void; onAsk: (q: string) => void }) {
-  const [agentMode, setAgentMode] = useState(false);
+  const [agentMode, setAgentMode] = useState(true);
   const [contactInfo, setContactInfo] = useState(true);
   const [tipsOpen, setTipsOpen] = useState(true);
   return (
@@ -746,7 +833,7 @@ function EmptySearch({ draft, setDraft, onAsk }: { draft: string; setDraft: (v: 
             Candidates with contact info
           </button>
           <span className="flex-1" />
-          <SendButton disabled={!draft.trim()} label="Search" />
+          <SendButton label="Search" />
         </div>
       </form>
       <button type="button" className="mt-5 inline-flex items-center gap-1 text-sm text-(--text-subtle)" aria-expanded={tipsOpen} onClick={() => setTipsOpen(v => !v)}>

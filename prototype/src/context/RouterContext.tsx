@@ -93,7 +93,7 @@ function parseLocation(pathname: string, search: string, hash: string): RouteSta
   const trimmed = cleanPath.replace(/^\/+|\/+$/g, '');
   const segments = trimmed ? trimmed.split('/') : [];
 
-  let view: View = 'home';
+  let view: View = 'sourcing';
   let candidateId: string | null = searchParams.get('candidateId');
   let projectId: string | null = searchParams.get('projectId');
   let companyId: string | null = searchParams.get('companyId');
@@ -191,6 +191,11 @@ function parseLocation(pathname: string, search: string, hash: string): RouteSta
         view = 'analytics';
         break;
 
+      case 'sourcing':
+      case 'source':
+        view = 'sourcing';
+        break;
+
       case 'workspace':
       case 'overview':
       case 'home':
@@ -198,8 +203,7 @@ function parseLocation(pathname: string, search: string, hash: string): RouteSta
         break;
 
       default:
-        // Default to home if unknown root segment
-        view = 'home';
+        view = 'sourcing';
         break;
     }
   }
@@ -234,7 +238,10 @@ export function buildUrlForView(
 ): string {
   switch (view) {
     case 'home':
-      return '/';
+      return '/workspace';
+
+    case 'sourcing':
+      return '/sourcing';
 
     case 'candidates': {
       if (params?.candidateId) {

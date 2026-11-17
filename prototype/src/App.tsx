@@ -11,6 +11,7 @@ import { ProjectsView } from './components/ProjectsView';
 import { CandidatesView } from './components/CandidatesView';
 import { AgentCommandCenter } from './components/agents/AgentCommandCenter';
 import { ExecutiveLandingView } from './components/ExecutiveLandingView';
+import { SourcingAgentPage } from './components/AgentProjectSearch';
 import { RolesSuccessionView } from './components/roles/RolesSuccessionView';
 import { JobsView } from './components/jobs/JobsView';
 import { DealRoomsDashboard } from './components/dealrooms/DealRoomsDashboard';
@@ -32,6 +33,8 @@ function AppContent() {
     switch (router.view) {
       case 'home':
         return <ExecutiveLandingView onNavigateView={handleNavigateView} />;
+      case 'sourcing':
+        return <SourcingAgentPage />;
       case 'companies':
         return <CompaniesView />;
       case 'candidates':
@@ -64,7 +67,7 @@ function AppContent() {
       case 'analytics':
         return <AnalyticsView />;
       default:
-        return <ExecutiveLandingView onNavigateView={handleNavigateView} />;
+        return <SourcingAgentPage />;
     }
   };
 
