@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Company, RecommendedCompany } from '../types';
 import { mockRecommendedCompanies } from '../data/mockData';
+import { listExistingCompanies } from '../data/projectTargetCompanies';
 import { 
   Search, 
   Filter, 
@@ -68,6 +69,7 @@ export function CompaniesList({
 
   const displayedCompanies = getBaseList().filter(c => {
     const restricted = isRestricted(c.name);
+    if (activeTab === 'target-list' && !listExistingCompanies().some(t => t.name.toLowerCase() === c.name.toLowerCase())) return false;
     if (activeTab === 'all' && restricted) return false;
     if (activeTab === 'recommendations') return true;
     return !restricted;
@@ -256,7 +258,7 @@ export function CompaniesList({
             currentRecs.length,
             select('recommendations')
           )}
-          {tabBtn('target-list', 'Target List', 42)}
+          {tabBtn('target-list', 'Target Companies', listExistingCompanies().length, select('target-list'))}
           {tabBtn('enterprise', 'Enterprise', 315)}
           {tabBtn('recent-funding', 'Recent Funding', 89)}
           {tabBtn('competitors', 'Competitors', 24)}

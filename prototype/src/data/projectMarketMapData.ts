@@ -1266,6 +1266,10 @@ export function generateMarketMapCsv(
       rows.push([...companyCells, company.strategicRationale]);
       return;
     }
+    if (scope.companies && company.executives.length === 0) {
+      rows.push([...companyCells, ...Array(bothHeaders.length - companyCells.length).fill('')]);
+      return;
+    }
     company.executives.forEach(exec => {
       const candidateCells = [
         company.name,

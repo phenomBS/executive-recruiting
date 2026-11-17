@@ -23,6 +23,8 @@ import {
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { ProjectCandidatesTab, ProjectPipelineCandidate, initialProjectPipeline } from './tabs/ProjectCandidatesTab';
+import { PickedCandidate } from './tabs/AddTargetCompanyModal';
+import { mockCandidates } from '../data/mockData';
 import { SearchBookDownloadModal } from './SearchBookDownloadModal';
 import { useRestricted } from '../context/RestrictedContext';
 import { ProjectTargetCompaniesTab } from './tabs/ProjectTargetCompaniesTab';
@@ -48,6 +50,23 @@ interface ExecutiveSearchProjectDetailProps {
 }
 
 type TabType = 'overview' | 'target-companies' | 'candidates' | 'market-map' | 'market-calibration' | 'relationships' | 'nurture';
+
+function pickToPipeline(pick: PickedCandidate): ProjectPipelineCandidate {
+  const known = mockCandidates.find(c => c.id === pick.id);
+  if (known) return { ...known, projectStatus: 'Identified', dateAdded: '2026-11-17' };
+  const base = mockCandidates[0];
+  return {
+    ...base,
+    id: pick.id,
+    firstName: pick.firstName,
+    lastName: pick.lastName,
+    role: pick.role,
+    company: pick.company,
+    location: pick.location,
+    projectStatus: 'Identified',
+    dateAdded: '2026-11-17',
+  };
+}
 
 export function ExecutiveSearchProjectDetail({ project, onBack, onUpdateProject }: ExecutiveSearchProjectDetailProps) {
   const router = useRouter();
@@ -201,7 +220,7 @@ export function ExecutiveSearchProjectDetail({ project, onBack, onUpdateProject 
 
               <div className="flex flex-wrap sm:flex-nowrap items-center gap-3 w-full lg:w-auto">
                 <button type="button" className="phx-btn" data-variant="primary" onClick={() => setShowSearchBookModal(true)}>
-                  Generate Search Book
+                  Generate candidate slate
                 </button>
               </div>
             </div>
@@ -520,7 +539,18 @@ export function ExecutiveSearchProjectDetail({ project, onBack, onUpdateProject 
           )}
 
           {activeTab === 'target-companies' && (
-            <ProjectTargetCompaniesTab key={project.id} project={project} onCountChange={setTargetCompanyCount} />
+            <ProjectTargetCompaniesTab
+              key={project.id}
+              project={project}
+              onCountChange={setTargetCompanyCount}
+              onAddCandidates={picks => {
+                setPipeline(prev => {
+                  const have = new Set(prev.map(c => `${c.firstName} ${c.lastName}`.toLowerCase()));
+                  const fresh = picks.filter(pick => !have.has(`${pick.firstName} ${pick.lastName}`.toLowerCase()));
+                  return [...fresh.map(pickToPipeline), ...prev];
+                });
+              }}
+            />
           )}
 
           {activeTab === 'candidates' && (

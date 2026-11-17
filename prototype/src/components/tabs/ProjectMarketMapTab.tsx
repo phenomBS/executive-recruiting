@@ -32,7 +32,8 @@ import {
   CheckCircle2,
   AlertTriangle,
   UserCheck,
-  Network
+  Network,
+  Trash2
 } from 'lucide-react';
 import { Project } from '../../types';
 import { withBasePath } from '../../context/RouterContext';
@@ -44,6 +45,8 @@ import {
   generateMarketMapCsv 
 } from '../../data/projectMarketMapData';
 import { CompanyOrgChartViewer } from './CompanyOrgChartViewer';
+import { AddTargetCompanyModal, PickedCandidate } from './AddTargetCompanyModal';
+import { TargetCompany, matchCompaniesToProject } from '../../data/projectTargetCompanies';
 import { useRouter } from '../../context/RouterContext';
 import { cn } from '../../lib/utils';
 
@@ -75,9 +78,11 @@ export function ProjectMarketMapTab({ project }: ProjectMarketMapTabProps) {
   const [previewTab, setPreviewTab] = useState<'dossier' | 'orgcharts' | 'matrix'>('dossier');
   const [previewExpandAllOrgs, setPreviewExpandAllOrgs] = useState(false);
   const [isExportMenuOpen, setIsExportMenuOpen] = useState(false);
-  const [exportCompanies, setExportCompanies] = useState(true);
-  const [exportCandidates, setExportCandidates] = useState(true);
+  const [limitPreviewToSelection, setLimitPreviewToSelection] = useState(false);
+  const [selectedCompanyIds, setSelectedCompanyIds] = useState<Set<string>>(new Set());
+  const [selectedExecIds, setSelectedExecIds] = useState<Set<string>>(new Set());
   const [isAddCompanyModalOpen, setIsAddCompanyModalOpen] = useState(false);
+  const [showAddPicker, setShowAddPicker] = useState(false);
   const [isAddExecutiveModalOpen, setIsAddExecutiveModalOpen] = useState(false);
   const [selectedCompanyForExec, setSelectedCompanyForExec] = useState<string>('');
   
@@ -88,7 +93,14 @@ export function ProjectMarketMapTab({ project }: ProjectMarketMapTabProps) {
   // Auto-open presentation preview if URL has mode=presentation or preview=true
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    if (params.get('mode') === 'presentation' || params.get('preview') === 'true') {
+    const companyIds = (params.get('companies') || '').split(',').filter(Boolean);
+    const execIds = (params.get('execs') || '').split(',').filter(Boolean);
+    if (companyIds.length || execIds.length) {
+      setSelectedCompanyIds(new Set(companyIds));
+      setSelectedExecIds(new Set(execIds));
+      setLimitPreviewToSelection(true);
+      setIsPreviewOpen(true);
+    } else if (params.get('mode') === 'presentation' || params.get('preview') === 'true') {
       setIsPreviewOpen(true);
     }
     if (params.get('view') === 'orgcharts') {
@@ -195,11 +207,6 @@ export function ProjectMarketMapTab({ project }: ProjectMarketMapTabProps) {
       .filter(company => company.executives.length > 0 || !searchQuery.trim());
   }, [marketMapData, tierFilter, mobilityFilter, statusFilter, searchQuery]);
 
-  // Total visible executives
-  const visibleExecutivesCount = useMemo(() => {
-    return filteredCompanies.reduce((acc, c) => acc + c.executives.length, 0);
-  }, [filteredCompanies]);
-
   // Flattened executives list for Table View
   const allFlattenedExecutives = useMemo(() => {
     const list: (MappedExecutive & { companyTier: string; companyStage: string; companyPoachStatus: string })[] = [];
@@ -216,12 +223,154 @@ export function ProjectMarketMapTab({ project }: ProjectMarketMapTabProps) {
     return list;
   }, [filteredCompanies]);
 
+  const presentationData = useMemo(() => {
+    const companies = marketMapData.companies.flatMap(company => {
+      const companyOn = selectedCompanyIds.has(company.id);
+      const executives = company.executives.filter(exec => selectedExecIds.has(exec.id));
+      if (!companyOn && executives.length === 0) return [];
+      return [{ ...company, executives, executivesCount: executives.length }];
+    });
+    const executivesMapped = companies.reduce((sum, company) => sum + company.executives.length, 0);
+    return {
+      ...marketMapData,
+      companies,
+      scopeSummary: {
+        ...marketMapData.scopeSummary,
+        totalCompaniesMapped: companies.length,
+        totalExecutivesMapped: executivesMapped,
+      },
+    };
+  }, [marketMapData, selectedCompanyIds, selectedExecIds]);
+
+  const canExport = selectedCompanyIds.size > 0 || selectedExecIds.size > 0;
+  const shownCompanies = limitPreviewToSelection ? presentationData.companies : marketMapData.companies;
+  const shownSummary = limitPreviewToSelection ? presentationData.scopeSummary : marketMapData.scopeSummary;
+  const previewOrgCompanies = limitPreviewToSelection ? presentationData.companies : filteredCompanies;
+
+  const recommendations = useMemo(() => {
+    const onMap = new Set(marketMapData.companies.map(company => company.name.toLowerCase()));
+    return matchCompaniesToProject(project, 16)
+      .filter(company => !onMap.has(company.name.toLowerCase()))
+      .slice(0, 4);
+  }, [project, marketMapData.companies]);
+
+  const toggleCompany = (companyId: string) => {
+    setSelectedCompanyIds(prev => {
+      const next = new Set(prev);
+      if (next.has(companyId)) next.delete(companyId);
+      else next.add(companyId);
+      return next;
+    });
+  };
+
+  const toggleExec = (execId: string) => {
+    setSelectedExecIds(prev => {
+      const next = new Set(prev);
+      if (next.has(execId)) next.delete(execId);
+      else next.add(execId);
+      return next;
+    });
+  };
+
+  const removeCompany = (companyId: string) => {
+    const company = marketMapData.companies.find(item => item.id === companyId);
+    setMarketMapData(prev => {
+      const companies = prev.companies.filter(item => item.id !== companyId);
+      return {
+        ...prev,
+        companies,
+        scopeSummary: {
+          ...prev.scopeSummary,
+          totalCompaniesMapped: companies.length,
+          totalExecutivesMapped: companies.reduce((sum, item) => sum + item.executives.length, 0),
+        },
+      };
+    });
+    setSelectedCompanyIds(prev => {
+      const next = new Set(prev);
+      next.delete(companyId);
+      return next;
+    });
+    setSelectedExecIds(prev => {
+      const next = new Set(prev);
+      company?.executives.forEach(exec => next.delete(exec.id));
+      return next;
+    });
+    if (company) triggerToast(`Removed ${company.name} from the market map.`);
+  };
+
+  const removeExecutive = (companyId: string, execId: string) => {
+    const exec = marketMapData.companies.find(company => company.id === companyId)?.executives.find(item => item.id === execId);
+    setMarketMapData(prev => {
+      const companies = prev.companies.map(company => {
+        if (company.id !== companyId) return company;
+        const executives = company.executives.filter(item => item.id !== execId);
+        return { ...company, executives, executivesCount: executives.length };
+      });
+      return {
+        ...prev,
+        companies,
+        scopeSummary: {
+          ...prev.scopeSummary,
+          totalExecutivesMapped: companies.reduce((sum, company) => sum + company.executives.length, 0),
+        },
+      };
+    });
+    setSelectedExecIds(prev => {
+      const next = new Set(prev);
+      next.delete(execId);
+      return next;
+    });
+    if (exec) triggerToast(`Removed ${exec.name} from the market map.`);
+  };
+
+  const addMappedCompanies = (companies: TargetCompany[]) => {
+    setMarketMapData(prev => {
+      const names = new Set(prev.companies.map(company => company.name.toLowerCase()));
+      const fresh = companies.filter(company => !names.has(company.name.toLowerCase()));
+      return {
+        ...prev,
+        companies: [
+          ...fresh.map(company => ({
+            id: `mm-${company.id}`,
+            name: company.name,
+            tier: 'Tier 2' as const,
+            tierLabel: 'Tier 2 — Added from your target companies',
+            tierDescription: 'Added from your target companies.',
+            industry: company.industry,
+            stage: company.stage || 'Not specified',
+            headquarters: company.headquarters,
+            employeeCount: company.size,
+            revenueScale: company.revenue,
+            poachStatus: 'Clear Target' as const,
+            executivesCount: 0,
+            executives: [],
+            strategicRationale: company.matchReason || 'Added from your target companies.',
+            companyId: company.id,
+          })),
+          ...prev.companies,
+        ],
+        scopeSummary: {
+          ...prev.scopeSummary,
+          totalCompaniesMapped: prev.scopeSummary.totalCompaniesMapped + fresh.length,
+        },
+      };
+    });
+    triggerToast(companies.length === 1 ? `Added ${companies[0].name} to the market map.` : `Added ${companies.length} companies to the market map.`);
+  };
+
   // -------------------------------------------------------------
   // Handlers for Export & Preview
   // -------------------------------------------------------------
   const handleCopyShareUrl = async () => {
-    const include = exportCompanies && exportCandidates ? 'both' : exportCompanies ? 'companies' : 'candidates';
-    const shareUrl = `${window.location.origin}${withBasePath(`/projects/${project.id}`)}?tab=market-map&mode=presentation&include=${include}`;
+    if (!canExport) return;
+    const params = new URLSearchParams({
+      tab: 'market-map',
+      mode: 'presentation',
+      companies: [...selectedCompanyIds].join(','),
+      execs: [...selectedExecIds].join(','),
+    });
+    const shareUrl = `${window.location.origin}${withBasePath(`/projects/${project.id}`)}?${params.toString()}`;
     try {
       if (navigator.clipboard) {
         await navigator.clipboard.writeText(shareUrl);
@@ -234,12 +383,13 @@ export function ProjectMarketMapTab({ project }: ProjectMarketMapTabProps) {
     }
   };
 
-  const exportScope = { companies: exportCompanies, candidates: exportCandidates };
-  const canExport = exportCompanies || exportCandidates;
-
   const handleDownloadCsv = () => {
     if (!canExport) return;
-    const csvContent = generateMarketMapCsv(marketMapData, exportScope);
+    const exportScope = {
+      companies: selectedCompanyIds.size > 0,
+      candidates: selectedExecIds.size > 0,
+    };
+    const csvContent = generateMarketMapCsv(presentationData, exportScope);
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
@@ -250,7 +400,11 @@ export function ProjectMarketMapTab({ project }: ProjectMarketMapTabProps) {
     link.click();
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
-    const what = exportCompanies && exportCandidates ? 'companies and candidates' : exportCompanies ? 'companies' : 'candidates';
+    const what = selectedCompanyIds.size > 0 && selectedExecIds.size > 0
+      ? 'the selected companies and candidates'
+      : selectedCompanyIds.size > 0
+        ? 'the selected companies'
+        : 'the selected candidates';
     triggerToast(`Market map CSV of ${what} downloaded.`);
     setIsExportMenuOpen(false);
   };
@@ -258,8 +412,9 @@ export function ProjectMarketMapTab({ project }: ProjectMarketMapTabProps) {
   const handlePrintPdf = () => {
     if (!canExport) return;
     setIsExportMenuOpen(false);
+    setLimitPreviewToSelection(true);
     setIsPreviewOpen(true);
-    triggerToast('Preparing board-ready PDF dossier layout...');
+    triggerToast('Preparing the presentation for the companies and candidates you selected.');
     setTimeout(() => {
       window.print();
     }, 400);
@@ -397,8 +552,32 @@ export function ProjectMarketMapTab({ project }: ProjectMarketMapTabProps) {
     triggerToast(`Updated status to "${newStatus}"`);
   };
 
+  const recommendationBox = recommendations.length > 0 ? (
+    <section className="mt-8 rounded-xl border border-(--border-light) bg-(--bg-neutral-soft) px-4 py-3" aria-label="Recommended companies">
+      <h3 className="m-0! text-sm! font-semibold text-(--text-subtle)">Recommended companies</h3>
+      <ul className="m-0 mt-1 list-none p-0">
+        {recommendations.map(company => (
+          <li key={company.id} className="flex items-baseline justify-between gap-4 border-t border-(--border-light) py-2.5 first:border-t-0">
+            <p className="m-0! min-w-0 text-sm text-(--text-subtle)">
+              <span className="font-semibold text-(--text-default)">{company.name}</span>
+              {' — '}
+              {company.matchReason}
+            </p>
+            <button
+              type="button"
+              onClick={() => addMappedCompanies([company])}
+              className="shrink-0 cursor-pointer border-0 bg-transparent p-0 text-sm text-(--text-subtle) underline"
+            >
+              Add
+            </button>
+          </li>
+        ))}
+      </ul>
+    </section>
+  ) : null;
+
   return (
-    <div className="flex flex-col h-full bg-(--bg-surface-base) w-full min-h-[600px] relative pb-16">
+    <div className="flex flex-col h-full bg-(--bg-default) w-full min-h-[600px] relative pb-16">
       
       {/* Toast Notification */}
       {toastMessage && (
@@ -414,81 +593,54 @@ export function ProjectMarketMapTab({ project }: ProjectMarketMapTabProps) {
       {/* ========================================================================= */}
       {/* 1. EXECUTIVE HEADER & ACTIONS */}
       {/* ========================================================================= */}
-      <div className="bg-white border-b border-slate-200 px-6 sm:px-8 py-5 shrink-0">
+      <div className="bg-(--bg-default) border-b border-(--border-light) px-8 py-5 shrink-0">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           <div>
-            <div className="flex items-center gap-2 text-xs text-slate-500 font-medium">
-              <span>Executive Search Mandate</span>
+            <div className="flex items-center gap-2 text-sm text-(--text-default)">
+              <span>Executive search</span>
               <span>·</span>
-              <span className="text-purple-700 font-semibold">{project.title}</span>
+              <span className="font-semibold text-(--text-strong)">{project.title}</span>
               <span>·</span>
               <span>{marketMapData.calibrationDate}</span>
             </div>
-            <div className="flex items-center gap-3 mt-1">
-              <h2 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
-                Market Talent Map & Sourcing Universe
-              </h2>
-            </div>
-            <p className="text-xs text-slate-500 mt-1 max-w-3xl">
-              Calibrated market mapping across direct scale competitors, adjacent ecosystem leaders, high-growth disruptors, and executive academies for {project.company || 'this search mandate'}.
+            <h2 className="m-0! mt-1! text-2xl! font-bold text-(--text-strong)">
+              Market map
+            </h2>
+            <p className="text-sm text-(--text-default) m-0! mt-1! max-w-3xl">
+              Companies and candidates mapped for {project.company || 'this search'}.
             </p>
           </div>
 
-          {/* Header Action Buttons */}
-          <div className="flex items-center gap-2.5 flex-wrap">
+          <div className="flex items-center gap-2 flex-wrap">
             
             {/* Preview Presentation Option (Requirement 2) */}
-            <button
-              onClick={() => setIsPreviewOpen(true)}
-              className="px-3.5 py-2 bg-purple-50 hover:bg-purple-100 text-purple-800 border border-purple-200 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer shadow-2xs"
-            >
-              <Eye className="w-3.5 h-3.5 text-purple-700" />
-              <span>Preview Presentation</span>
+            <button type="button" onClick={() => { setLimitPreviewToSelection(false); setIsPreviewOpen(true); }} className="phx-btn" data-variant="secondary" data-size="sm">
+              <Eye className="w-4 h-4" aria-hidden="true" />
+              Preview presentation
             </button>
 
             {/* Export Menu Dropdown (Requirement 2) */}
             <div className="relative">
+              <span className="inline-flex" data-tooltip={canExport ? undefined : 'Select companies or candidates to include in the presentation'}>
               <button
+                type="button"
+                disabled={!canExport}
                 onClick={() => setIsExportMenuOpen(prev => !prev)}
-                className="px-3.5 py-2 bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer shadow-2xs"
+                className="phx-btn"
+                data-variant="secondary"
+                data-size="sm"
               >
-                <Download className="w-3.5 h-3.5 text-slate-500" />
-                <span>Export / Share</span>
-                <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
+                <Download className="w-4 h-4" aria-hidden="true" />
+                Export / Share
+                <ChevronDown className="w-4 h-4" aria-hidden="true" />
               </button>
+              </span>
 
-              {isExportMenuOpen && (
+              {isExportMenuOpen && canExport && (
                 <div className="absolute right-0 top-full mt-1.5 w-72 bg-white border border-slate-200 rounded-xl shadow-xl z-30 py-2 divide-y divide-slate-100">
-                  <fieldset className="px-4 py-3 space-y-2">
-                    <legend className="text-xs font-semibold text-slate-700">Include in this export</legend>
-                    <label className="flex items-center gap-2 text-sm text-slate-800 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={exportCompanies}
-                        onChange={e => setExportCompanies(e.target.checked)}
-                        className="w-4 h-4 accent-(--color-secondary-200)"
-                      />
-                      Companies
-                    </label>
-                    <label className="flex items-center gap-2 text-sm text-slate-800 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={exportCandidates}
-                        onChange={e => setExportCandidates(e.target.checked)}
-                        className="w-4 h-4 accent-(--color-secondary-200)"
-                      />
-                      Candidates
-                    </label>
-                    <p className="text-xs text-slate-500">
-                      {exportCompanies && exportCandidates
-                        ? 'Exports companies and candidates.'
-                        : exportCompanies
-                          ? 'Exports companies only.'
-                          : exportCandidates
-                            ? 'Exports candidates only.'
-                            : 'Choose companies, candidates, or both.'}
-                    </p>
-                  </fieldset>
+                  <p className="px-4 py-3 m-0! text-sm text-(--text-default)">
+                    {selectedCompanyIds.size} {selectedCompanyIds.size === 1 ? 'company' : 'companies'} and {selectedExecIds.size} {selectedExecIds.size === 1 ? 'candidate' : 'candidates'} will be included.
+                  </p>
                   <div className="px-3 py-1.5 text-xs font-bold text-slate-400 uppercase tracking-wider">
                     Client & Board Deliverables
                   </div>
@@ -542,12 +694,9 @@ export function ProjectMarketMapTab({ project }: ProjectMarketMapTabProps) {
             </div>
 
             {/* Add Target Company */}
-            <button
-              onClick={() => setIsAddCompanyModalOpen(true)}
-              className="px-3.5 py-2 bg-(--color-secondary-200) hover:bg-(--bg-brand-secondary-hover) text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer shadow-xs"
-            >
-              <Plus className="w-3.5 h-3.5" />
-              <span>Add Company</span>
+            <button type="button" onClick={() => setShowAddPicker(true)} className="phx-btn" data-variant="primary" data-size="sm">
+              <Plus className="w-4 h-4" aria-hidden="true" />
+              Add company/candidate
             </button>
           </div>
         </div>
@@ -555,55 +704,19 @@ export function ProjectMarketMapTab({ project }: ProjectMarketMapTabProps) {
         {/* ========================================================================= */}
         {/* 2. RECRUITER SCOPE & CALIBRATION METRICS STRIP */}
         {/* ========================================================================= */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mt-5 pt-4 border-t border-slate-100">
-          <div className="bg-slate-50/80 rounded-lg p-2.5 border border-slate-200/80">
-            <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider block">Target Enterprises</span>
-            <div className="flex items-baseline gap-1.5 mt-0.5">
-              <span className="text-xl font-bold text-slate-900">{marketMapData.scopeSummary.totalCompaniesMapped}</span>
-              <span className="text-[11px] text-slate-500">mapped</span>
+        <div className="grid grid-cols-2 gap-3 mt-5 pt-4 border-t border-(--border-light) max-w-xl">
+          <div className="rounded-xl p-3 border border-(--border-light) bg-(--bg-default)">
+            <span className="text-sm font-semibold text-(--text-default) block">Companies</span>
+            <div className="flex items-baseline gap-1.5 mt-1">
+              <span className="text-2xl font-bold text-(--text-strong)">{marketMapData.scopeSummary.totalCompaniesMapped}</span>
+              <span className="text-sm text-(--text-subtle)">mapped</span>
             </div>
           </div>
-
-          <div className="bg-slate-50/80 rounded-lg p-2.5 border border-slate-200/80">
-            <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider block">Total Executives</span>
-            <div className="flex items-baseline gap-1.5 mt-0.5">
-              <span className="text-xl font-bold text-slate-900">{marketMapData.scopeSummary.totalExecutivesMapped}</span>
-              <span className="text-[11px] text-purple-700 font-semibold">{visibleExecutivesCount} active view</span>
-            </div>
-          </div>
-
-          <div className="bg-slate-50/80 rounded-lg p-2.5 border border-slate-200/80">
-            <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider block">High Mobility Cohort</span>
-            <div className="flex items-baseline gap-1.5 mt-0.5">
-              <span className="text-xl font-bold text-emerald-700">
-                {marketMapData.companies.reduce((acc, c) => acc + c.executives.filter(e => e.mobilityScore >= 85).length, 0)}
-              </span>
-              <span className="text-[11px] text-slate-500">vesting cliffs</span>
-            </div>
-          </div>
-
-          <div className="bg-slate-50/80 rounded-lg p-2.5 border border-slate-200/80">
-            <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider block">Clear Targets</span>
-            <div className="flex items-baseline gap-1.5 mt-0.5">
-              <span className="text-xl font-bold text-blue-700">{marketMapData.scopeSummary.clearTargetsCount}</span>
-              <span className="text-[11px] text-slate-500">unrestricted</span>
-            </div>
-          </div>
-
-          <div className="bg-slate-50/80 rounded-lg p-2.5 border border-slate-200/80">
-            <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider block">Off-Limits / Board Caution</span>
-            <div className="flex items-baseline gap-1.5 mt-0.5">
-              <span className="text-xl font-bold text-amber-700">{marketMapData.scopeSummary.offLimitsCount}</span>
-              <span className="text-[11px] text-slate-500">covenants</span>
-            </div>
-          </div>
-
-          <div className="bg-slate-50/80 rounded-lg p-2.5 border border-slate-200/80">
-            <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider block">Target Comp Benchmark</span>
-            <div className="flex items-baseline gap-1 mt-0.5">
-              <span className="text-sm font-bold text-slate-900 truncate" title={marketMapData.scopeSummary.targetBaseBenchmark}>
-                {marketMapData.scopeSummary.targetBaseBenchmark.split('/')[0]}
-              </span>
+          <div className="rounded-xl p-3 border border-(--border-light) bg-(--bg-default)">
+            <span className="text-sm font-semibold text-(--text-default) block">Candidates</span>
+            <div className="flex items-baseline gap-1.5 mt-1">
+              <span className="text-2xl font-bold text-(--text-strong)">{marketMapData.scopeSummary.totalExecutivesMapped}</span>
+              <span className="text-sm text-(--text-subtle)">mapped</span>
             </div>
           </div>
         </div>
@@ -612,7 +725,7 @@ export function ProjectMarketMapTab({ project }: ProjectMarketMapTabProps) {
       {/* ========================================================================= */}
       {/* 3. TOOLBAR CONTROLS & FILTERS */}
       {/* ========================================================================= */}
-      <div className="px-6 sm:px-8 py-4 bg-white border-b border-slate-200 flex flex-col md:flex-row md:items-center justify-between gap-3 shrink-0">
+      <div className="px-8 py-4 bg-(--bg-default) border-b border-(--border-light) flex flex-col md:flex-row md:items-center justify-between gap-3 shrink-0">
         
         {/* Left: Search & Filters */}
         <div className="flex items-center gap-3 flex-wrap flex-1">
@@ -810,24 +923,43 @@ export function ProjectMarketMapTab({ project }: ProjectMarketMapTabProps) {
                         <div className="p-4 sm:p-5 border-b border-(--border-faint) flex flex-col gap-2">
                           <div className="flex items-center justify-between gap-3">
                             <div className="flex items-center gap-2 min-w-0">
+                              <input
+                                type="checkbox"
+                                checked={selectedCompanyIds.has(company.id)}
+                                onChange={() => toggleCompany(company.id)}
+                                aria-label={`Select ${company.name}`}
+                                className="w-4 h-4 shrink-0 accent-(--color-secondary-200)"
+                              />
                               <h4 className="m-0! text-base! leading-6! font-bold text-(--text-strong) truncate">{company.name}</h4>
                               <span className="phx-tag shrink-0">
                                 {company.poachStatus === 'Clear Target' ? 'Clear target' : company.poachStatus}
                               </span>
                             </div>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setSelectedCompanyForExec(company.id);
-                                setNewExecutive(prev => ({ ...prev, companyId: company.id }));
-                                setIsAddExecutiveModalOpen(true);
-                              }}
-                              className="phx-btn shrink-0"
-                              data-variant="secondary"
-                              data-size="sm"
-                            >
-                              <Plus className="w-4 h-4" aria-hidden="true" /> Add leader
-                            </button>
+                            <div className="flex items-center gap-1 shrink-0">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setSelectedCompanyForExec(company.id);
+                                  setNewExecutive(prev => ({ ...prev, companyId: company.id }));
+                                  setIsAddExecutiveModalOpen(true);
+                                }}
+                                className="phx-btn"
+                                data-variant="secondary"
+                                data-size="sm"
+                              >
+                                <Plus className="w-4 h-4" aria-hidden="true" /> Add leader
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => removeCompany(company.id)}
+                                className="phx-btn"
+                                data-variant="tertiary"
+                                data-size="sm"
+                                aria-label={`Remove ${company.name}`}
+                              >
+                                <Trash2 className="w-4 h-4" aria-hidden="true" />
+                              </button>
+                            </div>
                           </div>
                           <p className="m-0! text-sm text-(--text-default)">
                             {company.industry} · {company.headquarters} · {company.stage}
@@ -851,6 +983,13 @@ export function ProjectMarketMapTab({ project }: ProjectMarketMapTabProps) {
                               <div key={exec.id} className="flex flex-col gap-2 border-t border-(--border-faint) pt-5 first:border-0 first:pt-0">
                                 <div className="flex items-center justify-between gap-3">
                                   <div className="flex items-center gap-3 min-w-0">
+                                    <input
+                                      type="checkbox"
+                                      checked={selectedExecIds.has(exec.id)}
+                                      onChange={() => toggleExec(exec.id)}
+                                      aria-label={`Select ${exec.name}`}
+                                      className="w-4 h-4 shrink-0 accent-(--color-secondary-200)"
+                                    />
                                     {exec.avatarUrl ? (
                                       <img
                                         src={exec.avatarUrl}
@@ -893,6 +1032,16 @@ export function ProjectMarketMapTab({ project }: ProjectMarketMapTabProps) {
                                     <option value="Benchmark Only">Benchmark only</option>
                                     <option value="Off-Limits">Off-limits</option>
                                   </select>
+                                  <button
+                                    type="button"
+                                    onClick={() => removeExecutive(company.id, exec.id)}
+                                    className="phx-btn"
+                                    data-variant="tertiary"
+                                    data-size="sm"
+                                    aria-label={`Remove ${exec.name}`}
+                                  >
+                                    <Trash2 className="w-4 h-4" aria-hidden="true" />
+                                  </button>
                                 </div>
                                 <p className="m-0! text-sm text-(--text-default)">
                                   {exec.tenureFormatted} in role · {exec.location} · {exec.estimatedComp.baseSalary} base
@@ -910,11 +1059,13 @@ export function ProjectMarketMapTab({ project }: ProjectMarketMapTabProps) {
             })}
           </div>
         )}
+        {viewMode === 'matrix' && recommendationBox}
 
         {/* ------------------------------------------------------------- */}
         {/* VIEW 2: TALENT LEDGER (DENSE GRANULAR EXECUTIVE TABLE) */}
         {/* ------------------------------------------------------------- */}
         {viewMode === 'table' && (
+          <>
           <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
             <div className="px-6 py-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
               <div>
@@ -924,8 +1075,12 @@ export function ProjectMarketMapTab({ project }: ProjectMarketMapTabProps) {
                 </p>
               </div>
               <button
+                type="button"
                 onClick={handleDownloadCsv}
-                className="px-3 py-1.5 bg-white border border-slate-200 hover:bg-slate-50 rounded-lg text-xs font-semibold text-slate-700 flex items-center gap-1.5 shadow-2xs transition-colors cursor-pointer"
+                disabled={!canExport}
+                className="phx-btn"
+                data-variant="secondary"
+                data-size="sm"
               >
                 <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600" />
                 <span>Export to CSV</span>
@@ -936,6 +1091,9 @@ export function ProjectMarketMapTab({ project }: ProjectMarketMapTabProps) {
               <table className="w-full text-left text-xs border-collapse">
                 <thead>
                   <tr className="bg-slate-100 text-slate-700 font-bold border-b border-slate-200 uppercase tracking-wider text-[10px]">
+                    <th className="py-3 px-4">
+                      <span className="sr-only">Select</span>
+                    </th>
                     <th className="py-3 px-4">Executive Leader</th>
                     <th className="py-3 px-4">Target Company</th>
                     <th className="py-3 px-4">Tier</th>
@@ -952,6 +1110,15 @@ export function ProjectMarketMapTab({ project }: ProjectMarketMapTabProps) {
                 <tbody className="divide-y divide-slate-100">
                   {allFlattenedExecutives.map(exec => (
                     <tr key={exec.id} className="hover:bg-slate-50/80 transition-colors">
+                      <td className="py-3 px-4">
+                        <input
+                          type="checkbox"
+                          checked={selectedExecIds.has(exec.id)}
+                          onChange={() => toggleExec(exec.id)}
+                          aria-label={`Select ${exec.name}`}
+                          className="w-4 h-4 accent-(--color-secondary-200)"
+                        />
+                      </td>
                       <td className="py-3 px-4 font-semibold text-slate-900">
                         <div className="flex items-center gap-2.5">
                           {exec.avatarUrl ? (
@@ -969,8 +1136,19 @@ export function ProjectMarketMapTab({ project }: ProjectMarketMapTabProps) {
                       </td>
 
                       <td className="py-3 px-4 font-medium text-slate-800">
-                        <div>{exec.companyName}</div>
-                        <div className="text-[10px] text-slate-400">{exec.companyStage}</div>
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="checkbox"
+                            checked={selectedCompanyIds.has(exec.companyId)}
+                            onChange={() => toggleCompany(exec.companyId)}
+                            aria-label={`Select ${exec.companyName}`}
+                            className="w-4 h-4 shrink-0 accent-(--color-secondary-200)"
+                          />
+                          <div>
+                            <div>{exec.companyName}</div>
+                            <div className="text-[10px] text-slate-400">{exec.companyStage}</div>
+                          </div>
+                        </div>
                       </td>
 
                       <td className="py-3 px-4">
@@ -1021,16 +1199,27 @@ export function ProjectMarketMapTab({ project }: ProjectMarketMapTabProps) {
                       </td>
 
                       <td className="py-3 px-4 text-right whitespace-nowrap">
-                        {exec.candidateId ? (
+                        <div className="flex items-center justify-end gap-2">
+                          {exec.candidateId ? (
+                            <button
+                              type="button"
+                              onClick={() => router.navigateToView('candidates', { candidateId: exec.candidateId })}
+                              className="text-sm font-semibold text-(--text-strong) underline"
+                            >
+                              Profile
+                            </button>
+                          ) : null}
                           <button
-                            onClick={() => router.navigateToView('candidates', { candidateId: exec.candidateId })}
-                            className="text-purple-700 hover:text-purple-900 font-semibold text-xs transition-colors cursor-pointer"
+                            type="button"
+                            onClick={() => removeExecutive(exec.companyId, exec.id)}
+                            className="phx-btn"
+                            data-variant="tertiary"
+                            data-size="sm"
+                            aria-label={`Remove ${exec.name}`}
                           >
-                            Profile &rarr;
+                            <Trash2 className="w-4 h-4" aria-hidden="true" />
                           </button>
-                        ) : (
-                          <span className="text-slate-400 text-xs">—</span>
-                        )}
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -1038,6 +1227,8 @@ export function ProjectMarketMapTab({ project }: ProjectMarketMapTabProps) {
               </table>
             </div>
           </div>
+          {recommendationBox}
+          </>
         )}
 
         {/* ------------------------------------------------------------- */}
@@ -1354,7 +1545,7 @@ export function ProjectMarketMapTab({ project }: ProjectMarketMapTabProps) {
                 <div className="text-right sm:border-l sm:border-slate-200 sm:pl-6 shrink-0">
                   <div className="text-[10px] font-bold text-slate-400 uppercase">Target Universe Scope</div>
                   <div className="text-xl font-bold text-slate-900 mt-0.5">
-                    {marketMapData.scopeSummary.totalCompaniesMapped} Companies · {marketMapData.scopeSummary.totalExecutivesMapped} Leaders
+                    {shownSummary.totalCompaniesMapped} Companies · {shownSummary.totalExecutivesMapped} Leaders
                   </div>
                   <div className="text-xs text-emerald-700 font-semibold mt-0.5">
                     {marketMapData.scopeSummary.clearTargetsCount} Unrestricted Target Enterprises
@@ -1380,7 +1571,7 @@ export function ProjectMarketMapTab({ project }: ProjectMarketMapTabProps) {
                     </div>
 
                     {marketMapData.tiers.map(tier => {
-                      const comps = marketMapData.companies.filter(c => c.tier === tier.tierId);
+                      const comps = shownCompanies.filter(c => c.tier === tier.tierId);
                       if (comps.length === 0) return null;
 
                       return (
@@ -1415,7 +1606,7 @@ export function ProjectMarketMapTab({ project }: ProjectMarketMapTabProps) {
                                   {comp.strategicRationale}
                                 </div>
 
-                                {exportCandidates && (
+                                {comp.executives.length > 0 && (
                                 <div className="space-y-1.5 pt-1">
                                   <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Calibrated Leaders</span>
                                   {comp.executives.map(e => (
@@ -1437,8 +1628,7 @@ export function ProjectMarketMapTab({ project }: ProjectMarketMapTabProps) {
                     })}
                   </div>
 
-                  {exportCandidates && (
-                  /* Section 2: COMPANY ORG CHARTS IN PREVIEW */
+                  {/* Section 2: COMPANY ORG CHARTS IN PREVIEW */}
                   <div className="bg-white rounded-xl border border-slate-200 p-6 sm:p-8 shadow-xs space-y-6">
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-slate-100 gap-3">
                       <div>
@@ -1468,11 +1658,10 @@ export function ProjectMarketMapTab({ project }: ProjectMarketMapTabProps) {
 
                     {/* Embedded CompanyOrgChartViewer inside Preview Dossier */}
                     <CompanyOrgChartViewer 
-                      companies={filteredCompanies} 
+                      companies={previewOrgCompanies} 
                       showAllMode={previewExpandAllOrgs}
                     />
                   </div>
-                  )}
                 </>
               )}
 
@@ -1489,7 +1678,7 @@ export function ProjectMarketMapTab({ project }: ProjectMarketMapTabProps) {
                         Target Enterprise Organizational Hierarchies
                       </h3>
                       <p className="text-xs text-slate-500 mt-0.5">
-                        Examine complete reporting lines to Chief Executive Officer and senior functional benches for {filteredCompanies.length} target enterprises.
+                        Examine complete reporting lines to Chief Executive Officer and senior functional benches for {previewOrgCompanies.length} target enterprises.
                       </p>
                     </div>
 
@@ -1506,7 +1695,7 @@ export function ProjectMarketMapTab({ project }: ProjectMarketMapTabProps) {
                   </div>
 
                   <CompanyOrgChartViewer 
-                    companies={filteredCompanies} 
+                    companies={previewOrgCompanies} 
                     showAllMode={previewExpandAllOrgs}
                   />
                 </div>
@@ -1516,7 +1705,7 @@ export function ProjectMarketMapTab({ project }: ProjectMarketMapTabProps) {
               {previewTab === 'matrix' && (
                 <div className="space-y-6">
                   {marketMapData.tiers.map(tier => {
-                    const comps = marketMapData.companies.filter(c => c.tier === tier.tierId);
+                    const comps = shownCompanies.filter(c => c.tier === tier.tierId);
                     if (comps.length === 0) return null;
 
                     return (
@@ -1551,7 +1740,7 @@ export function ProjectMarketMapTab({ project }: ProjectMarketMapTabProps) {
                                 {comp.strategicRationale}
                               </div>
 
-                              {exportCandidates && (
+                              {comp.executives.length > 0 && (
                               <div className="space-y-1.5 pt-1">
                                 <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Calibrated Leaders</span>
                                 {comp.executives.map(e => (
@@ -1615,6 +1804,80 @@ export function ProjectMarketMapTab({ project }: ProjectMarketMapTabProps) {
       {/* ========================================================================= */}
       {/* 6. ADD TARGET COMPANY MODAL */}
       {/* ========================================================================= */}
+      <AddTargetCompanyModal
+        isOpen={showAddPicker}
+        onOpenChange={setShowAddPicker}
+        project={project}
+        projectCompanyNames={marketMapData.companies.map(c => c.name)}
+        projectCandidateNames={marketMapData.companies.flatMap(c => c.executives.map(e => e.name))}
+        onAdd={addMappedCompanies}
+        onAddCandidates={(picks: PickedCandidate[]) => {
+          setMarketMapData(prev => {
+            const companies = prev.companies.map(c => ({ ...c, executives: [...c.executives] }));
+            let added = 0;
+            picks.forEach(pick => {
+              const name = `${pick.firstName} ${pick.lastName}`;
+              let home = companies.find(c => c.name.toLowerCase() === pick.company.toLowerCase());
+              if (!home) {
+                home = {
+                  id: `mm-${pick.id}`,
+                  name: pick.company,
+                  tier: 'Tier 2',
+                  tierLabel: 'Tier 2 — Added with a candidate',
+                  tierDescription: 'Added because a candidate works here.',
+                  industry: 'Not specified',
+                  stage: 'Not specified',
+                  headquarters: pick.location,
+                  employeeCount: 'Not specified',
+                  revenueScale: 'Not specified',
+                  poachStatus: 'Clear Target',
+                  executivesCount: 0,
+                  executives: [],
+                  strategicRationale: pick.reason || 'Added with a candidate.',
+                };
+                companies.unshift(home);
+              }
+              if (home.executives.some(e => e.name.toLowerCase() === name.toLowerCase())) return;
+              home.executives.push({
+                id: `ex-${pick.id}`,
+                name,
+                firstName: pick.firstName,
+                lastName: pick.lastName,
+                role: pick.role,
+                companyId: home.id,
+                companyName: home.name,
+                location: pick.location,
+                metroArea: pick.location,
+                tenureYears: 0,
+                tenureFormatted: 'Not specified',
+                previousPedigree: 'Not specified',
+                mobilityScore: 70,
+                mobilityLevel: 'Moderate',
+                mobilityCatalyst: pick.reason || 'Added to this search.',
+                matchScore: 70,
+                archetypeMatch: pick.role,
+                estimatedComp: { baseSalary: 'Not specified', totalCash: 'Not specified', equity: 'Not specified' },
+                outreachStatus: 'Clear Target',
+                confidentialNotes: '',
+                candidateId: pick.id,
+              });
+              home.executivesCount = home.executives.length;
+              added += 1;
+            });
+            return {
+              ...prev,
+              companies,
+              scopeSummary: {
+                ...prev.scopeSummary,
+                totalCompaniesMapped: companies.length,
+                totalExecutivesMapped: companies.reduce((sum, c) => sum + c.executives.length, 0),
+              },
+            };
+          });
+          triggerToast(picks.length === 1 ? `Added ${picks[0].firstName} ${picks[0].lastName} to the market map.` : `Added ${picks.length} candidates to the market map.`);
+        }}
+      />
+
       {isAddCompanyModalOpen && (
         <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-2xs flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl border border-slate-200 shadow-2xl max-w-lg w-full p-6 animate-scaleIn">

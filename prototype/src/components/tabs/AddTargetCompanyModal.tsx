@@ -1,8 +1,9 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import * as Dialog from '@radix-ui/react-dialog';
-import { Building2, Check, Lock, PlusCircle, Search, Sparkles, X } from 'lucide-react';
+import { Building2, Check, Lock, Search, Sparkles, X } from 'lucide-react';
 import { useRestricted } from '../../context/RestrictedContext';
 import type { Project } from '../../types';
+import { mockCandidates } from '../../data/mockData';
 import {
   TargetCompany,
   findCompanyByName,
@@ -16,11 +17,35 @@ import { cn } from '../../lib/utils';
 
 type Mode = 'mine' | 'recommended' | 'ai' | 'create';
 
-const MODES: { id: Exclude<Mode, 'create'>; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
-  { id: 'mine', label: 'My target companies', icon: Building2 },
-  { id: 'recommended', label: 'Recommended companies', icon: Sparkles },
-  { id: 'ai', label: 'Find with AI', icon: Sparkles },
+const MODES: { id: Exclude<Mode, 'create'>; icon: React.ComponentType<{ className?: string }> }[] = [
+  { id: 'mine', icon: Building2 },
+  { id: 'recommended', icon: Sparkles },
+  { id: 'ai', icon: Sparkles },
 ];
+
+export interface PickedCandidate {
+  id: string;
+  firstName: string;
+  lastName: string;
+  role: string;
+  company: string;
+  location: string;
+  reason?: string;
+}
+
+type Subject = 'companies' | 'candidates';
+
+function candidatePick(c: (typeof mockCandidates)[number], reason?: string): PickedCandidate {
+  return {
+    id: c.id,
+    firstName: c.firstName,
+    lastName: c.lastName,
+    role: c.role,
+    company: c.company,
+    location: c.location,
+    reason,
+  };
+}
 
 const INDUSTRIES = [
   'Enterprise B2B SaaS',
@@ -47,17 +72,22 @@ interface AddTargetCompanyModalProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
   project: Project;
-  /** Names already on the project, so they are not offered again */
+  /** Names already on the project, shown in the list and not offered again */
   projectCompanyNames: string[];
+  /** Candidate names already on the project or market map */
+  projectCandidateNames?: string[];
   onAdd: (companies: TargetCompany[]) => void;
+  onAddCandidates?: (candidates: PickedCandidate[]) => void;
 }
 
-export function AddTargetCompanyModal({ isOpen, onOpenChange, project, projectCompanyNames, onAdd }: AddTargetCompanyModalProps) {
+export function AddTargetCompanyModal({ isOpen, onOpenChange, project, projectCompanyNames, projectCandidateNames = [], onAdd, onAddCandidates }: AddTargetCompanyModalProps) {
   const { restrictedCompanies } = useRestricted();
+  const [subject, setSubject] = useState<Subject>('companies');
   const [mode, setMode] = useState<Mode>('mine');
 
   // shared selection (by company id) for the two list modes
   const [selected, setSelected] = useState<Record<string, TargetCompany>>({});
+  const [selectedCandidates, setSelectedCandidates] = useState<Record<string, PickedCandidate>>({});
 
   // existing
   const [query, setQuery] = useState('');
@@ -69,16 +99,27 @@ export function AddTargetCompanyModal({ isOpen, onOpenChange, project, projectCo
   const [headquarters, setHeadquarters] = useState('');
   const [size, setSize] = useState(SIZES[2]);
   const [note, setNote] = useState('');
+  const [candidateFirst, setCandidateFirst] = useState('');
+  const [candidateLast, setCandidateLast] = useState('');
+  const [candidateRole, setCandidateRole] = useState('');
+  const [candidateCompany, setCandidateCompany] = useState('');
 
   // ai
   const [prompt, setPrompt] = useState('');
   const [searching, setSearching] = useState(false);
   const [results, setResults] = useState<TargetCompany[] | null>(null);
+  const [candidateHits, setCandidateHits] = useState<PickedCandidate[] | null>(null);
 
   useEffect(() => {
     if (!isOpen) return;
+    setSubject('companies');
     setMode('mine');
     setSelected({});
+    setSelectedCandidates({});
+    setCandidateFirst('');
+    setCandidateLast('');
+    setCandidateRole('');
+    setCandidateCompany('');
     setQuery('');
     setName('');
     setWebsite('');
@@ -89,15 +130,13 @@ export function AddTargetCompanyModal({ isOpen, onOpenChange, project, projectCo
     setPrompt('');
     setSearching(false);
     setResults(null);
+    setCandidateHits(null);
   }, [isOpen]);
 
   const onProject = useMemo(() => new Set(projectCompanyNames.map(n => n.toLowerCase())), [projectCompanyNames]);
   const isRestricted = (n: string) => restrictedCompanies.find(r => r.name.toLowerCase() === n.toLowerCase());
 
-  const existing = useMemo(
-    () => (isOpen ? listExistingCompanies() : []).filter(c => !onProject.has(c.name.toLowerCase())),
-    [isOpen, onProject]
-  );
+  const existing = useMemo(() => (isOpen ? listExistingCompanies() : []), [isOpen]);
   const recommended = useMemo(
     () => (isOpen ? recommendCompaniesForProject(project, projectCompanyNames) : []).filter(c => !onProject.has(c.name.toLowerCase())),
     [isOpen, project, projectCompanyNames, onProject]
@@ -107,28 +146,89 @@ export function AddTargetCompanyModal({ isOpen, onOpenChange, project, projectCo
     return !q || `${c.name} ${c.industry} ${c.headquarters}`.toLowerCase().includes(q);
   });
 
-  const toggle = (c: TargetCompany) =>
+  const toggle = (c: TargetCompany) => {
+    if (onProject.has(c.name.toLowerCase())) return;
     setSelected(prev => {
       const next = { ...prev };
       if (next[c.id]) delete next[c.id];
       else next[c.id] = c;
       return next;
     });
+  };
 
-  const selectedList = Object.values(selected);
+  const toggleCandidate = (c: PickedCandidate) => {
+    if (onCandidates.has(`${c.firstName} ${c.lastName}`.toLowerCase())) return;
+    setSelectedCandidates(prev => {
+      const next = { ...prev };
+      if (next[c.id]) delete next[c.id];
+      else next[c.id] = c;
+      return next;
+    });
+  };
+
+  const selectedList = Object.values(selected).filter(c => !onProject.has(c.name.toLowerCase()));
+  const onCandidates = useMemo(() => new Set(projectCandidateNames.map(n => n.toLowerCase())), [projectCandidateNames]);
+  const myCandidates = useMemo(() => (isOpen ? mockCandidates.map(c => candidatePick(c)) : []), [isOpen]);
+  const recommendedCandidates = useMemo(() => {
+    if (!isOpen) return [];
+    const words = `${project.title} ${project.parameters?.primaryTitle || ''} ${project.parameters?.functionalDomain || ''}`
+      .toLowerCase()
+      .split(/[^a-z0-9]+/)
+      .filter(word => word.length > 3);
+    return mockCandidates
+      .map(c => {
+        const hay = `${c.role} ${c.company} ${c.executiveData.function} ${c.executiveData.areasOfExpertise}`.toLowerCase();
+        const hits = words.filter(word => hay.includes(word));
+        return { c, hits };
+      })
+      .filter(item => item.hits.length > 0)
+      .sort((a, b) => b.hits.length - a.hits.length || b.c.emiScore - a.c.emiScore)
+      .slice(0, 6)
+      .map(item => candidatePick(item.c, `Matches ${item.hits.slice(0, 2).join(' and ')}`));
+  }, [isOpen, project]);
+  const selectedCandidateList = Object.values(selectedCandidates).filter(c => !onCandidates.has(`${c.firstName} ${c.lastName}`.toLowerCase()));
+  const modeLabel = (id: Exclude<Mode, 'create'>) => {
+    if (id === 'ai') return 'Find with AI';
+    if (id === 'mine') return subject === 'companies' ? 'My target companies' : 'My target candidates';
+    return subject === 'companies' ? 'Recommended companies' : 'Recommended candidates';
+  };
 
   const switchMode = (m: Mode) => {
     setMode(m);
     setSelected({});
+    setSelectedCandidates({});
+  };
+
+  const switchSubject = (next: Subject) => {
+    setSubject(next);
+    setMode('mine');
+    setSelected({});
+    setSelectedCandidates({});
+    setResults(null);
+    setCandidateHits(null);
   };
 
   const runSearch = () => {
     if (!prompt.trim()) return;
     setSearching(true);
     setResults(null);
+    setCandidateHits(null);
     setSelected({});
+    setSelectedCandidates({});
     window.setTimeout(() => {
-      setResults(searchMasterRepository(prompt, [...onProject]));
+      if (subject === 'companies') {
+        setResults(searchMasterRepository(prompt, [...onProject]));
+      } else {
+        const words = prompt.toLowerCase().split(/[^a-z0-9]+/).filter(word => word.length > 2);
+        setCandidateHits(
+          mockCandidates
+            .map(c => candidatePick(c))
+            .filter(c => {
+              const hay = `${c.firstName} ${c.lastName} ${c.role} ${c.company} ${c.location}`.toLowerCase();
+              return words.some(word => hay.includes(word));
+            })
+        );
+      }
       setSearching(false);
     }, 700);
   };
@@ -169,8 +269,65 @@ export function AddTargetCompanyModal({ isOpen, onOpenChange, project, projectCo
     onOpenChange(false);
   };
 
+  const addSelectedCandidates = () => {
+    if (selectedCandidateList.length === 0) return;
+    onAddCandidates?.(selectedCandidateList);
+    onOpenChange(false);
+  };
+
+  const canCreateCandidate = candidateFirst.trim().length > 0 && candidateLast.trim().length > 0 && candidateRole.trim().length > 0;
+
+  const submitCandidate = (e?: React.FormEvent) => {
+    e?.preventDefault();
+    if (!canCreateCandidate) return;
+    onAddCandidates?.([{
+      id: `new-cand-${Date.now()}`,
+      firstName: candidateFirst.trim(),
+      lastName: candidateLast.trim(),
+      role: candidateRole.trim(),
+      company: candidateCompany.trim() || 'Not specified',
+      location: 'Not specified',
+      reason: 'Added by you for this search.',
+    }]);
+    onOpenChange(false);
+  };
+
+  const candidateRow = (c: PickedCandidate) => {
+    const label = `${c.firstName} ${c.lastName}`;
+    const already = onCandidates.has(label.toLowerCase());
+    const checked = !!selectedCandidates[c.id];
+    return (
+      <li key={c.id}>
+        <label
+          className={cn(
+            'flex items-start gap-3 p-3 rounded-xl border cursor-pointer mb-0',
+            checked ? 'border-(--color-secondary-200) bg-(--bg-brand-secondary-subtle)' : 'border-(--border-light) hover:bg-(--bg-neutral-soft)',
+            already && 'opacity-60 cursor-not-allowed'
+          )}
+        >
+          <input
+            type="checkbox"
+            checked={checked || already}
+            disabled={already}
+            onChange={() => toggleCandidate(c)}
+            className="mt-1 w-4 h-4 accent-(--color-secondary-200)"
+          />
+          <span className="min-w-0 flex-1">
+            <span className="flex items-center gap-2 flex-wrap">
+              <span className="text-base font-bold text-(--text-strong)">{label}</span>
+              {already && <span className="phx-tag">On this search</span>}
+            </span>
+            <span className="block text-sm text-(--text-default)">{c.role} · {c.company}</span>
+            {c.reason && <span className="block text-sm text-(--text-strong) mt-1">{c.reason}</span>}
+          </span>
+        </label>
+      </li>
+    );
+  };
+
   const companyRow = (c: TargetCompany, showReason: boolean) => {
     const restricted = isRestricted(c.name);
+    const already = onProject.has(c.name.toLowerCase());
     const checked = !!selected[c.id];
     return (
       <li key={c.id}>
@@ -178,19 +335,20 @@ export function AddTargetCompanyModal({ isOpen, onOpenChange, project, projectCo
           className={cn(
             'flex items-start gap-3 p-3 rounded-xl border cursor-pointer mb-0',
             checked ? 'border-(--color-secondary-200) bg-(--bg-brand-secondary-subtle)' : 'border-(--border-light) hover:bg-(--bg-neutral-soft)',
-            restricted && 'opacity-60 cursor-not-allowed'
+            (restricted || already) && 'opacity-60 cursor-not-allowed'
           )}
         >
           <input
             type="checkbox"
-            checked={checked}
-            disabled={!!restricted}
+            checked={checked || already}
+            disabled={!!restricted || already}
             onChange={() => toggle(c)}
             className="mt-1 w-4 h-4 accent-(--color-secondary-200)"
           />
           <span className="min-w-0 flex-1">
             <span className="flex items-center gap-2 flex-wrap">
               <span className="text-base font-bold text-(--text-strong)">{c.name}</span>
+              {already && <span className="phx-tag">On this search</span>}
               {restricted && (
                 <span className="phx-tag">
                   <Lock className="w-3.5 h-3.5" aria-hidden="true" /> Off-limits
@@ -215,9 +373,9 @@ export function AddTargetCompanyModal({ isOpen, onOpenChange, project, projectCo
         <Dialog.Content className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white rounded-2xl shadow-2xl border border-(--border-light) w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col z-50 animate-scaleIn">
           <div className="flex items-start justify-between gap-4 px-6 py-5 border-b border-(--border-light) shrink-0">
             <div>
-              <Dialog.Title className="text-xl font-bold text-(--text-strong)">Add target companies</Dialog.Title>
-              <Dialog.Description className="text-sm text-(--text-default) mt-1">
-                Choose companies you already track, take a recommendation, or describe the kind of company and let the agent search.
+              <Dialog.Title className="m-0! text-xl! font-bold text-(--text-strong)">Add companies or candidates</Dialog.Title>
+              <Dialog.Description className="text-sm text-(--text-default) m-0! mt-1!">
+                My target companies is the list from Target Companies. The same choices are available for candidates.
               </Dialog.Description>
             </div>
             <Dialog.Close asChild>
@@ -227,7 +385,12 @@ export function AddTargetCompanyModal({ isOpen, onOpenChange, project, projectCo
             </Dialog.Close>
           </div>
 
-          <div role="tablist" aria-label="How to add a company" className="flex items-center border-b border-(--border-light) px-6 shrink-0">
+          <div role="tablist" aria-label="Companies or candidates" className="px-6 shrink-0">
+            <button type="button" role="tab" aria-selected={subject === 'companies'} onClick={() => switchSubject('companies')}>Companies</button>
+            <button type="button" role="tab" aria-selected={subject === 'candidates'} onClick={() => switchSubject('candidates')}>Candidates</button>
+          </div>
+
+          <div role="tablist" aria-label="How to add" className="flex items-center border-b border-(--border-light) px-6 shrink-0">
             {MODES.map(m => {
               const Icon = m.icon;
               const active = mode === m.id;
@@ -248,24 +411,47 @@ export function AddTargetCompanyModal({ isOpen, onOpenChange, project, projectCo
                   )}
                 >
                   <Icon className="w-4 h-4" aria-hidden="true" />
-                  {m.label}
+                  {modeLabel(m.id)}
                 </button>
               );
             })}
             <button
               type="button"
-              className="phx-btn ml-auto"
-              data-variant="tertiary"
-              data-size="sm"
               aria-pressed={mode === 'create'}
               onClick={() => switchMode('create')}
+              className="ml-auto bg-transparent border-0 cursor-pointer text-sm"
+              style={{ color: 'var(--text-subtle)', fontWeight: 400, textDecoration: mode === 'create' ? 'underline' : 'none', padding: '12px 0' }}
             >
-              <PlusCircle className="w-4 h-4" aria-hidden="true" /> Create new
+              Create new
             </button>
           </div>
 
           <div id="add-co-panel" role="tabpanel" aria-labelledby={`add-co-tab-${mode}`} className="flex-1 min-h-0 overflow-y-auto px-6 py-5">
-            {mode === 'mine' && (
+            {mode === 'mine' && subject === 'candidates' && (
+              <div className="space-y-3">
+                <div className="relative">
+                  <Search className="w-4 h-4 text-(--text-subtle) absolute left-3 top-1/2 -translate-y-1/2" aria-hidden="true" />
+                  <input
+                    type="search"
+                    aria-label="Search target candidates"
+                    placeholder="Search candidates you already track"
+                    value={query}
+                    onChange={e => setQuery(e.target.value)}
+                    className="w-full pl-9"
+                  />
+                </div>
+                <ul className="space-y-2">
+                  {myCandidates
+                    .filter(c => {
+                      const q = query.trim().toLowerCase();
+                      return !q || `${c.firstName} ${c.lastName} ${c.role} ${c.company}`.toLowerCase().includes(q);
+                    })
+                    .map(candidateRow)}
+                </ul>
+              </div>
+            )}
+
+            {mode === 'mine' && subject === 'companies' && (
               <div className="space-y-3">
                 <div className="relative">
                   <Search className="w-4 h-4 text-(--text-subtle) absolute left-3 top-1/2 -translate-y-1/2" aria-hidden="true" />
@@ -280,7 +466,7 @@ export function AddTargetCompanyModal({ isOpen, onOpenChange, project, projectCo
                 </div>
                 {existingShown.length === 0 ? (
                   <p className="text-sm text-(--text-default) py-6 text-center">
-                    {existing.length === 0 ? 'Every company you track is already on this project.' : 'No companies match that search.'}
+                    No companies match that search.
                   </p>
                 ) : (
                   <ul className="space-y-2">{existingShown.map(c => companyRow(c, false))}</ul>
@@ -288,7 +474,15 @@ export function AddTargetCompanyModal({ isOpen, onOpenChange, project, projectCo
               </div>
             )}
 
-            {mode === 'recommended' && (
+            {mode === 'recommended' && subject === 'candidates' && (
+              <ul className="space-y-2">
+                {recommendedCandidates.length === 0 ? (
+                  <li className="text-sm text-(--text-default) py-6 text-center">No recommended candidates for this search yet.</li>
+                ) : recommendedCandidates.map(candidateRow)}
+              </ul>
+            )}
+
+            {mode === 'recommended' && subject === 'companies' && (
               <div className="space-y-3">
                 {recommended.length === 0 ? (
                   <p className="text-sm text-(--text-default) py-6 text-center">
@@ -300,7 +494,30 @@ export function AddTargetCompanyModal({ isOpen, onOpenChange, project, projectCo
               </div>
             )}
 
-            {mode === 'create' && (
+            {mode === 'create' && subject === 'candidates' && (
+              <form id="create-candidate-form" onSubmit={submitCandidate} className="space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="phx-label" htmlFor="new-cand-first">First name *</label>
+                    <input id="new-cand-first" value={candidateFirst} onChange={e => setCandidateFirst(e.target.value)} className="w-full" autoComplete="off" />
+                  </div>
+                  <div>
+                    <label className="phx-label" htmlFor="new-cand-last">Last name *</label>
+                    <input id="new-cand-last" value={candidateLast} onChange={e => setCandidateLast(e.target.value)} className="w-full" autoComplete="off" />
+                  </div>
+                  <div>
+                    <label className="phx-label" htmlFor="new-cand-role">Current title *</label>
+                    <input id="new-cand-role" value={candidateRole} onChange={e => setCandidateRole(e.target.value)} className="w-full" />
+                  </div>
+                  <div>
+                    <label className="phx-label" htmlFor="new-cand-co">Current company</label>
+                    <input id="new-cand-co" value={candidateCompany} onChange={e => setCandidateCompany(e.target.value)} className="w-full" />
+                  </div>
+                </div>
+              </form>
+            )}
+
+            {mode === 'create' && subject === 'companies' && (
               <form id="create-company-form" onSubmit={submitCreate} className="space-y-4">
                 <div>
                   <label className="phx-label" htmlFor="new-co-name">Company name *</label>
@@ -351,7 +568,7 @@ export function AddTargetCompanyModal({ isOpen, onOpenChange, project, projectCo
             {mode === 'ai' && (
               <div className="space-y-4">
                 <div>
-                  <label className="phx-label" htmlFor="ai-company-prompt">Describe the companies you want</label>
+                  <label className="phx-label" htmlFor="ai-company-prompt">{subject === 'companies' ? 'Describe the companies you want' : 'Describe the candidates you want'}</label>
                   <textarea
                     id="ai-company-prompt"
                     rows={3}
@@ -372,20 +589,32 @@ export function AddTargetCompanyModal({ isOpen, onOpenChange, project, projectCo
                   </div>
                 </div>
                 <div className="flex items-center justify-between gap-3">
-                  <span className="text-sm text-(--text-default)">Searches {masterRepositorySize()} companies in the master repository.</span>
+                  <span className="text-sm text-(--text-default)">
+                    {subject === 'companies'
+                      ? `Searches ${masterRepositorySize()} companies in the master repository.`
+                      : `Searches ${mockCandidates.length} candidates you already track.`}
+                  </span>
                   <button type="button" className="phx-btn" data-variant="primary" data-size="sm" onClick={runSearch} disabled={!prompt.trim() || searching}>
-                    <Sparkles className="w-4 h-4" aria-hidden="true" /> {searching ? 'Searching…' : 'Find companies'}
+                    <Sparkles className="w-4 h-4" aria-hidden="true" /> {searching ? 'Searching…' : subject === 'companies' ? 'Find companies' : 'Find candidates'}
                   </button>
                 </div>
 
                 <div aria-live="polite">
                   {searching && <p className="text-sm text-(--text-default) py-4 text-center">The agent is searching the master repository…</p>}
-                  {results && results.length === 0 && (
+                  {subject === 'companies' && results && results.length === 0 && (
                     <div className="phx-feedback" data-tone="info">
                       No companies matched that description. Try naming an industry, a company stage or a location.
                     </div>
                   )}
-                  {results && results.length > 0 && (
+                  {subject === 'candidates' && candidateHits && candidateHits.length === 0 && (
+                    <div className="phx-feedback" data-tone="info">
+                      No candidates matched that description. Try a title, a company, or a location.
+                    </div>
+                  )}
+                  {subject === 'candidates' && candidateHits && candidateHits.length > 0 && (
+                    <ul className="space-y-2">{candidateHits.map(candidateRow)}</ul>
+                  )}
+                  {subject === 'companies' && results && results.length > 0 && (
                     <div className="space-y-2">
                       <p className="text-sm font-semibold text-(--text-strong)">
                         {results.length} match{results.length === 1 ? '' : 'es'} found
@@ -400,19 +629,34 @@ export function AddTargetCompanyModal({ isOpen, onOpenChange, project, projectCo
 
           <div className="flex items-center justify-between gap-3 px-6 py-4 border-t border-(--border-light) bg-(--bg-neutral-soft) shrink-0">
             <span className="text-sm text-(--text-default)">
-              {mode === 'create' ? 'The new company is added to this project.' : `${selectedList.length} selected`}
+              {mode === 'create'
+                ? subject === 'companies' ? 'The new company is added to this project.' : 'The new candidate is added to this project.'
+                : `${subject === 'candidates' ? selectedCandidateList.length : selectedList.length} selected`}
             </span>
             <div className="flex items-center gap-3">
               <Dialog.Close asChild>
                 <button type="button" className="phx-btn" data-variant="secondary" data-size="sm">Cancel</button>
               </Dialog.Close>
               {mode === 'create' ? (
-                <button type="submit" form="create-company-form" className="phx-btn" data-variant="primary" data-size="sm" disabled={!canCreate}>
-                  <Check className="w-4 h-4" aria-hidden="true" /> Create and add
-                </button>
+                subject === 'candidates' ? (
+                  <button type="submit" form="create-candidate-form" className="phx-btn" data-variant="primary" data-size="sm" disabled={!canCreateCandidate}>
+                    <Check className="w-4 h-4" aria-hidden="true" /> Create and add
+                  </button>
+                ) : (
+                  <button type="submit" form="create-company-form" className="phx-btn" data-variant="primary" data-size="sm" disabled={!canCreate}>
+                    <Check className="w-4 h-4" aria-hidden="true" /> Create and add
+                  </button>
+                )
               ) : (
-                <button type="button" className="phx-btn" data-variant="primary" data-size="sm" onClick={addSelected} disabled={selectedList.length === 0}>
-                  <Check className="w-4 h-4" aria-hidden="true" /> Add {selectedList.length > 0 ? `${selectedList.length} ` : ''}to project
+                <button
+                  type="button"
+                  className="phx-btn"
+                  data-variant="primary"
+                  data-size="sm"
+                  onClick={subject === 'candidates' ? addSelectedCandidates : addSelected}
+                  disabled={subject === 'candidates' ? selectedCandidateList.length === 0 : selectedList.length === 0}
+                >
+                  <Check className="w-4 h-4" aria-hidden="true" /> Add {(subject === 'candidates' ? selectedCandidateList.length : selectedList.length) || ''} to project
                 </button>
               )}
             </div>

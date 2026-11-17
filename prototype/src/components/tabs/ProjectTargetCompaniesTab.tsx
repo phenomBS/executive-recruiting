@@ -10,7 +10,7 @@ import {
   relevantExecutivesForSearch,
   saveProjectTargetCompanies,
 } from '../../data/projectTargetCompanies';
-import { AddTargetCompanyModal } from './AddTargetCompanyModal';
+import { AddTargetCompanyModal, PickedCandidate } from './AddTargetCompanyModal';
 import { ExportTargetCompaniesModal, TargetCompaniesExportChoices } from './ExportTargetCompaniesModal';
 import { buildTargetCompaniesCsv } from '../../lib/targetCompaniesCsv';
 import { buildTargetCompaniesPdf } from '../../lib/targetCompaniesPdf';
@@ -21,6 +21,7 @@ interface ProjectTargetCompaniesTabProps {
   project: Project;
   /** Lets the page header keep its count in step with this list */
   onCountChange?: (count: number) => void;
+  onAddCandidates?: (candidates: PickedCandidate[]) => void;
 }
 
 const SOURCE_LABEL: Record<TargetCompany['source'], string> = {
@@ -163,7 +164,7 @@ function CompanyCard({
   );
 }
 
-export function ProjectTargetCompaniesTab({ project, onCountChange }: ProjectTargetCompaniesTabProps) {
+export function ProjectTargetCompaniesTab({ project, onCountChange, onAddCandidates }: ProjectTargetCompaniesTabProps) {
   const router = useRouter();
   const { restrictedCompanies } = useRestricted();
   const [companies, setCompanies] = useState<TargetCompany[]>(() => getProjectTargetCompanies(project));
@@ -389,6 +390,7 @@ export function ProjectTargetCompaniesTab({ project, onCountChange }: ProjectTar
         project={project}
         projectCompanyNames={companies.map(c => c.name)}
         onAdd={add}
+        onAddCandidates={onAddCandidates}
       />
     </div>
   );

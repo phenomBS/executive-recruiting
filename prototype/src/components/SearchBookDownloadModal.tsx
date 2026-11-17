@@ -285,7 +285,7 @@ export function SearchBookDownloadModal({ isOpen, onOpenChange, project, pipelin
 
   const stepTitle =
     step === 'choose'
-      ? 'Generate Search Book'
+      ? 'Generate candidate slate'
       : step === 'people'
         ? 'Who receives the slate'
         : step === 'template'
