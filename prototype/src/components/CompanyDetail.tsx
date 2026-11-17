@@ -11,6 +11,7 @@ import { CompanyMarketActivityTab } from './tabs/CompanyMarketActivityTab';
 import { CompanyRelationshipsTab } from './tabs/CompanyRelationshipsTab';
 import { CompanySearchesTab } from './tabs/CompanySearchesTab';
 import { useRouter } from '../context/RouterContext';
+import { projectReturn } from '../lib/projectReturn';
 
 interface CompanyDetailProps {
   company: Company;
@@ -29,6 +30,7 @@ export function CompanyDetail({ company, onBack }: CompanyDetailProps) {
     router.setTab(tab === 'overview' ? null : tab);
   };
   const { restrictedCompanies } = useRestricted();
+  const backToProject = projectReturn(router.fullPath);
   const restrictedInfo = restrictedCompanies.find(rc => rc.name === company.name);
   const [isAiOpen, setIsAiOpen] = useState(false);
   const [aiInput, setAiInput] = useState('');
@@ -79,8 +81,12 @@ export function CompanyDetail({ company, onBack }: CompanyDetailProps) {
         <div className="max-w-[1400px] mx-auto w-full">
           <div className="px-8 py-4">
             
-            <button type="button" onClick={onBack} className="phx-crumb mb-4">
-              <ArrowLeft aria-hidden="true" /> Back to Companies
+            <button
+              type="button"
+              onClick={() => (backToProject ? router.navigate(backToProject.to) : onBack())}
+              className="phx-crumb mb-4"
+            >
+              <ArrowLeft aria-hidden="true" /> {backToProject ? `Back to ${backToProject.label} Companies` : 'Back to Companies'}
             </button>
             
             {restrictedInfo && (

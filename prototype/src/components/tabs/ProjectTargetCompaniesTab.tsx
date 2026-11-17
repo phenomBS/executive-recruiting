@@ -7,6 +7,7 @@ import {
   TargetCompany,
   getProjectTargetCompanies,
   recommendCompaniesForProject,
+  relevantExecutivesForSearch,
   saveProjectTargetCompanies,
 } from '../../data/projectTargetCompanies';
 import { AddTargetCompanyModal } from './AddTargetCompanyModal';
@@ -213,16 +214,26 @@ export function ProjectTargetCompaniesTab({ project, onCountChange }: ProjectTar
     });
   };
 
-  const openProfile = (c: TargetCompany) => router.navigateToView('companies', { companyId: c.id });
+  const forThisSearch = (c: TargetCompany): TargetCompany => ({
+    ...c,
+    relevantCandidatesCount: relevantExecutivesForSearch(c.name, project),
+  });
+
+  const openProfile = (c: TargetCompany) => {
+    const back = `/projects/${encodeURIComponent(project.id)}?tab=target-companies`;
+    router.navigate(
+      `/companies/${encodeURIComponent(c.id)}?returnTo=${encodeURIComponent(back)}&returnLabel=${encodeURIComponent(project.title)}`
+    );
+  };
 
   const fileSlug = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'target-companies';
 
   const exportCompanies = ({ format, name, clientLogo, companyLogo }: TargetCompaniesExportChoices) => {
     if (format === 'csv') {
-      downloadBlob(buildTargetCompaniesCsv(added), `${fileSlug(`${project.title} target companies`)}.csv`);
+      downloadBlob(buildTargetCompaniesCsv(added.map(forThisSearch)), `${fileSlug(`${project.title} target companies`)}.csv`);
     } else {
       downloadBlob(
-        buildTargetCompaniesPdf(added, { title: name, projectTitle: project.title, clientLogo, companyLogo }),
+        buildTargetCompaniesPdf(added.map(forThisSearch), { title: name, projectTitle: project.title, clientLogo, companyLogo }),
         `${fileSlug(name)}.pdf`
       );
     }
@@ -337,10 +348,10 @@ export function ProjectTargetCompaniesTab({ project, onCountChange }: ProjectTar
             )}
             <ul className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               {added.map(c => (
-                <CompanyCard key={c.id} company={c} tone="added" onOpen={() => openProfile(c)} onRemove={() => remove(c)} />
+                <CompanyCard key={c.id} company={forThisSearch(c)} tone="added" onOpen={() => openProfile(c)} onRemove={() => remove(c)} />
               ))}
               {recommendations.map(c => (
-                <CompanyCard key={c.id} company={c} tone="pending" onOpen={() => openProfile(c)} onAdd={() => addRecommendation(c)} />
+                <CompanyCard key={c.id} company={forThisSearch(c)} tone="pending" onOpen={() => openProfile(c)} onAdd={() => addRecommendation(c)} />
               ))}
             </ul>
           </div>
@@ -357,7 +368,7 @@ export function ProjectTargetCompaniesTab({ project, onCountChange }: ProjectTar
         {view === 'recommendations' && recommendations.length > 0 && (
           <ul className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             {recommendations.map(c => (
-              <CompanyCard key={`rec-${c.id}`} company={c} tone="review" onOpen={() => openProfile(c)} onAdd={() => addRecommendation(c)} />
+              <CompanyCard key={`rec-${c.id}`} company={forThisSearch(c)} tone="review" onOpen={() => openProfile(c)} onAdd={() => addRecommendation(c)} />
             ))}
           </ul>
         )}

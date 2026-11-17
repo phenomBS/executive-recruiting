@@ -17,6 +17,8 @@ import {
   AlertCircle
 } from 'lucide-react';
 import { useRestricted } from '../context/RestrictedContext';
+import { useRouter } from '../context/RouterContext';
+import { projectReturn } from '../lib/projectReturn';
 import { cn } from '../lib/utils';
 
 interface RecommendedCompanyDetailProps {
@@ -27,6 +29,8 @@ interface RecommendedCompanyDetailProps {
 
 export function RecommendedCompanyDetail({ company, onBack, onAddToCrm }: RecommendedCompanyDetailProps) {
   const isAdded = company.addedToCrm;
+  const router = useRouter();
+  const backToProject = projectReturn(router.fullPath);
   const { restrictedCompanies } = useRestricted();
   const isRestricted = restrictedCompanies.some(rc => rc.name === company.name);
 
@@ -35,11 +39,12 @@ export function RecommendedCompanyDetail({ company, onBack, onAddToCrm }: Recomm
       {/* Top Header Navigation */}
       <div className="bg-white border-b border-slate-200 shrink-0 sticky top-0 z-20">
         <div className="max-w-[1400px] mx-auto w-full px-8 py-4">
-          <button 
-            onClick={onBack}
-            className="flex items-center gap-2 text-slate-500 hover:text-slate-800 transition-colors text-sm font-semibold mb-4"
+          <button
+            type="button"
+            onClick={() => (backToProject ? router.navigate(backToProject.to) : onBack())}
+            className="phx-crumb mb-4"
           >
-            <ArrowLeft className="w-4 h-4" /> Back to Companies
+            <ArrowLeft aria-hidden="true" /> {backToProject ? `Back to ${backToProject.label} Companies` : 'Back to Companies'}
           </button>
 
           {/* Aura Agent Recommendation Alert Banner */}

@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import * as Dialog from '@radix-ui/react-dialog';
-import { BookOpen, Download, GripVertical, X } from 'lucide-react';
+import { BookOpen, Check, Copy, Download, GripVertical, Link2, Mail, Phone, Share2, Users, X } from 'lucide-react';
 import type { Project } from '../types';
 import { useRestricted } from '../context/RestrictedContext';
 import { downloadBlob } from '../lib/simplePdf';
@@ -25,6 +25,72 @@ interface SearchBookDownloadModalProps {
 
 const slug = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'search-book';
 
+type Delivery = 'download' | 'share' | 'digital';
+type Step = 'choose' | 'people' | 'template' | 'links' | 'sections';
+type ContactChannel = 'email' | 'phone';
+
+interface Recipient {
+  id: string;
+  channel: ContactChannel;
+  value: string;
+}
+
+const EMAIL_TEMPLATES: {
+  id: string;
+  name: string;
+  description: string;
+  subject: (title: string) => string;
+  body: (title: string, recruiter: string) => string;
+}[] = [
+  {
+    id: 'confidential',
+    name: 'Confidential slate',
+    description: 'A short note for the hiring committee, with a private link.',
+    subject: title => `Confidential candidate slate: ${title}`,
+    body: (title, recruiter) =>
+      `I'm sharing the candidate slate for ${title}. The link below opens only for you.\n\nPlease keep this confidential and reply if you want a walkthrough.\n\n${recruiter}`,
+  },
+  {
+    id: 'board',
+    name: 'Board review',
+    description: 'Asks stakeholders to review the slate before the next meeting.',
+    subject: title => `For review: ${title} slate`,
+    body: (title, recruiter) =>
+      `The slate for ${title} is ready for your review. Open the link to see the candidates and the sections selected for this search.\n\nComments before the next committee meeting are welcome.\n\n${recruiter}`,
+  },
+  {
+    id: 'brief',
+    name: 'Short introduction',
+    description: 'A one-paragraph note when the recipient is new to the search.',
+    subject: title => `${title}: candidate slate`,
+    body: (title, recruiter) =>
+      `You've been invited to the ${title} search. Use the link to open the slate. Reply to this note if you need a different view of the candidates.\n\n${recruiter}`,
+  },
+];
+
+function contactErrorFor(channel: ContactChannel, raw: string): string | null {
+  const value = raw.trim();
+  if (!value) return channel === 'email' ? 'Enter an email address.' : 'Enter a phone number.';
+  if (channel === 'email') {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(value) ? null : 'Enter a valid email address, such as name@company.com.';
+  }
+  const digits = value.replace(/\D/g, '');
+  if (!/^[+\d\s().-]+$/.test(value) || digits.length < 7 || digits.length > 15) {
+    return 'Enter a valid phone number, such as +1 415 555 0142.';
+  }
+  return null;
+}
+
+function magicLink(projectId: string, value: string): string {
+  let hash = 2166136261;
+  const raw = `${projectId}:${value.trim().toLowerCase()}`;
+  for (let i = 0; i < raw.length; i++) {
+    hash ^= raw.charCodeAt(i);
+    hash = Math.imul(hash, 16777619);
+  }
+  return `${window.location.origin}/slate/${encodeURIComponent(projectId)}/${(hash >>> 0).toString(36)}`;
+}
+
 export function SearchBookDownloadModal({ isOpen, onOpenChange, project, pipeline, onDownloaded }: SearchBookDownloadModalProps) {
   const { restrictedCompanies } = useRestricted();
   const defaultName = `Executive Search Book: ${project.title}`;
@@ -39,6 +105,14 @@ export function SearchBookDownloadModal({ isOpen, onOpenChange, project, pipelin
   const [announce, setAnnounce] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [focusId, setFocusId] = useState<ReportId | null>(null);
+  const [step, setStep] = useState<Step>('choose');
+  const [delivery, setDelivery] = useState<Delivery | null>(null);
+  const [recipients, setRecipients] = useState<Recipient[]>([]);
+  const [channel, setChannel] = useState<ContactChannel>('email');
+  const [contact, setContact] = useState('');
+  const [contactError, setContactError] = useState<string | null>(null);
+  const [templateId, setTemplateId] = useState(EMAIL_TEMPLATES[0].id);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
 
   const handleRefs = useRef<Partial<Record<ReportId, HTMLButtonElement | null>>>({});
   const parentRef = useRef<HTMLInputElement>(null);
@@ -47,6 +121,14 @@ export function SearchBookDownloadModal({ isOpen, onOpenChange, project, pipelin
     if (isOpen) {
       setName(defaultName);
       setError(null);
+      setStep('choose');
+      setDelivery(null);
+      setRecipients([]);
+      setChannel('email');
+      setContact('');
+      setContactError(null);
+      setTemplateId(EMAIL_TEMPLATES[0].id);
+      setCopiedId(null);
     }
   }, [isOpen, defaultName]);
 
@@ -118,34 +200,124 @@ export function SearchBookDownloadModal({ isOpen, onOpenChange, project, pipelin
   const downloadOne = (id: ReportId) =>
     run([id], label(id), `${slug(project.title)}-${slug(label(id))}`, `${label(id)} downloaded.`);
 
-  const downloadBook = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (selectedInOrder.length === 0 || (selectedInOrder.length > 1 && !name.trim())) return;
-    const ok =
-      selectedInOrder.length === 1
-        ? downloadOne(selectedInOrder[0])
-        : run(
-            selectedInOrder,
-            name.trim(),
-            slug(name),
-            `Search book downloaded with ${selectedInOrder.length} reports.`
-          );
-    if (ok) onOpenChange(false);
+  const downloadBook = () => {
+    if (selectedInOrder.length === 0 || (selectedInOrder.length > 1 && !name.trim())) return false;
+    return selectedInOrder.length === 1
+      ? downloadOne(selectedInOrder[0])
+      : run(
+          selectedInOrder,
+          name.trim(),
+          slug(name),
+          `Search book downloaded with ${selectedInOrder.length} reports.`
+        );
   };
 
   const canDownload = selectedInOrder.length > 0 && (selectedInOrder.length === 1 || name.trim().length > 0);
+  const hasEmail = recipients.some(r => r.channel === 'email');
+  const template = EMAIL_TEMPLATES.find(t => t.id === templateId) ?? EMAIL_TEMPLATES[0];
+
+  const goForward = () => {
+    if (step === 'choose') setStep(delivery === 'download' ? 'sections' : 'people');
+    else if (step === 'people') setStep(hasEmail ? 'template' : delivery === 'digital' ? 'links' : 'sections');
+    else if (step === 'template') setStep(delivery === 'digital' ? 'links' : 'sections');
+    else if (step === 'links') setStep('sections');
+  };
+
+  const goBack = () => {
+    if (step === 'people') setStep('choose');
+    else if (step === 'template') setStep('people');
+    else if (step === 'links') setStep(hasEmail ? 'template' : 'people');
+    else if (step === 'sections') {
+      if (delivery === 'download') setStep('choose');
+      else if (delivery === 'digital') setStep('links');
+      else setStep(hasEmail ? 'template' : 'people');
+    }
+  };
+
+  const addRecipient = () => {
+    const problem = contactErrorFor(channel, contact);
+    if (problem) {
+      setContactError(problem);
+      return;
+    }
+    const value = contact.trim();
+    if (recipients.some(r => r.value.toLowerCase() === value.toLowerCase())) {
+      setContactError('That contact is already on the list.');
+      return;
+    }
+    setRecipients(prev => [...prev, { id: `${channel}-${value.toLowerCase()}`, channel, value }]);
+    setContact('');
+    setContactError(null);
+  };
+
+  const copyLink = async (id: string, value: string) => {
+    const link = magicLink(project.id, value);
+    try {
+      if (navigator.clipboard) await navigator.clipboard.writeText(link);
+      setCopiedId(id);
+      window.setTimeout(() => setCopiedId(current => (current === id ? null : current)), 2000);
+    } catch {
+      setCopiedId(null);
+    }
+  };
+
+  const finish = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (step !== 'sections' || !canDownload) return;
+    if (delivery === 'download') {
+      if (downloadBook()) onOpenChange(false);
+      return;
+    }
+    if (delivery === 'share') {
+      try {
+        buildSearchBookPdf(selectedInOrder, ctx, { title: name.trim() || defaultName, ...logos });
+        setError(null);
+        onDownloaded(`Sent the slate PDF to ${recipients.length} ${recipients.length === 1 ? 'person' : 'people'}.`);
+        onOpenChange(false);
+      } catch {
+        setError('The PDF could not be built. Try again, and remove the logos if the problem continues.');
+      }
+      return;
+    }
+    onDownloaded(`Invited ${recipients.length} ${recipients.length === 1 ? 'stakeholder' : 'stakeholders'} to the digital slate.`);
+    onOpenChange(false);
+  };
+
+  const stepTitle =
+    step === 'choose'
+      ? 'Generate Search Book'
+      : step === 'people'
+        ? 'Who receives the slate'
+        : step === 'template'
+          ? 'Email template'
+          : step === 'links'
+            ? 'Magic links'
+            : 'Sections in the slate';
+
+  const stepDescription =
+    step === 'choose'
+      ? 'Download the candidate slate, share the PDF, or invite stakeholders into the digital slate.'
+      : step === 'people'
+        ? 'Add an email or a phone number. Each person receives a magic link.'
+        : step === 'template'
+          ? 'Choose the note that goes out with the link, and preview it before you continue.'
+          : step === 'links'
+            ? 'Each invited person has a link. Copy one if you want to send it yourself.'
+            : delivery === 'digital'
+              ? 'Choose which sections stakeholders see in the digital slate.'
+              : 'Choose which sections appear in the PDF.';
 
   return (
     <Dialog.Root open={isOpen} onOpenChange={onOpenChange}>
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 animate-fadeIn" />
-        <Dialog.Content className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white rounded-2xl shadow-2xl border border-(--border-light) w-full max-w-3xl max-h-[92vh] overflow-y-auto flex flex-col z-50 animate-scaleIn">
-          <form onSubmit={downloadBook} className="flex flex-col">
-            <div className="flex items-start justify-between gap-4 px-6 py-5 border-b border-(--border-light)">
+        <Dialog.Content className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white rounded-2xl shadow-2xl border border-(--border-light) w-full max-w-3xl max-h-[92vh] overflow-hidden flex flex-col z-50 animate-scaleIn">
+          <form onSubmit={finish} className="flex flex-col min-h-0 flex-1 overflow-hidden">
+            <div className="flex items-start justify-between gap-4 px-6 py-5 border-b border-(--border-light) shrink-0">
               <div>
-                <Dialog.Title className="text-xl font-bold text-(--text-strong)">Generate Search Book</Dialog.Title>
-                <Dialog.Description className="text-sm text-(--text-default) mt-1">
-                  Download one report on its own, or combine the reports you select into a single search book. Drag reports to set their order.
+                <Dialog.Title className="m-0! text-xl! font-bold text-(--text-strong)">{stepTitle}</Dialog.Title>
+                <Dialog.Description className="text-sm text-(--text-default) m-0! mt-1!">
+                  {stepDescription}
                 </Dialog.Description>
               </div>
               <Dialog.Close asChild>
@@ -155,7 +327,176 @@ export function SearchBookDownloadModal({ isOpen, onOpenChange, project, pipelin
               </Dialog.Close>
             </div>
 
-            <div className="px-6 py-5 space-y-6">
+            <div className="px-6 py-5 space-y-6 overflow-y-auto flex-1 min-h-0">
+              {step === 'choose' && (
+                <div className="grid grid-cols-1 gap-3" role="radiogroup" aria-label="How to share the slate">
+                  {([
+                    { id: 'download' as const, title: 'Download a candidate slate PDF', description: 'Save the slate as a PDF on this computer.', icon: Download },
+                    { id: 'share' as const, title: 'Share the PDF', description: 'Send the PDF by email or text with a magic link.', icon: Share2 },
+                    { id: 'digital' as const, title: 'Invite stakeholders to the digital slate', description: 'Open the slate in the browser. Each person gets a magic link you can also copy.', icon: Users },
+                  ]).map(option => {
+                    const Icon = option.icon;
+                    const selected = delivery === option.id;
+                    return (
+                      <button
+                        key={option.id}
+                        type="button"
+                        role="radio"
+                        aria-checked={selected}
+                        onClick={() => setDelivery(option.id)}
+                        className="text-left rounded-2xl border p-4 flex items-start gap-3"
+                        style={{
+                          borderColor: selected ? 'var(--color-secondary-200)' : 'var(--border-light)',
+                          background: selected ? 'var(--color-secondary-40)' : 'var(--bg-default)',
+                        }}
+                      >
+                        <span className="w-9 h-9 rounded-xl bg-(--bg-neutral-soft) flex items-center justify-center shrink-0">
+                          <Icon className="w-4 h-4 text-(--text-default)" aria-hidden="true" />
+                        </span>
+                        <span>
+                          <span className="block text-base font-bold text-(--text-strong)">{option.title}</span>
+                          <span className="block mt-1 text-sm text-(--text-default)">{option.description}</span>
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+
+              {step === 'people' && (
+                <div className="space-y-4">
+                  <div className="flex gap-2" role="radiogroup" aria-label="How to reach them">
+                    {([
+                      { id: 'email' as const, label: 'Email', icon: Mail },
+                      { id: 'phone' as const, label: 'Phone', icon: Phone },
+                    ]).map(option => {
+                      const Icon = option.icon;
+                      const selected = channel === option.id;
+                      return (
+                        <button
+                          key={option.id}
+                          type="button"
+                          role="radio"
+                          aria-checked={selected}
+                          onClick={() => { setChannel(option.id); setContactError(null); }}
+                          className="phx-btn"
+                          data-variant={selected ? 'primary' : 'secondary'}
+                          data-size="sm"
+                        >
+                          <Icon className="w-4 h-4" aria-hidden="true" /> {option.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <div>
+                    <label className="phx-label" htmlFor="slate-contact">
+                      {channel === 'email' ? 'Email address' : 'Phone number'}
+                    </label>
+                    <div className="flex gap-2">
+                      <input
+                        id="slate-contact"
+                        type={channel === 'email' ? 'email' : 'tel'}
+                        value={contact}
+                        onChange={e => { setContact(e.target.value); setContactError(null); }}
+                        onKeyDown={e => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            addRecipient();
+                          }
+                        }}
+                        placeholder={channel === 'email' ? 'name@company.com' : '+1 415 555 0142'}
+                        className="w-full"
+                        autoComplete="off"
+                      />
+                      <button type="button" className="phx-btn shrink-0" data-variant="secondary" data-size="sm" onClick={addRecipient}>
+                        Add
+                      </button>
+                    </div>
+                    {contactError && <p className="text-sm mt-1.5" style={{ color: 'var(--feedback-error-text-default)' }}>{contactError}</p>}
+                  </div>
+                  {recipients.length > 0 && (
+                    <ul className="flex flex-col gap-2" aria-label="People who will receive the slate">
+                      {recipients.map(person => (
+                        <li key={person.id} className="flex items-center justify-between gap-3 rounded-xl border border-(--border-light) px-3 py-2">
+                          <span className="text-sm text-(--text-strong)">
+                            <span className="text-(--text-subtle)">{person.channel === 'email' ? 'Email' : 'Phone'}: </span>
+                            {person.value}
+                          </span>
+                          <button
+                            type="button"
+                            className="phx-btn"
+                            data-variant="tertiary"
+                            data-size="sm"
+                            onClick={() => setRecipients(prev => prev.filter(r => r.id !== person.id))}
+                            aria-label={`Remove ${person.value}`}
+                          >
+                            Remove
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              )}
+
+              {step === 'template' && (
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                  <div className="flex flex-col gap-2" role="radiogroup" aria-label="Email template">
+                    {EMAIL_TEMPLATES.map(item => {
+                      const selected = templateId === item.id;
+                      return (
+                        <button
+                          key={item.id}
+                          type="button"
+                          role="radio"
+                          aria-checked={selected}
+                          onClick={() => setTemplateId(item.id)}
+                          className="text-left rounded-2xl border p-4"
+                          style={{
+                            borderColor: selected ? 'var(--color-secondary-200)' : 'var(--border-light)',
+                            background: selected ? 'var(--color-secondary-40)' : 'var(--bg-default)',
+                          }}
+                        >
+                          <span className="block text-base font-bold text-(--text-strong)">{item.name}</span>
+                          <span className="block mt-1 text-sm text-(--text-default)">{item.description}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <div className="rounded-2xl border border-(--border-light) bg-(--bg-default) p-4" aria-label="Email preview">
+                    <p className="text-sm text-(--text-subtle) m-0!">To: {recipients.filter(r => r.channel === 'email').map(r => r.value).join(', ') || 'name@company.com'}</p>
+                    <p className="text-sm text-(--text-subtle) m-0! mt-1!">From: {project.leadRecruiter}</p>
+                    <p className="text-base font-bold text-(--text-strong) m-0! mt-3!">{template.subject(project.title)}</p>
+                    <p className="text-sm text-(--text-default) m-0! mt-3! whitespace-pre-wrap">{template.body(project.title, project.leadRecruiter)}</p>
+                    <p className="text-sm m-0! mt-3!" style={{ color: 'var(--text-brand-secondary-default)' }}>
+                      {magicLink(project.id, recipients.find(r => r.channel === 'email')?.value || 'preview')}
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {step === 'links' && (
+                <ul className="flex flex-col gap-3" aria-label="Magic links">
+                  {recipients.map(person => {
+                    const link = magicLink(project.id, person.value);
+                    return (
+                      <li key={person.id} className="rounded-2xl border border-(--border-light) p-4 flex flex-col gap-2">
+                        <span className="text-sm font-semibold text-(--text-strong)">{person.value}</span>
+                        <span className="text-sm text-(--text-default) break-all">{link}</span>
+                        <div>
+                          <button type="button" className="phx-btn" data-variant="secondary" data-size="sm" onClick={() => copyLink(person.id, person.value)}>
+                            {copiedId === person.id ? <Check className="w-4 h-4" aria-hidden="true" /> : <Copy className="w-4 h-4" aria-hidden="true" />}
+                            {copiedId === person.id ? 'Copied' : 'Copy link'}
+                          </button>
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+
+              {step === 'sections' && (
+              <>
               {/* Report tree: the search book is the parent, each report a child */}
               <div className="rounded-2xl border border-(--border-light) overflow-hidden">
                 <label className="flex items-center gap-3 px-4 py-3 bg-(--bg-neutral-soft) border-b border-(--border-light) cursor-pointer">
@@ -259,17 +600,19 @@ export function SearchBookDownloadModal({ isOpen, onOpenChange, project, pipelin
                             <span className="block text-sm text-(--text-subtle)">{info[id].detail}</span>
                           </label>
 
-                          <button
-                            type="button"
-                            className="phx-btn shrink-0"
-                            data-variant="secondary"
-                            data-size="sm"
-                            disabled={!can}
-                            onClick={() => downloadOne(id)}
-                            aria-label={`Download ${def.label} as a PDF`}
-                          >
-                            <Download className="w-4 h-4" aria-hidden="true" /> Download
-                          </button>
+                          {delivery === 'download' && (
+                            <button
+                              type="button"
+                              className="phx-btn shrink-0"
+                              data-variant="secondary"
+                              data-size="sm"
+                              disabled={!can}
+                              onClick={() => downloadOne(id)}
+                              aria-label={`Download ${def.label} as a PDF`}
+                            >
+                              <Download className="w-4 h-4" aria-hidden="true" /> Download
+                            </button>
+                          )}
                         </div>
                       </li>
                     );
@@ -313,23 +656,47 @@ export function SearchBookDownloadModal({ isOpen, onOpenChange, project, pipelin
               {error && (
                 <div className="phx-feedback" data-tone="error" role="alert">{error}</div>
               )}
+              </>
+              )}
             </div>
 
-            <div className="flex items-center justify-between gap-3 px-6 py-4 border-t border-(--border-light) bg-(--bg-neutral-soft)">
+            <div className="flex items-center justify-between gap-3 px-6 py-4 border-t border-(--border-light) bg-(--bg-default) shrink-0">
               <span className="text-sm text-(--text-default)">
-                {selectedInOrder.length === 0
-                  ? 'Select at least one report.'
-                  : selectedInOrder.length === 1
-                    ? `${label(selectedInOrder[0])} downloads as its own report.`
-                    : `${selectedInOrder.length} reports in one PDF, with a cover and contents page.`}
+                {step === 'sections'
+                  ? selectedInOrder.length === 0
+                    ? 'Select at least one section.'
+                    : `${selectedInOrder.length} ${selectedInOrder.length === 1 ? 'section' : 'sections'} included.`
+                  : step === 'people'
+                    ? recipients.length === 0
+                      ? 'Add at least one email or phone number.'
+                      : `${recipients.length} ${recipients.length === 1 ? 'person' : 'people'} will receive a magic link.`
+                    : ''}
               </span>
               <div className="flex items-center gap-3">
-                <Dialog.Close asChild>
-                  <button type="button" className="phx-btn" data-variant="secondary" data-size="sm">Cancel</button>
-                </Dialog.Close>
-                <button type="submit" className="phx-btn" data-variant="primary" data-size="sm" disabled={!canDownload}>
-                  <Download className="w-4 h-4" aria-hidden="true" /> Download Search Book
-                </button>
+                {step === 'choose' ? (
+                  <Dialog.Close asChild>
+                    <button type="button" className="phx-btn" data-variant="secondary" data-size="sm">Cancel</button>
+                  </Dialog.Close>
+                ) : (
+                  <button type="button" className="phx-btn" data-variant="secondary" data-size="sm" onClick={goBack}>Back</button>
+                )}
+                {step === 'sections' ? (
+                  <button type="submit" className="phx-btn" data-variant="primary" data-size="sm" disabled={!canDownload}>
+                    {delivery === 'download' ? <Download className="w-4 h-4" aria-hidden="true" /> : <Link2 className="w-4 h-4" aria-hidden="true" />}
+                    {delivery === 'download' ? 'Download slate PDF' : delivery === 'share' ? 'Send PDF' : 'Send invitations'}
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    className="phx-btn"
+                    data-variant="primary"
+                    data-size="sm"
+                    disabled={step === 'choose' ? delivery === null : step === 'people' ? recipients.length === 0 : false}
+                    onClick={goForward}
+                  >
+                    Continue
+                  </button>
+                )}
               </div>
             </div>
           </form>

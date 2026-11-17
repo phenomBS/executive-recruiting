@@ -23,7 +23,20 @@ export interface TargetCompany {
 
 type Source = DirectoryCompany | Company;
 
-function toTarget(c: Source, matchReason: string, source: TargetCompany['source']): TargetCompany {
+/** Executives at this company who fit the search, not the whole firm-wide bench. A CFO search is a handful of finance leaders. */
+export function relevantExecutivesForSearch(companyName: string, project: Project): number {
+  const text = [project.title, project.parameters?.primaryTitle, project.parameters?.roleLevel, project.parameters?.functionalDomain]
+    .filter(Boolean)
+    .join(' ')
+    .toLowerCase();
+  const seed = [...companyName].reduce((n, ch) => n + ch.charCodeAt(0), 0);
+  if (/\b(cfo|ceo|coo|ciso|cio|cto|cmo|chro|chief)\b|c-suite/.test(text)) return 2 + (seed % 3);
+  if (/\bevp\b|executive vice president/.test(text)) return 3 + (seed % 3);
+  if (/\b(svp|vp)\b|vice president/.test(text)) return 4 + (seed % 4);
+  return 5 + (seed % 4);
+}
+
+function toTarget(c: Source, matchReason: string, source: TargetCompany['source'], relevant?: number): TargetCompany {
   const d = c as DirectoryCompany;
   return {
     id: c.id,
@@ -35,7 +48,7 @@ function toTarget(c: Source, matchReason: string, source: TargetCompany['source'
     website: c.website,
     description: c.description,
     stage: d.stage,
-    relevantCandidatesCount: c.relevantCandidatesCount,
+    relevantCandidatesCount: relevant ?? c.relevantCandidatesCount,
     activeLeadershipChanges: c.activeLeadershipChanges,
     activeSearchesCount: c.activeSearchesCount,
     matchReason,
@@ -121,7 +134,8 @@ function companiesAlreadyOnFile(project: Project): TargetCompany[] {
     toTarget(
       c,
       `Already on your Companies list, with ${c.crmCandidatesCount} candidates tracked for the ${project.title} search.`,
-      'added'
+      'added',
+      relevantExecutivesForSearch(c.name, project)
     )
   );
 }
@@ -251,8 +265,9 @@ export function matchCompaniesToProject(project: Project, limit = 6): TargetComp
       score += 10;
       reasons.push(`${c.activeLeadershipChanges} recent leadership changes`);
     }
-    score += Math.min(15, Math.round(c.relevantCandidatesCount * 0.3));
-    if (c.relevantCandidatesCount >= 25) reasons.push(`${c.relevantCandidatesCount} relevant executives in the master graph`);
+    const relevant = relevantExecutivesForSearch(c.name, project);
+    score += relevant;
+    reasons.push(`${relevant} executives match this ${project.parameters?.primaryTitle || project.title} search`);
 
     const known = industries.size > 0;
     return { c, score: known && !topic ? score * 0.4 : score, reasons };
@@ -262,7 +277,7 @@ export function matchCompaniesToProject(project: Project, limit = 6): TargetComp
     .filter(s => s.score > 0)
     .sort((a, b) => b.score - a.score)
     .slice(0, limit)
-    .map(s => toTarget(s.c, `${s.reasons.slice(0, 3).join('. ') || 'Strong executive bench for this search'}.`, 'agent'));
+    .map(s => toTarget(s.c, `${s.reasons.slice(0, 3).join('. ') || 'Strong executive bench for this search'}.`, 'agent', relevantExecutivesForSearch(s.c.name, project)));
 }
 
 /* ------------------------------------------------------------------ */
