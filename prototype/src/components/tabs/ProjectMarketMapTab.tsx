@@ -46,6 +46,7 @@ import {
 } from '../../data/projectMarketMapData';
 import { CompanyOrgChartViewer } from './CompanyOrgChartViewer';
 import { AddTargetCompanyModal, PickedCandidate } from './AddTargetCompanyModal';
+import { ExportMarketMapModal, MarketMapExportChoices } from './ExportMarketMapModal';
 import { TargetCompany, matchCompaniesToProject } from '../../data/projectTargetCompanies';
 import { useRouter } from '../../context/RouterContext';
 import { cn } from '../../lib/utils';
@@ -77,7 +78,10 @@ export function ProjectMarketMapTab({ project }: ProjectMarketMapTabProps) {
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [previewTab, setPreviewTab] = useState<'dossier' | 'orgcharts' | 'matrix'>('dossier');
   const [previewExpandAllOrgs, setPreviewExpandAllOrgs] = useState(false);
-  const [isExportMenuOpen, setIsExportMenuOpen] = useState(false);
+  const [showExportDialog, setShowExportDialog] = useState(false);
+  const [presentationTitle, setPresentationTitle] = useState('');
+  const [clientLogoPreview, setClientLogoPreview] = useState<string | null>(null);
+  const [companyLogoPreview, setCompanyLogoPreview] = useState<string | null>(null);
   const [limitPreviewToSelection, setLimitPreviewToSelection] = useState(false);
   const [selectedCompanyIds, setSelectedCompanyIds] = useState<Set<string>>(new Set());
   const [selectedExecIds, setSelectedExecIds] = useState<Set<string>>(new Set());
@@ -247,11 +251,28 @@ export function ProjectMarketMapTab({ project }: ProjectMarketMapTabProps) {
   const shownSummary = limitPreviewToSelection ? presentationData.scopeSummary : marketMapData.scopeSummary;
   const previewOrgCompanies = limitPreviewToSelection ? presentationData.companies : filteredCompanies;
 
-  const recommendations = useMemo(() => {
+  const recommendationsByTier = useMemo(() => {
     const onMap = new Set(marketMapData.companies.map(company => company.name.toLowerCase()));
-    return matchCompaniesToProject(project, 16)
+    const groups: Record<'Tier 1' | 'Tier 2' | 'Tier 3' | 'Tier 4', TargetCompany[]> = {
+      'Tier 1': [],
+      'Tier 2': [],
+      'Tier 3': [],
+      'Tier 4': [],
+    };
+    matchCompaniesToProject(project, 24)
       .filter(company => !onMap.has(company.name.toLowerCase()))
-      .slice(0, 4);
+      .forEach(company => {
+        const stage = (company.stage || '').toLowerCase();
+        const tier: keyof typeof groups = stage.startsWith('mega') || stage.startsWith('public')
+          ? 'Tier 1'
+          : stage.includes('pre-ipo')
+            ? 'Tier 2'
+            : stage.includes('series')
+              ? 'Tier 3'
+              : 'Tier 4';
+        if (groups[tier].length < 4) groups[tier].push(company);
+      });
+    return groups;
   }, [project, marketMapData.companies]);
 
   const toggleCompany = (companyId: string) => {
@@ -406,18 +427,10 @@ export function ProjectMarketMapTab({ project }: ProjectMarketMapTabProps) {
         ? 'the selected companies'
         : 'the selected candidates';
     triggerToast(`Market map CSV of ${what} downloaded.`);
-    setIsExportMenuOpen(false);
   };
 
   const handlePrintPdf = () => {
-    if (!canExport) return;
-    setIsExportMenuOpen(false);
-    setLimitPreviewToSelection(true);
-    setIsPreviewOpen(true);
-    triggerToast('Preparing the presentation for the companies and candidates you selected.');
-    setTimeout(() => {
-      window.print();
-    }, 400);
+    window.print();
   };
 
   // Add Company Submit
@@ -552,29 +565,16 @@ export function ProjectMarketMapTab({ project }: ProjectMarketMapTabProps) {
     triggerToast(`Updated status to "${newStatus}"`);
   };
 
-  const recommendationBox = recommendations.length > 0 ? (
-    <section className="mt-8 rounded-xl border border-(--border-light) bg-(--bg-neutral-soft) px-4 py-3" aria-label="Recommended companies">
-      <h3 className="m-0! text-sm! font-semibold text-(--text-subtle)">Recommended companies</h3>
-      <ul className="m-0 mt-1 list-none p-0">
-        {recommendations.map(company => (
-          <li key={company.id} className="flex items-baseline justify-between gap-4 border-t border-(--border-light) py-2.5 first:border-t-0">
-            <p className="m-0! min-w-0 text-sm text-(--text-subtle)">
-              <span className="font-semibold text-(--text-default)">{company.name}</span>
-              {' — '}
-              {company.matchReason}
-            </p>
-            <button
-              type="button"
-              onClick={() => addMappedCompanies([company])}
-              className="shrink-0 cursor-pointer border-0 bg-transparent p-0 text-sm text-(--text-subtle) underline"
-            >
-              Add
-            </button>
-          </li>
-        ))}
-      </ul>
-    </section>
-  ) : null;
+  const handleExportPdf = ({ name, clientLogoPreview: client, companyLogoPreview: company }: MarketMapExportChoices) => {
+    setPresentationTitle(name);
+    setClientLogoPreview(client);
+    setCompanyLogoPreview(company);
+    setLimitPreviewToSelection(true);
+    setPreviewTab('dossier');
+    setIsPreviewOpen(true);
+    triggerToast('Preparing the presentation for the companies and candidates you selected.');
+    setTimeout(() => window.print(), 500);
+  };
 
   return (
     <div className="flex flex-col h-full bg-(--bg-default) w-full min-h-[600px] relative pb-16">
@@ -620,78 +620,19 @@ export function ProjectMarketMapTab({ project }: ProjectMarketMapTabProps) {
             </button>
 
             {/* Export Menu Dropdown (Requirement 2) */}
-            <div className="relative">
-              <span className="inline-flex" data-tooltip={canExport ? undefined : 'Select companies or candidates to include in the presentation'}>
+            <span className="inline-flex" data-tooltip={canExport ? undefined : 'Select companies or candidates to include in the presentation'}>
               <button
                 type="button"
                 disabled={!canExport}
-                onClick={() => setIsExportMenuOpen(prev => !prev)}
+                onClick={() => setShowExportDialog(true)}
                 className="phx-btn"
                 data-variant="secondary"
                 data-size="sm"
               >
                 <Download className="w-4 h-4" aria-hidden="true" />
                 Export / Share
-                <ChevronDown className="w-4 h-4" aria-hidden="true" />
               </button>
-              </span>
-
-              {isExportMenuOpen && canExport && (
-                <div className="absolute right-0 top-full mt-1.5 w-72 bg-white border border-slate-200 rounded-xl shadow-xl z-30 py-2 divide-y divide-slate-100">
-                  <p className="px-4 py-3 m-0! text-sm text-(--text-default)">
-                    {selectedCompanyIds.size} {selectedCompanyIds.size === 1 ? 'company' : 'companies'} and {selectedExecIds.size} {selectedExecIds.size === 1 ? 'candidate' : 'candidates'} will be included.
-                  </p>
-                  <div className="px-3 py-1.5 text-xs font-bold text-slate-400 uppercase tracking-wider">
-                    Client & Board Deliverables
-                  </div>
-                  
-                  {/* Shareable URL */}
-                  <button
-                    type="button"
-                    disabled={!canExport}
-                    onClick={() => {
-                      handleCopyShareUrl();
-                      setIsExportMenuOpen(false);
-                    }}
-                    className="w-full px-4 py-2.5 text-left text-xs text-slate-700 hover:bg-slate-50 flex items-start gap-2.5 transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
-                  >
-                    <Link2 className="w-4 h-4 text-purple-600 mt-0.5 shrink-0" />
-                    <div>
-                      <div className="font-semibold text-slate-800">Copy Presentation URL</div>
-                      <div className="text-[11px] text-slate-400">Deep link for hiring committee</div>
-                    </div>
-                  </button>
-
-                  {/* Printable PDF */}
-                  <button
-                    type="button"
-                    disabled={!canExport}
-                    onClick={handlePrintPdf}
-                    className="w-full px-4 py-2.5 text-left text-xs text-slate-700 hover:bg-slate-50 flex items-start gap-2.5 transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
-                  >
-                    <Printer className="w-4 h-4 text-blue-600 mt-0.5 shrink-0" />
-                    <div>
-                      <div className="font-semibold text-slate-800">Print / Save as PDF</div>
-                      <div className="text-[11px] text-slate-400">Board-ready dossier layout</div>
-                    </div>
-                  </button>
-
-                  {/* CSV Export */}
-                  <button
-                    type="button"
-                    disabled={!canExport}
-                    onClick={handleDownloadCsv}
-                    className="w-full px-4 py-2.5 text-left text-xs text-slate-700 hover:bg-slate-50 flex items-start gap-2.5 transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
-                  >
-                    <FileSpreadsheet className="w-4 h-4 text-emerald-600 mt-0.5 shrink-0" />
-                    <div>
-                      <div className="font-semibold text-slate-800">Export CSV Ledger</div>
-                      <div className="text-[11px] text-slate-400">Full executive dataset (.csv)</div>
-                    </div>
-                  </button>
-                </div>
-              )}
-            </div>
+            </span>
 
             {/* Add Target Company */}
             <button type="button" onClick={() => setShowAddPicker(true)} className="phx-btn" data-variant="primary" data-size="sm">
@@ -725,134 +666,93 @@ export function ProjectMarketMapTab({ project }: ProjectMarketMapTabProps) {
       {/* ========================================================================= */}
       {/* 3. TOOLBAR CONTROLS & FILTERS */}
       {/* ========================================================================= */}
-      <div className="px-8 py-4 bg-(--bg-default) border-b border-(--border-light) flex flex-col md:flex-row md:items-center justify-between gap-3 shrink-0">
-        
-        {/* Left: Search & Filters */}
-        <div className="flex items-center gap-3 flex-wrap flex-1">
-          {/* Search */}
-          <div className="relative min-w-[220px] max-w-xs w-full">
-            <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+      <div className="px-8 py-4 bg-(--bg-default) border-b border-(--border-light) flex flex-col xl:flex-row xl:items-end justify-between gap-4 shrink-0">
+        <div className="flex items-end gap-3 flex-wrap flex-1">
+          <div className="phx-input-icon min-w-[260px]">
+            <Search aria-hidden="true" />
             <input
-              type="text"
-              placeholder="Search companies, executives, pedigree..."
+              type="search"
+              aria-label="Search companies and candidates"
+              placeholder="Search companies and candidates"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-8 pr-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-purple-600 focus:bg-white transition-all"
+              style={{ width: 280, paddingLeft: 'calc(var(--spacing-xl) + 16px + var(--spacing-lg))' }}
             />
-            {searchQuery && (
-              <button onClick={() => setSearchQuery('')} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
-                <X className="w-3 h-3" />
-              </button>
-            )}
           </div>
 
-          {/* Tier Segmented Buttons */}
-          <div className="flex items-center bg-slate-100 p-0.5 rounded-lg border border-slate-200">
-            {(['All', 'Tier 1', 'Tier 2', 'Tier 3', 'Tier 4'] as TierFilter[]).map((t) => (
-              <button
-                key={t}
-                onClick={() => setTierFilter(t)}
-                className={cn(
-                  "px-2.5 py-1 text-xs font-semibold rounded-md transition-colors cursor-pointer whitespace-nowrap",
-                  tierFilter === t 
-                    ? "bg-white text-slate-900 shadow-2xs" 
-                    : "text-slate-600 hover:text-slate-900"
-                )}
-              >
-                {t}
-              </button>
-            ))}
+          <div>
+            <span className="phx-label">Tier</span>
+            <div className="flex items-center gap-1" role="group" aria-label="Tier">
+              {(['All', 'Tier 1', 'Tier 2', 'Tier 3', 'Tier 4'] as TierFilter[]).map((t) => (
+                <button
+                  key={t}
+                  type="button"
+                  onClick={() => setTierFilter(t)}
+                  className="phx-btn"
+                  data-variant={tierFilter === t ? 'secondary' : 'tertiary'}
+                  data-size="sm"
+                  aria-pressed={tierFilter === t}
+                >
+                  {t}
+                </button>
+              ))}
+            </div>
           </div>
 
-          {/* Mobility Filter */}
-          <div className="flex items-center gap-1.5 text-xs text-slate-600">
-            <span className="text-[11px] font-semibold text-slate-400">Mobility:</span>
+          <div>
+            <label className="phx-label" htmlFor="market-map-mobility">Mobility</label>
             <select
+              id="market-map-mobility"
               value={mobilityFilter}
               onChange={(e) => setMobilityFilter(e.target.value as MobilityFilter)}
-              className="py-1 px-2 bg-slate-50 border border-slate-200 rounded-md text-xs font-medium text-slate-700 focus:outline-none cursor-pointer"
+              className="w-auto!"
+              style={{ paddingRight: '2.75rem' }}
             >
-              <option value="All">All Flight Risks</option>
-              <option value="High">High Mobility (PTM ≥ 85%)</option>
-              <option value="Moderate">Moderate / Stable</option>
+              <option value="All">All</option>
+              <option value="High">High</option>
+              <option value="Moderate">Moderate</option>
             </select>
           </div>
 
-          {/* Status Filter */}
-          <div className="flex items-center gap-1.5 text-xs text-slate-600">
-            <span className="text-[11px] font-semibold text-slate-400">Outreach:</span>
+          <div>
+            <label className="phx-label" htmlFor="market-map-outreach">Outreach</label>
             <select
+              id="market-map-outreach"
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value as StatusFilter)}
-              className="py-1 px-2 bg-slate-50 border border-slate-200 rounded-md text-xs font-medium text-slate-700 focus:outline-none cursor-pointer"
+              className="w-auto!"
+              style={{ paddingRight: '2.75rem' }}
             >
-              <option value="All">All Statuses</option>
-              <option value="Clear Target">Clear Targets</option>
-              <option value="In Dialogue">In Dialogue</option>
+              <option value="All">All statuses</option>
+              <option value="Clear Target">Clear target</option>
+              <option value="In Dialogue">In dialogue</option>
               <option value="Pipelined">Pipelined</option>
               <option value="Approached">Approached</option>
-              <option value="Off-Limits">Off-Limits Only</option>
+              <option value="Off-Limits">Off-limits</option>
             </select>
           </div>
         </div>
 
-        {/* Right: View Mode Switcher */}
-        <div className="flex items-center bg-slate-100 p-0.5 rounded-lg border border-slate-200 shrink-0">
-          <button
-            onClick={() => setViewMode('matrix')}
-            className={cn(
-              "px-3 py-1.5 text-xs font-semibold rounded-md flex items-center gap-1.5 transition-colors cursor-pointer",
-              viewMode === 'matrix' 
-                ? "bg-white text-slate-900 shadow-2xs font-bold" 
-                : "text-slate-600 hover:text-slate-900"
-            )}
-            title="Matrix View (Grouped by Company & Tier)"
-          >
-            <Layers className="w-3.5 h-3.5 text-purple-600" />
-            <span>Matrix</span>
-          </button>
-
-          <button
-            onClick={() => setViewMode('table')}
-            className={cn(
-              "px-3 py-1.5 text-xs font-semibold rounded-md flex items-center gap-1.5 transition-colors cursor-pointer",
-              viewMode === 'table' 
-                ? "bg-white text-slate-900 shadow-2xs font-bold" 
-                : "text-slate-600 hover:text-slate-900"
-            )}
-            title="Talent Ledger (Full Sortable Table)"
-          >
-            <Table className="w-3.5 h-3.5 text-blue-600" />
-            <span>Ledger</span>
-          </button>
-
-          <button
-            onClick={() => setViewMode('orgcharts')}
-            className={cn(
-              "px-3 py-1.5 text-xs font-semibold rounded-md flex items-center gap-1.5 transition-colors cursor-pointer",
-              viewMode === 'orgcharts' 
-                ? "bg-white text-slate-900 shadow-2xs font-bold" 
-                : "text-slate-600 hover:text-slate-900"
-            )}
-            title="Company Org Charts & Reporting Hierarchy"
-          >
-            <Network className="w-3.5 h-3.5 text-purple-600" />
-            <span>Org Charts</span>
-          </button>
-
-          <button
-            onClick={() => setViewMode('insights')}
-            className={cn(
-              "px-3 py-1.5 text-xs font-semibold rounded-md flex items-center gap-1.5 transition-colors cursor-pointer",
-              viewMode === 'insights' 
-                ? "bg-white text-slate-900 shadow-2xs font-bold" 
-                : "text-slate-600 hover:text-slate-900"
-            )}
-            title="Market Analytics & Comp Insights"
-          >
-            <BarChart3 className="w-3.5 h-3.5 text-emerald-600" />
-            <span>Analytics</span>
-          </button>
+        <div className="flex items-center gap-1 shrink-0" role="group" aria-label="Market map view">
+          {([
+            ['matrix', 'Matrix', Layers],
+            ['table', 'Ledger', Table],
+            ['orgcharts', 'Org charts', Network],
+            ['insights', 'Analytics', BarChart3],
+          ] as const).map(([id, label, Icon]) => (
+            <button
+              key={id}
+              type="button"
+              onClick={() => setViewMode(id)}
+              className="phx-btn"
+              data-variant={viewMode === id ? 'secondary' : 'tertiary'}
+              data-size="sm"
+              aria-pressed={viewMode === id}
+            >
+              <Icon className="w-4 h-4" aria-hidden="true" />
+              {label}
+            </button>
+          ))}
         </div>
       </div>
 
@@ -1019,29 +919,32 @@ export function ProjectMarketMapTab({ project }: ProjectMarketMapTabProps) {
                                       <div className="text-sm text-(--text-default) truncate">{exec.role}</div>
                                     </div>
                                   </div>
-                                  <select
-                                    value={exec.outreachStatus}
-                                    aria-label={`Outreach status for ${exec.name}`}
-                                    onChange={(e) => handleUpdateExecStatus(exec.id, company.id, e.target.value as any)}
-                                    className="w-auto! shrink-0"
-                                  >
-                                    <option value="Clear Target">Clear target</option>
-                                    <option value="In Dialogue">In dialogue</option>
-                                    <option value="Pipelined">Pipelined</option>
-                                    <option value="Approached">Approached</option>
-                                    <option value="Benchmark Only">Benchmark only</option>
-                                    <option value="Off-Limits">Off-limits</option>
-                                  </select>
-                                  <button
-                                    type="button"
-                                    onClick={() => removeExecutive(company.id, exec.id)}
-                                    className="phx-btn"
-                                    data-variant="tertiary"
-                                    data-size="sm"
-                                    aria-label={`Remove ${exec.name}`}
-                                  >
-                                    <Trash2 className="w-4 h-4" aria-hidden="true" />
-                                  </button>
+                                  <div className="ml-auto flex shrink-0 items-center justify-end gap-1">
+                                    <select
+                                      value={exec.outreachStatus}
+                                      aria-label={`Outreach status for ${exec.name}`}
+                                      onChange={(e) => handleUpdateExecStatus(exec.id, company.id, e.target.value as any)}
+                                      className="w-44!"
+                                      style={{ paddingRight: '2.75rem' }}
+                                    >
+                                      <option value="Clear Target">Clear target</option>
+                                      <option value="In Dialogue">In dialogue</option>
+                                      <option value="Pipelined">Pipelined</option>
+                                      <option value="Approached">Approached</option>
+                                      <option value="Benchmark Only">Benchmark only</option>
+                                      <option value="Off-Limits">Off-limits</option>
+                                    </select>
+                                    <button
+                                      type="button"
+                                      onClick={() => removeExecutive(company.id, exec.id)}
+                                      className="phx-btn"
+                                      data-variant="tertiary"
+                                      data-size="sm"
+                                      aria-label={`Remove ${exec.name}`}
+                                    >
+                                      <Trash2 className="w-4 h-4" aria-hidden="true" />
+                                    </button>
+                                  </div>
                                 </div>
                                 <p className="m-0! text-sm text-(--text-default)">
                                   {exec.tenureFormatted} in role · {exec.location} · {exec.estimatedComp.baseSalary} base
@@ -1053,14 +956,37 @@ export function ProjectMarketMapTab({ project }: ProjectMarketMapTabProps) {
                         </div>
                       </div>
                     ))}
+                    {recommendationsByTier[tier.tierId].length > 0 && (
+                      <section className="rounded-xl border border-(--border-light) bg-(--bg-neutral-soft) p-4" aria-label={`Recommended companies for ${tier.name}`}>
+                        <h4 className="m-0! text-sm! font-semibold text-(--text-subtle)">Recommended companies</h4>
+                        <ul className="m-0 mt-2 list-none p-0">
+                          {recommendationsByTier[tier.tierId].map(company => (
+                            <li key={company.id} className="border-t border-(--border-light) py-2.5 first:border-t-0">
+                              <div className="flex items-baseline justify-between gap-3">
+                                <p className="m-0! min-w-0 text-sm text-(--text-subtle)">
+                                  <span className="font-semibold text-(--text-default)">{company.name}</span>
+                                  {' — '}
+                                  {company.matchReason}
+                                </p>
+                                <button
+                                  type="button"
+                                  onClick={() => addMappedCompanies([company])}
+                                  className="shrink-0 cursor-pointer border-0 bg-transparent p-0 text-sm text-(--text-subtle) underline"
+                                >
+                                  Add
+                                </button>
+                              </div>
+                            </li>
+                          ))}
+                        </ul>
+                      </section>
+                    )}
                   </div>
                 </div>
               );
             })}
           </div>
         )}
-        {viewMode === 'matrix' && recommendationBox}
-
         {/* ------------------------------------------------------------- */}
         {/* VIEW 2: TALENT LEDGER (DENSE GRANULAR EXECUTIVE TABLE) */}
         {/* ------------------------------------------------------------- */}
@@ -1227,7 +1153,6 @@ export function ProjectMarketMapTab({ project }: ProjectMarketMapTabProps) {
               </table>
             </div>
           </div>
-          {recommendationBox}
           </>
         )}
 

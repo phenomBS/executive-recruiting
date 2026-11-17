@@ -7,6 +7,7 @@ import { mockCandidates } from '../../data/mockData';
 import {
   TargetCompany,
   findCompanyByName,
+  companyLists,
   listExistingCompanies,
   masterRepositorySize,
   recommendCompaniesForProject,
@@ -91,6 +92,7 @@ export function AddTargetCompanyModal({ isOpen, onOpenChange, project, projectCo
 
   // existing
   const [query, setQuery] = useState('');
+  const [selectedListIds, setSelectedListIds] = useState<string[]>([]);
 
   // create
   const [name, setName] = useState('');
@@ -121,6 +123,7 @@ export function AddTargetCompanyModal({ isOpen, onOpenChange, project, projectCo
     setCandidateRole('');
     setCandidateCompany('');
     setQuery('');
+    setSelectedListIds([]);
     setName('');
     setWebsite('');
     setIndustry(INDUSTRIES[0]);
@@ -137,15 +140,28 @@ export function AddTargetCompanyModal({ isOpen, onOpenChange, project, projectCo
   const isRestricted = (n: string) => restrictedCompanies.find(r => r.name.toLowerCase() === n.toLowerCase());
 
   const existing = useMemo(() => (isOpen ? listExistingCompanies() : []), [isOpen]);
+  const lists = useMemo(() => (isOpen ? companyLists() : []), [isOpen]);
+  const listsShown = lists.filter(list => {
+    const q = query.trim().toLowerCase();
+    return !q || `${list.name} ${list.detail}`.toLowerCase().includes(q);
+  });
+  const companiesFromLists = useMemo(() => {
+    const seen = new Set<string>();
+    const picked: TargetCompany[] = [];
+    lists.filter(list => selectedListIds.includes(list.id)).forEach(list => {
+      list.companies.forEach(company => {
+        const key = company.name.toLowerCase();
+        if (seen.has(key) || onProject.has(key)) return;
+        seen.add(key);
+        picked.push(company);
+      });
+    });
+    return picked;
+  }, [lists, selectedListIds, onProject]);
   const recommended = useMemo(
     () => (isOpen ? recommendCompaniesForProject(project, projectCompanyNames) : []).filter(c => !onProject.has(c.name.toLowerCase())),
     [isOpen, project, projectCompanyNames, onProject]
   );
-  const existingShown = existing.filter(c => {
-    const q = query.trim().toLowerCase();
-    return !q || `${c.name} ${c.industry} ${c.headquarters}`.toLowerCase().includes(q);
-  });
-
   const toggle = (c: TargetCompany) => {
     if (onProject.has(c.name.toLowerCase())) return;
     setSelected(prev => {
@@ -197,6 +213,7 @@ export function AddTargetCompanyModal({ isOpen, onOpenChange, project, projectCo
     setMode(m);
     setSelected({});
     setSelectedCandidates({});
+    setSelectedListIds([]);
   };
 
   const switchSubject = (next: Subject) => {
@@ -375,7 +392,7 @@ export function AddTargetCompanyModal({ isOpen, onOpenChange, project, projectCo
             <div>
               <Dialog.Title className="m-0! text-xl! font-bold text-(--text-strong)">Add companies or candidates</Dialog.Title>
               <Dialog.Description className="text-sm text-(--text-default) m-0! mt-1!">
-                My target companies is the list from Target Companies. The same choices are available for candidates.
+                My target companies is the lists saved on the Companies tab. The same choices are available for candidates.
               </Dialog.Description>
             </div>
             <Dialog.Close asChild>
@@ -457,19 +474,47 @@ export function AddTargetCompanyModal({ isOpen, onOpenChange, project, projectCo
                   <Search className="w-4 h-4 text-(--text-subtle) absolute left-3 top-1/2 -translate-y-1/2" aria-hidden="true" />
                   <input
                     type="search"
-                    aria-label="Search existing companies"
-                    placeholder="Search companies you already track"
+                    aria-label="Search company lists"
+                    placeholder="Search company lists"
                     value={query}
                     onChange={e => setQuery(e.target.value)}
                     className="w-full pl-9"
                   />
                 </div>
-                {existingShown.length === 0 ? (
-                  <p className="text-sm text-(--text-default) py-6 text-center">
-                    No companies match that search.
-                  </p>
+                {listsShown.length === 0 ? (
+                  <p className="text-sm text-(--text-default) py-6 text-center">No lists match that search.</p>
                 ) : (
-                  <ul className="space-y-2">{existingShown.map(c => companyRow(c, false))}</ul>
+                  <ul className="space-y-2">
+                    {listsShown.map(list => {
+                      const fresh = list.companies.filter(company => !onProject.has(company.name.toLowerCase()));
+                      const onSearch = fresh.length === 0;
+                      const checked = selectedListIds.includes(list.id);
+                      return (
+                        <li key={list.id}>
+                          <label className={cn('flex items-start gap-3 rounded-xl border border-(--border-light) p-3', onSearch ? 'opacity-60' : 'cursor-pointer')}>
+                            <input
+                              type="checkbox"
+                              className="mt-1 w-4 h-4 accent-(--color-secondary-200)"
+                              checked={checked || onSearch}
+                              disabled={onSearch}
+                              aria-label={`Select ${list.name}`}
+                              onChange={() => {
+                                setSelectedListIds(prev => prev.includes(list.id) ? prev.filter(id => id !== list.id) : [...prev, list.id]);
+                              }}
+                            />
+                            <span className="min-w-0">
+                              <span className="flex items-center gap-2 text-sm font-semibold text-(--text-strong)">
+                                {list.name}
+                                <span className="phx-tag">{list.companies.length}</span>
+                                {onSearch && <span className="phx-tag">On this search</span>}
+                              </span>
+                              <span className="block text-sm text-(--text-default) mt-1">{list.detail}</span>
+                            </span>
+                          </label>
+                        </li>
+                      );
+                    })}
+                  </ul>
                 )}
               </div>
             )}
@@ -631,7 +676,7 @@ export function AddTargetCompanyModal({ isOpen, onOpenChange, project, projectCo
             <span className="text-sm text-(--text-default)">
               {mode === 'create'
                 ? subject === 'companies' ? 'The new company is added to this project.' : 'The new candidate is added to this project.'
-                : `${subject === 'candidates' ? selectedCandidateList.length : selectedList.length} selected`}
+                : `${subject === 'candidates' ? selectedCandidateList.length : mode === 'mine' ? companiesFromLists.length : selectedList.length} selected`}
             </span>
             <div className="flex items-center gap-3">
               <Dialog.Close asChild>
@@ -653,10 +698,10 @@ export function AddTargetCompanyModal({ isOpen, onOpenChange, project, projectCo
                   className="phx-btn"
                   data-variant="primary"
                   data-size="sm"
-                  onClick={subject === 'candidates' ? addSelectedCandidates : addSelected}
-                  disabled={subject === 'candidates' ? selectedCandidateList.length === 0 : selectedList.length === 0}
+                  onClick={subject === 'candidates' ? addSelectedCandidates : mode === 'mine' ? () => { if (companiesFromLists.length) { onAdd(companiesFromLists); onOpenChange(false); } } : addSelected}
+                  disabled={subject === 'candidates' ? selectedCandidateList.length === 0 : (mode === 'mine' ? companiesFromLists.length === 0 : selectedList.length === 0)}
                 >
-                  <Check className="w-4 h-4" aria-hidden="true" /> Add {(subject === 'candidates' ? selectedCandidateList.length : selectedList.length) || ''} to project
+                  <Check className="w-4 h-4" aria-hidden="true" /> Add {(subject === 'candidates' ? selectedCandidateList.length : mode === 'mine' ? companiesFromLists.length : selectedList.length) || ''} to project
                 </button>
               )}
             </div>

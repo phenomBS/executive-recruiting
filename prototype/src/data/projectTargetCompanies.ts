@@ -86,6 +86,33 @@ export const listMasterCompanyNames = () => masterRepository().map(c => c.name).
 
 export const masterRepositorySize = () => masterRepository().length;
 
+export interface CompanyList {
+  id: string;
+  name: string;
+  detail: string;
+  companies: TargetCompany[];
+}
+
+/** The named lists on the Companies tab, with the companies each one contains. */
+export function companyLists(): CompanyList[] {
+  const saved = listExistingCompanies();
+  const directory = initialDirectoryCompanies;
+  const asList = (items: DirectoryCompany[], detail: string) =>
+    items.map(company => toTarget(company, company.recommendationReason || detail, 'added'));
+  const enterprise = directory.filter(company =>
+    company.stage?.startsWith('Public') || company.stage?.startsWith('Mega') || company.size.startsWith('10,000')
+  );
+  const funding = directory.filter(company => company.stage === 'Series B-D' || company.stage === 'Pre-IPO Unicorn');
+  const competitors = directory.filter(company => company.tier === 'Tier 1 Talent Source' || company.tier === 'Enterprise Scale');
+  return [
+    { id: 'all', name: 'All Companies', detail: 'Every company in the Companies workspace.', companies: saved },
+    { id: 'target', name: 'Target Companies', detail: 'The target list saved on the Companies tab.', companies: saved },
+    { id: 'enterprise', name: 'Enterprise', detail: 'Public and mega-cap companies.', companies: asList(enterprise, 'On the Enterprise list.') },
+    { id: 'recent-funding', name: 'Recent Funding', detail: 'Pre-IPO and recently funded companies.', companies: asList(funding, 'On the Recent Funding list.') },
+    { id: 'competitors', name: 'Competitors', detail: 'Peer companies tracked as competitors.', companies: asList(competitors, 'On the Competitors list.') },
+  ];
+}
+
 /** Companies already in the CRM, for the "existing companies" picker. */
 export function listExistingCompanies(): TargetCompany[] {
   const crm: TargetCompany[] = mockCompanies.map(c =>
