@@ -2,6 +2,9 @@ import React, { useMemo, useState } from 'react';
 import { Project } from '../types';
 import { Search, Filter, Calendar, User, CalendarPlus, Plus } from 'lucide-react';
 import { CreateProjectChoice } from './CreateProjectChoice';
+import { SearchAgentChat } from './SearchAgentChat';
+import type { SearchAgentDraft } from '../lib/searchAgentDraft';
+import { matchCompaniesToProject, saveProjectTargetCompanies } from '../data/projectTargetCompanies';
 import { cn } from '../lib/utils';
 import { isProjectLive, isProjectOpen, projectStatusLabel } from '../lib/projectStatus';
 import { IntakeMeetingModal } from './IntakeMeetingModal';
@@ -32,7 +35,8 @@ export function ProjectsList({ projects, onSelectProject, onAddProject }: Projec
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState<ProjectTab>('all');
   const [showIntakeModal, setShowIntakeModal] = useState(false);
-  const [createMode, setCreateMode] = useState<'closed' | 'choose' | 'manual' | 'agent'>('closed');
+  const [createMode, setCreateMode] = useState<'closed' | 'choose' | 'chat' | 'manual' | 'form'>('closed');
+  const [agentDraft, setAgentDraft] = useState<SearchAgentDraft | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [recruiterFilter, setRecruiterFilter] = useState('all');
@@ -77,13 +81,31 @@ export function ProjectsList({ projects, onSelectProject, onAddProject }: Projec
         isOpen={createMode === 'choose'}
         onOpenChange={open => { if (!open) setCreateMode('closed'); }}
         onManual={() => setCreateMode('manual')}
-        onAgent={() => setCreateMode('agent')}
+        onAgent={() => setCreateMode('chat')}
+      />
+      <SearchAgentChat
+        isOpen={createMode === 'chat'}
+        onOpenChange={open => { if (!open) setCreateMode('closed'); }}
+        onDraft={draft => {
+          setAgentDraft(draft);
+          setCreateMode('form');
+        }}
       />
       <ProjectParametersModal
-        isOpen={createMode === 'manual' || createMode === 'agent'}
-        onOpenChange={open => { if (!open) setCreateMode('closed'); }}
+        isOpen={createMode === 'manual' || createMode === 'form'}
+        onOpenChange={open => { if (!open) { setCreateMode('closed'); setAgentDraft(null); } }}
+        draft={createMode === 'form' ? agentDraft : null}
         onSave={(newProj) => {
-          if (onAddProject) onAddProject(newProj);
+          const fromAgent = createMode === 'form' && agentDraft;
+          const project = fromAgent
+            ? { ...newProj, seedPipeline: agentDraft.seedPipeline, candidatesCount: agentDraft.seedPipeline.length }
+            : newProj;
+          if (fromAgent) {
+            const targets = matchCompaniesToProject(project, 8).map(company => ({ ...company, source: 'agent' as const }));
+            if (targets.length > 0) saveProjectTargetCompanies(project.id, targets);
+          }
+          if (onAddProject) onAddProject(project);
+          setAgentDraft(null);
         }}
       />
 

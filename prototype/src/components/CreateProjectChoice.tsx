@@ -21,7 +21,7 @@ export function CreateProjectChoice({ isOpen, onOpenChange, onManual, onAgent }:
             <div>
               <Dialog.Title className="m-0! text-lg! font-bold text-(--text-strong)">Create executive search project</Dialog.Title>
               <Dialog.Description className="m-0! mt-1! text-sm text-(--text-subtle)">
-                Start the project yourself, or use the Phenom Sourcing Agent.
+                Start the project yourself, or use the Phenom Search Agent.
               </Dialog.Description>
             </div>
             <Dialog.Close asChild>
@@ -49,13 +49,13 @@ export function CreateProjectChoice({ isOpen, onOpenChange, onManual, onAgent }:
               onSelect={() => setPath('agent')}
               instant
               icon={<span className="w-9 h-9 rounded-full flex items-center justify-center" style={{ background: 'var(--color-secondary-200)', color: 'var(--text-inverse)' }}><MessageCircle className="w-4 h-4" aria-hidden="true" /></span>}
-              title="Phenom Sourcing Agent"
-              description="Describe the role and review matching candidates in a guided search."
+              title="Phenom Search Agent"
+              description="Describe the mandate in chat. The agent fills the project from what you provide."
               availability="Starts instantly – no scheduling required"
               steps={[
-                'Describe the role in the search',
-                'Review candidate segments and shortlist people',
-                'Add them to a project or create a new one',
+                'Enter the search mandate, and any notes or documents',
+                'Review the project fields the agent fills in',
+                'Open the project with the market map and slate filled in',
               ]}
             />
           </div>

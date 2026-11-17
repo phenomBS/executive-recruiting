@@ -18,6 +18,7 @@ import {
   Users
 } from 'lucide-react';
 import { Project, ProjectParameters, ProjectRoleLevel, ProjectWorkModel } from '../types';
+import type { SearchAgentDraft } from '../lib/searchAgentDraft';
 import {
   PROJECT_METRO_OPTIONS,
   PipelineSeedCandidate,
@@ -34,6 +35,8 @@ interface ProjectParametersModalProps {
   onSave: (project: Project) => void;
   /** Create mode only: start pre-filled from this tracked role, with its bench as the pipeline */
   initialRoleId?: string | null;
+  /** Create mode only: fields the Phenom Search Agent filled from the mandate */
+  draft?: SearchAgentDraft | null;
 }
 
 const DEFAULT_METROS = PROJECT_METRO_OPTIONS;
@@ -48,7 +51,7 @@ const COMMON_DOMAINS = [
   'Hardware & Systems Architecture'
 ];
 
-export function ProjectParametersModal({ isOpen, onOpenChange, project, onSave, initialRoleId }: ProjectParametersModalProps) {
+export function ProjectParametersModal({ isOpen, onOpenChange, project, onSave, initialRoleId, draft }: ProjectParametersModalProps) {
   const isEdit = !!project;
 
   // Active parameter block tab for quick jumping
@@ -171,6 +174,37 @@ export function ProjectParametersModal({ isOpen, onOpenChange, project, onSave, 
         setMaxNoticePeriodTolerance(project.parameters.maxNoticePeriodTolerance);
         setConfidentialityProtocol(project.parameters.confidentialityProtocol || 'Named Enterprise Search');
       }
+    } else if (draft) {
+      const prm = draft.parameters;
+      setSourceRoleId('');
+      setIncludeBench(false);
+      setBenchSeed([]);
+      setTitle(draft.title);
+      setCompany('In-House Executive Search');
+      setLeadRecruiter('Brian Stepan');
+      setProjectType('Executive Search');
+      setStatus('Active');
+      setDescription(draft.description);
+      setPrimaryTitle(prm.primaryTitle);
+      setEquivalentTitles(prm.equivalentTitles);
+      setRoleLevel(prm.roleLevel);
+      setFunctionalDomain(prm.functionalDomain);
+      setDomainKeywords(prm.domainKeywords);
+      setTargetBaseSalary(prm.targetBaseSalary);
+      setMaxBaseBudget(prm.maxBaseBudget);
+      setVariableOTE(prm.variableOTE);
+      setEquityGrantValue(prm.equityGrantValue);
+      setMaxTotalCompensationCeiling(prm.maxTotalCompensationCeiling);
+      setTargetCompanyStage(prm.targetCompanyStage);
+      setRequiredPandLScope(prm.requiredPandLScope);
+      setTeamHeadcountScale(prm.teamHeadcountScale);
+      setWorkModel(prm.workModel);
+      setHybridDaysPerWeek(prm.hybridDaysPerWeek || 3);
+      setTargetMetropolitanMarkets(prm.targetMetropolitanMarkets);
+      setRelocationWillingness(prm.relocationWillingness);
+      setTargetStartDate(prm.targetStartDate);
+      setMaxNoticePeriodTolerance(prm.maxNoticePeriodTolerance);
+      setConfidentialityProtocol(prm.confidentialityProtocol || 'Named Enterprise Search');
     } else {
       // Defaults for new project
       setSourceRoleId('');
@@ -205,7 +239,7 @@ export function ProjectParametersModal({ isOpen, onOpenChange, project, onSave, 
       if (isOpen && initialRoleId) applyRole(initialRoleId);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [project, isOpen, initialRoleId]);
+  }, [project, isOpen, initialRoleId, draft]);
 
   const applyRole = (roleId: string) => {
     setSourceRoleId(roleId);
@@ -1073,7 +1107,7 @@ export function ProjectParametersModal({ isOpen, onOpenChange, project, onSave, 
                     Click to select primary metro clusters where candidate sourcing is authorized.
                   </p>
                   <div className="flex flex-wrap gap-1.5 max-h-36 overflow-y-auto p-2 bg-(--bg-neutral-soft) rounded-xl border border-(--border-light)">
-                    {DEFAULT_METROS.map(metro => {
+                    {[...DEFAULT_METROS, ...targetMetropolitanMarkets.filter(metro => !DEFAULT_METROS.includes(metro))].map(metro => {
                       const isSelected = targetMetropolitanMarkets.includes(metro);
                       return (
                         <button
