@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { Project } from '../types';
-import { Search, Filter, FolderKanban, Calendar, User, CalendarPlus } from 'lucide-react';
+import { Search, Filter, Calendar, User, CalendarPlus, Plus } from 'lucide-react';
+import { CreateProjectChoice } from './CreateProjectChoice';
 import { cn } from '../lib/utils';
 import { isProjectLive, isProjectOpen, projectStatusLabel } from '../lib/projectStatus';
 import { IntakeMeetingModal } from './IntakeMeetingModal';
@@ -31,7 +32,7 @@ export function ProjectsList({ projects, onSelectProject, onAddProject }: Projec
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState<ProjectTab>('all');
   const [showIntakeModal, setShowIntakeModal] = useState(false);
-  const [showNewProjectModal, setShowNewProjectModal] = useState(false);
+  const [createMode, setCreateMode] = useState<'closed' | 'choose' | 'manual' | 'agent'>('closed');
   const [menuOpen, setMenuOpen] = useState(false);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [recruiterFilter, setRecruiterFilter] = useState('all');
@@ -72,9 +73,15 @@ export function ProjectsList({ projects, onSelectProject, onAddProject }: Projec
 
   return (
     <div className="p-8 max-w-[1600px] mx-auto w-full h-full flex flex-col relative">
+      <CreateProjectChoice
+        isOpen={createMode === 'choose'}
+        onOpenChange={open => { if (!open) setCreateMode('closed'); }}
+        onManual={() => setCreateMode('manual')}
+        onAgent={() => setCreateMode('agent')}
+      />
       <ProjectParametersModal
-        isOpen={showNewProjectModal}
-        onOpenChange={setShowNewProjectModal}
+        isOpen={createMode === 'manual' || createMode === 'agent'}
+        onOpenChange={open => { if (!open) setCreateMode('closed'); }}
         onSave={(newProj) => {
           if (onAddProject) onAddProject(newProj);
         }}
@@ -86,14 +93,16 @@ export function ProjectsList({ projects, onSelectProject, onAddProject }: Projec
           <p className="text-xs text-slate-500 mt-1">Executive search mandates, pipelines, and ownership</p>
         </div>
         <div className="flex items-center gap-3">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+          <div className="phx-input-icon">
+            <Search aria-hidden="true" />
             <input
-              type="text"
+              type="search"
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
-              placeholder="Search by title, recruiter, stage..."
-              className="w-64 pl-9 pr-8 py-2 rounded-full border border-slate-300 text-sm focus:outline-none focus:border-(--color-secondary-200) focus:ring-1 focus:ring-(--color-secondary-200) transition-shadow bg-white text-slate-700 placeholder:text-slate-400"
+              placeholder="Search projects"
+              aria-label="Search projects"
+              className="phx-search"
+              style={{ width: 240, paddingLeft: 'calc(var(--spacing-xl) + 16px + var(--spacing-lg))' }}
             />
             {searchQuery && (
               <button
@@ -109,9 +118,11 @@ export function ProjectsList({ projects, onSelectProject, onAddProject }: Projec
             <button
               type="button"
               onClick={() => setFiltersOpen(open => !open)}
-              className="flex items-center gap-2 px-5 py-2 rounded-full border border-slate-300 text-(--color-secondary-200) font-semibold text-sm hover:bg-slate-50 bg-white transition-colors"
+              className="phx-btn"
+              data-variant="secondary"
+              data-size="sm"
             >
-              <Filter className="w-4 h-4" /> Filters
+              <Filter className="w-4 h-4" aria-hidden="true" /> Filters
             </button>
             {filtersOpen && (
               <div className="absolute right-0 top-12 z-20 w-56 rounded-xl border border-slate-200 bg-white shadow-md p-3">
@@ -132,10 +143,11 @@ export function ProjectsList({ projects, onSelectProject, onAddProject }: Projec
           <div className="w-px h-6 bg-slate-300 mx-1" />
           <button
             type="button"
-            onClick={() => setShowNewProjectModal(true)}
-            className="flex items-center gap-2 px-5 py-2 rounded-full border border-slate-300 text-(--color-secondary-200) font-semibold text-sm hover:bg-slate-50 bg-white transition-colors cursor-pointer"
+            onClick={() => setCreateMode('choose')}
+            className="phx-btn"
+            data-variant="primary"
           >
-            <span className="text-lg leading-none mb-[2px]">+</span> Create New Project
+            <Plus className="w-4 h-4" aria-hidden="true" /> Create New Project
           </button>
           <div className="relative">
             <button
@@ -165,26 +177,19 @@ export function ProjectsList({ projects, onSelectProject, onAddProject }: Projec
         </div>
       </div>
 
-      <div className="bg-white rounded-xl shadow-xs border border-slate-200 flex flex-col flex-1 min-h-0 overflow-hidden">
-        <div className="flex border-b border-slate-200 overflow-x-auto no-scrollbar bg-slate-50/50">
-          <div className="flex whitespace-nowrap min-w-max">
-            {tabs.map(tab => (
-              <button
-                key={tab.id}
-                type="button"
-                onClick={() => { setActiveTab(tab.id); setSelectedIds([]); }}
-                className={cn(
-                  "px-5 py-3 text-sm font-semibold border-r border-slate-200 transition-colors flex items-center gap-1.5",
-                  activeTab === tab.id
-                    ? "bg-white text-slate-900 border-b-2 border-b-(--color-secondary-200)"
-                    : "bg-transparent text-slate-600 hover:bg-slate-100 font-medium"
-                )}
-              >
-                {tab.label}
-                <span className="text-slate-500 font-normal ml-1">{tab.count}</span>
-              </button>
-            ))}
-          </div>
+      <div className="bg-(--bg-default) border border-(--border-light) rounded-2xl flex flex-col flex-1 min-h-0 overflow-hidden">
+        <div role="tablist" aria-label="Project views">
+          {tabs.map(tab => (
+            <button
+              key={tab.id}
+              type="button"
+              role="tab"
+              aria-selected={activeTab === tab.id}
+              onClick={() => { setActiveTab(tab.id); setSelectedIds([]); }}
+            >
+              {tab.label} {tab.count}
+            </button>
+          ))}
         </div>
 
         {selectedIds.length > 0 && (
@@ -205,7 +210,7 @@ export function ProjectsList({ projects, onSelectProject, onAddProject }: Projec
         <div className="flex-1 min-h-0 relative">
           <div className="absolute inset-0 overflow-auto">
             <table className="w-full text-left text-sm whitespace-nowrap">
-              <thead className="bg-slate-50 text-slate-600 font-semibold sticky top-0 z-10 shadow-2xs border-b border-slate-200">
+              <thead className="bg-(--bg-default) text-(--text-default) font-semibold sticky top-0 z-10 border-b border-(--border-light)">
                 <tr>
                   <th className="w-12 px-4 py-4 text-center">
                     <input
@@ -254,11 +259,8 @@ export function ProjectsList({ projects, onSelectProject, onAddProject }: Projec
                       </td>
                       <td className="px-6 py-3.5">
                         <div className="flex items-center gap-3">
-                          <div className="w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center text-(--color-secondary-200) shrink-0 ring-1 ring-slate-200">
-                            <FolderKanban className="w-4 h-4" />
-                          </div>
                           <div className="min-w-0">
-                            <span className="font-bold text-slate-900 group-hover:text-blue-600 transition-colors">{project.title}</span>
+                            <span className="font-semibold text-(--color-secondary-300)">{project.title}</span>
                             <div className="text-xs text-slate-500 font-medium truncate mt-0.5">{project.stage || project.type}</div>
                           </div>
                         </div>

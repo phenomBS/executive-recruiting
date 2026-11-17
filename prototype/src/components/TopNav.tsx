@@ -1,20 +1,11 @@
-import React, { useState } from 'react';
-import { Search, Plus, Bell, HelpCircle, Settings, Grid, Link2, Check, ChevronRight } from 'lucide-react';
+import React from 'react';
+import { Search, Plus, Bell, HelpCircle, Settings, Grid, ChevronRight } from 'lucide-react';
 import { useRouter } from '../context/RouterContext';
 
 type Crumb = { label: string; onClick?: () => void };
 
 export function TopNav() {
   const router = useRouter();
-  const [copied, setCopied] = useState(false);
-
-  const handleCopyLink = async () => {
-    const ok = await router.copyCurrentUrl();
-    if (ok) {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2500);
-    }
-  };
 
   /** Section crumb (a link when a detail page is open) plus the current page. */
   const getCrumbs = (): Crumb[] => {
@@ -54,7 +45,6 @@ export function TopNav() {
   };
 
   const crumbs = getCrumbs();
-  const currentDisplayPath = window.location.pathname + (window.location.search || '');
 
   return (
     <header className="phx-topbar h-(--shell-topbar-height) shrink-0 z-10">
@@ -81,19 +71,6 @@ export function TopNav() {
         </ol>
       </nav>
 
-      <button
-        type="button"
-        onClick={handleCopyLink}
-        className="phx-btn hidden md:inline-flex"
-        data-variant="tertiary"
-        data-size="sm"
-        data-tooltip="Copy a link to this page"
-        aria-label={`Copy link to this page: ${currentDisplayPath}`}
-      >
-        {copied ? <Check className="w-4 h-4" aria-hidden="true" /> : <Link2 className="w-4 h-4" aria-hidden="true" />}
-        <span className="truncate max-w-[220px]">{copied ? 'Link copied' : currentDisplayPath}</span>
-      </button>
-
       <span className="phx-topbar-spacer" />
 
       <div className="phx-input-icon">
@@ -103,14 +80,11 @@ export function TopNav() {
           aria-label="Search candidates, roles and projects"
           placeholder="Search candidates, roles, projects..."
           className="phx-search"
-          style={{ width: 360 }}
+          style={{ width: 360, paddingLeft: 'calc(var(--spacing-xl) + 16px + var(--spacing-lg))' }}
         />
       </div>
 
       <div className="flex items-center gap-1">
-        <button type="button" onClick={handleCopyLink} className="phx-topbar-action md:hidden" aria-label="Copy link to this page">
-          {copied ? <Check className="w-5 h-5" aria-hidden="true" /> : <Link2 className="w-5 h-5" aria-hidden="true" />}
-        </button>
         <button type="button" className="phx-topbar-action" aria-label="Create new">
           <Plus className="w-5 h-5" aria-hidden="true" />
         </button>

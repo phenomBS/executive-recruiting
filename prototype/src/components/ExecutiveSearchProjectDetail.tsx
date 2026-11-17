@@ -118,7 +118,7 @@ export function ExecutiveSearchProjectDetail({ project, onBack, onUpdateProject 
   };
 
   return (
-    <div className="flex flex-col h-full bg-(--bg-surface-base) overflow-y-auto w-full">
+    <div className="flex flex-col h-full bg-(--bg-default) overflow-y-auto w-full">
       <ProjectParametersModal
         isOpen={showSettingsModal}
         onOpenChange={setShowSettingsModal}
