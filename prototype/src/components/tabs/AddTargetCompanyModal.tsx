@@ -2,21 +2,23 @@ import React, { useEffect, useMemo, useState } from 'react';
 import * as Dialog from '@radix-ui/react-dialog';
 import { Building2, Check, Lock, PlusCircle, Search, Sparkles, X } from 'lucide-react';
 import { useRestricted } from '../../context/RestrictedContext';
+import type { Project } from '../../types';
 import {
   TargetCompany,
   findCompanyByName,
   listExistingCompanies,
   masterRepositorySize,
+  recommendCompaniesForProject,
   registerCreatedCompany,
   searchMasterRepository,
 } from '../../data/projectTargetCompanies';
 import { cn } from '../../lib/utils';
 
-type Mode = 'existing' | 'create' | 'ai';
+type Mode = 'mine' | 'recommended' | 'ai' | 'create';
 
-const MODES: { id: Mode; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
-  { id: 'existing', label: 'Existing companies', icon: Building2 },
-  { id: 'create', label: 'Create new', icon: PlusCircle },
+const MODES: { id: Exclude<Mode, 'create'>; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
+  { id: 'mine', label: 'My target companies', icon: Building2 },
+  { id: 'recommended', label: 'Recommended companies', icon: Sparkles },
   { id: 'ai', label: 'Find with AI', icon: Sparkles },
 ];
 
@@ -44,14 +46,15 @@ const EXAMPLE_PROMPTS = [
 interface AddTargetCompanyModalProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
+  project: Project;
   /** Names already on the project, so they are not offered again */
   projectCompanyNames: string[];
   onAdd: (companies: TargetCompany[]) => void;
 }
 
-export function AddTargetCompanyModal({ isOpen, onOpenChange, projectCompanyNames, onAdd }: AddTargetCompanyModalProps) {
+export function AddTargetCompanyModal({ isOpen, onOpenChange, project, projectCompanyNames, onAdd }: AddTargetCompanyModalProps) {
   const { restrictedCompanies } = useRestricted();
-  const [mode, setMode] = useState<Mode>('existing');
+  const [mode, setMode] = useState<Mode>('mine');
 
   // shared selection (by company id) for the two list modes
   const [selected, setSelected] = useState<Record<string, TargetCompany>>({});
@@ -74,7 +77,7 @@ export function AddTargetCompanyModal({ isOpen, onOpenChange, projectCompanyName
 
   useEffect(() => {
     if (!isOpen) return;
-    setMode('existing');
+    setMode('mine');
     setSelected({});
     setQuery('');
     setName('');
@@ -94,6 +97,10 @@ export function AddTargetCompanyModal({ isOpen, onOpenChange, projectCompanyName
   const existing = useMemo(
     () => (isOpen ? listExistingCompanies() : []).filter(c => !onProject.has(c.name.toLowerCase())),
     [isOpen, onProject]
+  );
+  const recommended = useMemo(
+    () => (isOpen ? recommendCompaniesForProject(project, projectCompanyNames) : []).filter(c => !onProject.has(c.name.toLowerCase())),
+    [isOpen, project, projectCompanyNames, onProject]
   );
   const existingShown = existing.filter(c => {
     const q = query.trim().toLowerCase();
@@ -210,7 +217,7 @@ export function AddTargetCompanyModal({ isOpen, onOpenChange, projectCompanyName
             <div>
               <Dialog.Title className="text-xl font-bold text-(--text-strong)">Add target companies</Dialog.Title>
               <Dialog.Description className="text-sm text-(--text-default) mt-1">
-                Pick companies you already track, create a new one, or describe what you want and let the agent search the master repository.
+                Choose companies you already track, take a recommendation, or describe the kind of company and let the agent search.
               </Dialog.Description>
             </div>
             <Dialog.Close asChild>
@@ -220,7 +227,7 @@ export function AddTargetCompanyModal({ isOpen, onOpenChange, projectCompanyName
             </Dialog.Close>
           </div>
 
-          <div role="tablist" aria-label="How to add a company" className="flex border-b border-(--border-light) px-6 shrink-0">
+          <div role="tablist" aria-label="How to add a company" className="flex items-center border-b border-(--border-light) px-6 shrink-0">
             {MODES.map(m => {
               const Icon = m.icon;
               const active = mode === m.id;
@@ -245,10 +252,20 @@ export function AddTargetCompanyModal({ isOpen, onOpenChange, projectCompanyName
                 </button>
               );
             })}
+            <button
+              type="button"
+              className="phx-btn ml-auto"
+              data-variant="tertiary"
+              data-size="sm"
+              aria-pressed={mode === 'create'}
+              onClick={() => switchMode('create')}
+            >
+              <PlusCircle className="w-4 h-4" aria-hidden="true" /> Create new
+            </button>
           </div>
 
           <div id="add-co-panel" role="tabpanel" aria-labelledby={`add-co-tab-${mode}`} className="flex-1 min-h-0 overflow-y-auto px-6 py-5">
-            {mode === 'existing' && (
+            {mode === 'mine' && (
               <div className="space-y-3">
                 <div className="relative">
                   <Search className="w-4 h-4 text-(--text-subtle) absolute left-3 top-1/2 -translate-y-1/2" aria-hidden="true" />
@@ -271,6 +288,18 @@ export function AddTargetCompanyModal({ isOpen, onOpenChange, projectCompanyName
               </div>
             )}
 
+            {mode === 'recommended' && (
+              <div className="space-y-3">
+                {recommended.length === 0 ? (
+                  <p className="text-sm text-(--text-default) py-6 text-center">
+                    Every recommended company is already on this project.
+                  </p>
+                ) : (
+                  <ul className="space-y-2">{recommended.map(c => companyRow(c, true))}</ul>
+                )}
+              </div>
+            )}
+
             {mode === 'create' && (
               <form id="create-company-form" onSubmit={submitCreate} className="space-y-4">
                 <div>
@@ -282,7 +311,7 @@ export function AddTargetCompanyModal({ isOpen, onOpenChange, projectCompanyName
                 )}
                 {duplicateExisting && (
                   <div className="phx-feedback" data-tone="warning" role="alert">
-                    {trimmed} already exists. Add it from Existing companies or Find with AI instead of creating a duplicate.
+                    {trimmed} already exists. Add it from My target companies or Find with AI instead of creating a duplicate.
                   </div>
                 )}
                 {restrictedHit && (

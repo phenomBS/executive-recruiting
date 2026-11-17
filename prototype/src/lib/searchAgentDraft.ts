@@ -122,6 +122,17 @@ export function draftFromMandate(mandate: string, documentNotes: string): Search
     targetStartDate: '2027-03-01',
     maxNoticePeriodTolerance: level === 'C-Suite' ? '90 days' : '60 days',
     confidentialityProtocol: /confidential/i.test(combined) ? 'Strictly Confidential Blind Teaser' : 'Named Enterprise Search',
+    companyProfile: {
+      industries: [area.name === 'Corporate Finance' ? 'Fintech and payments' : area.name === 'Platform Security & Identity' ? 'Cybersecurity' : area.name === 'Infrastructure & Cloud Computing' ? 'Cloud infrastructure' : 'Enterprise software'],
+      ownership: level === 'C-Suite' ? ['Public', 'Pre-IPO'] : ['Venture-backed'],
+      revenueBand: level === 'C-Suite' ? '$100M–$500M' : '$20M–$100M',
+      headcountBand: level === 'C-Suite' ? '1,000–5,000' : '200–1,000',
+      headquarters: marketsFor(location, combined).slice(0, 3),
+      businessModel: 'B2B product company',
+      growthPosture: level === 'C-Suite' ? 'Preparing for a public offering' : 'High growth',
+      characteristics: `Companies where this kind of leader has already owned the work the search is hiring for.`,
+      exclusions: 'Agencies, consultancies, and staffing firms.',
+    },
   };
   const description = documentNotes.trim()
     ? `${mandate.trim()}\n\nFrom the attached notes: ${documentNotes.trim()}`

@@ -27,6 +27,16 @@ import {
   roleToProjectDraft,
   trackedRoles,
 } from '../lib/roleProject';
+import {
+  COMPANY_HEADQUARTERS,
+  COMPANY_INDUSTRIES,
+  COMPANY_OWNERSHIP,
+  EMPTY_COMPANY_PROFILE,
+  GROWTH_POSTURES,
+  HEADCOUNT_BANDS,
+  REVENUE_BANDS,
+} from '../lib/companyProfile';
+import type { CompanyProfile } from '../types';
 
 interface ProjectParametersModalProps {
   isOpen: boolean;
@@ -151,6 +161,17 @@ export function ProjectParametersModal({ isOpen, onOpenChange, project, onSave, 
   const [confidentialityProtocol, setConfidentialityProtocol] = useState(
     project?.parameters?.confidentialityProtocol || 'Named Enterprise Search'
   );
+  const [companyProfile, setCompanyProfile] = useState<CompanyProfile>(
+    project?.parameters?.companyProfile ?? EMPTY_COMPANY_PROFILE
+  );
+
+  const setProfile = (patch: Partial<CompanyProfile>) => setCompanyProfile(prev => ({ ...prev, ...patch }));
+  const toggleProfileValue = (key: 'industries' | 'ownership' | 'headquarters', value: string) => {
+    setCompanyProfile(prev => {
+      const list = prev[key];
+      return { ...prev, [key]: list.includes(value) ? list.filter(item => item !== value) : [...list, value] };
+    });
+  };
 
   // Reset or initialize state when project prop changes
   useEffect(() => {
@@ -183,6 +204,7 @@ export function ProjectParametersModal({ isOpen, onOpenChange, project, onSave, 
         setTargetStartDate(project.parameters.targetStartDate);
         setMaxNoticePeriodTolerance(project.parameters.maxNoticePeriodTolerance);
         setConfidentialityProtocol(project.parameters.confidentialityProtocol || 'Named Enterprise Search');
+        setCompanyProfile(project.parameters.companyProfile ?? EMPTY_COMPANY_PROFILE);
       }
     } else if (draft) {
       const prm = draft.parameters;
@@ -215,6 +237,7 @@ export function ProjectParametersModal({ isOpen, onOpenChange, project, onSave, 
       setTargetStartDate(prm.targetStartDate);
       setMaxNoticePeriodTolerance(prm.maxNoticePeriodTolerance);
       setConfidentialityProtocol(prm.confidentialityProtocol || 'Named Enterprise Search');
+      setCompanyProfile(prm.companyProfile ?? EMPTY_COMPANY_PROFILE);
     } else {
       // Defaults for new project
       setSourceRoleId('');
@@ -246,6 +269,7 @@ export function ProjectParametersModal({ isOpen, onOpenChange, project, onSave, 
       setTargetStartDate('2026-12-01');
       setMaxNoticePeriodTolerance('60 days');
       setConfidentialityProtocol('Named Enterprise Search');
+      setCompanyProfile(EMPTY_COMPANY_PROFILE);
       if (isOpen && initialRoleId) applyRole(initialRoleId);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -347,7 +371,8 @@ export function ProjectParametersModal({ isOpen, onOpenChange, project, onSave, 
       relocationWillingness,
       targetStartDate,
       maxNoticePeriodTolerance,
-      confidentialityProtocol
+      confidentialityProtocol,
+      companyProfile,
     };
 
     const finalProject: Project = {
@@ -409,6 +434,7 @@ export function ProjectParametersModal({ isOpen, onOpenChange, project, onSave, 
           <div role="tablist" aria-label="Project inputs" className="px-6 shrink-0 sticky top-0 z-10 bg-(--bg-default) flex-wrap!">
             {[
               { id: 6, label: 'Project Details', icon: FolderKanban },
+              { id: 7, label: 'Company profile', icon: Building2 },
               { id: 1, label: 'Role & Leveling', icon: Briefcase },
               { id: 2, label: 'Compensation', icon: DollarSign },
               { id: 3, label: 'Scope & Scale', icon: Scale },
@@ -660,6 +686,93 @@ export function ProjectParametersModal({ isOpen, onOpenChange, project, onSave, 
                   value={description}
                   onChange={e => setDescription(e.target.value)}
                   placeholder="Outline the core objective, organizational context, and key milestones for this retained mandate..."
+                  className="w-full"
+                />
+              </div>
+            </div>
+
+            <div id="block-7" className="bg-white rounded-2xl border border-(--border-light) p-5 space-y-4">
+              <div className="border-b border-(--border-faint) pb-3">
+                <h3 className="m-0! text-base! leading-6! font-bold text-(--text-strong)">Target company profile</h3>
+                <p className="text-sm text-(--text-default) m-0! mt-1!">
+                  Describe the kind of company to source from. Named companies are added later, on the Companies tab.
+                </p>
+              </div>
+
+              <ProfileChoices
+                label="Industries"
+                options={COMPANY_INDUSTRIES}
+                selected={companyProfile.industries}
+                onToggle={value => toggleProfileValue('industries', value)}
+              />
+              <ProfileChoices
+                label="Ownership"
+                options={COMPANY_OWNERSHIP}
+                selected={companyProfile.ownership}
+                onToggle={value => toggleProfileValue('ownership', value)}
+              />
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="phx-label" htmlFor="co-revenue">Revenue</label>
+                  <select id="co-revenue" className="w-full" value={companyProfile.revenueBand} onChange={e => setProfile({ revenueBand: e.target.value })}>
+                    <option value="">Select a revenue band</option>
+                    {REVENUE_BANDS.map(band => <option key={band}>{band}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="phx-label" htmlFor="co-headcount">Headcount</label>
+                  <select id="co-headcount" className="w-full" value={companyProfile.headcountBand} onChange={e => setProfile({ headcountBand: e.target.value })}>
+                    <option value="">Select a headcount band</option>
+                    {HEADCOUNT_BANDS.map(band => <option key={band}>{band}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="phx-label" htmlFor="co-growth">Growth posture</label>
+                  <select id="co-growth" className="w-full" value={companyProfile.growthPosture} onChange={e => setProfile({ growthPosture: e.target.value })}>
+                    <option value="">Select a growth posture</option>
+                    {GROWTH_POSTURES.map(band => <option key={band}>{band}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="phx-label" htmlFor="co-model">Business model</label>
+                  <input
+                    id="co-model"
+                    type="text"
+                    value={companyProfile.businessModel}
+                    onChange={e => setProfile({ businessModel: e.target.value })}
+                    placeholder="For example, multi-product B2B software"
+                    className="w-full"
+                  />
+                </div>
+              </div>
+
+              <ProfileChoices
+                label="Where the company is based"
+                options={COMPANY_HEADQUARTERS}
+                selected={companyProfile.headquarters}
+                onToggle={value => toggleProfileValue('headquarters', value)}
+              />
+
+              <div>
+                <label className="phx-label" htmlFor="co-characteristics">What must be true of the company</label>
+                <textarea
+                  id="co-characteristics"
+                  rows={3}
+                  value={companyProfile.characteristics}
+                  onChange={e => setProfile({ characteristics: e.target.value })}
+                  placeholder="For example, a product company whose finance leader has taken a business through an audit or a fundraise."
+                  className="w-full"
+                />
+              </div>
+              <div>
+                <label className="phx-label" htmlFor="co-exclusions">Company types to leave out</label>
+                <textarea
+                  id="co-exclusions"
+                  rows={2}
+                  value={companyProfile.exclusions}
+                  onChange={e => setProfile({ exclusions: e.target.value })}
+                  placeholder="For example, agencies, consultancies, and staffing firms."
                   className="w-full"
                 />
               </div>
@@ -1228,5 +1341,43 @@ export function ProjectParametersModal({ isOpen, onOpenChange, project, onSave, 
         </Dialog.Content>
       </Dialog.Portal>
     </Dialog.Root>
+  );
+}
+
+function ProfileChoices({
+  label,
+  options,
+  selected,
+  onToggle,
+}: {
+  label: string;
+  options: string[];
+  selected: string[];
+  onToggle: (value: string) => void;
+}) {
+  return (
+    <div>
+      <span className="phx-label">{label}</span>
+      <div className="flex flex-wrap gap-1.5">
+        {[...options, ...selected.filter(item => item && !options.includes(item))].map(option => {
+          const on = selected.includes(option);
+          return (
+            <button
+              key={option}
+              type="button"
+              className="phx-btn"
+              data-variant="secondary"
+              data-size="sm"
+              aria-pressed={on}
+              onClick={() => onToggle(option)}
+              style={on ? { background: 'var(--bg-brand-secondary-subtle)', color: 'var(--text-brand-secondary-default)', borderColor: 'var(--text-brand-secondary-default)' } : undefined}
+            >
+              {option}
+              {on && <Check className="w-3 h-3" aria-hidden="true" />}
+            </button>
+          );
+        })}
+      </div>
+    </div>
   );
 }

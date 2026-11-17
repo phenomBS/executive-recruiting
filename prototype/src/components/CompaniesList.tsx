@@ -68,7 +68,6 @@ export function CompaniesList({
 
   const displayedCompanies = getBaseList().filter(c => {
     const restricted = isRestricted(c.name);
-    if (activeTab === 'restricted') return restricted;
     if (activeTab === 'all' && restricted) return false;
     if (activeTab === 'recommendations') return true;
     return !restricted;
@@ -183,7 +182,6 @@ export function CompaniesList({
 
   const unaddedRecsCount = currentRecs.filter(r => !r.addedToCrm).length;
 
-  const errTag = { background: 'var(--feedback-error-bg-light)', color: 'var(--feedback-error-text-strong)' };
   const okTag = { background: 'var(--feedback-success-bg-light)', color: 'var(--feedback-success-text-strong)' };
 
   const tabBtn = (id: string, label: React.ReactNode, count: React.ReactNode, onSelect?: () => void) => (
@@ -257,14 +255,6 @@ export function CompaniesList({
             </>,
             currentRecs.length,
             select('recommendations')
-          )}
-          {tabBtn(
-            'restricted',
-            <>
-              <ShieldAlert className="w-4 h-4" style={{ color: 'var(--feedback-error-text-strong)' }} aria-hidden="true" /> Restricted Companies
-            </>,
-            restrictedCompanies.length,
-            select('restricted')
           )}
           {tabBtn('target-list', 'Target List', 42)}
           {tabBtn('enterprise', 'Enterprise', 315)}
@@ -384,11 +374,6 @@ export function CompaniesList({
                         <div className="flex items-center gap-2">
                           <Building2 className="w-4 h-4 text-(--text-subtle)" aria-hidden="true" />
                           <span className="font-semibold text-(--text-strong)">{company.name}</span>
-                          {isRestricted(company.name) && (
-                            <span className="phx-tag" data-size="sm" style={errTag}>
-                              <ShieldAlert className="w-3.5 h-3.5" aria-hidden="true" /> Restricted
-                            </span>
-                          )}
                           {isRec && isAddedToCrm && (
                             <span className="phx-tag" data-size="sm" style={okTag}>
                               <Check className="w-3.5 h-3.5" aria-hidden="true" /> In CRM

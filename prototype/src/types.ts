@@ -153,6 +153,21 @@ export type SearchAssociation = {
 export type ProjectRoleLevel = 'C-Suite' | 'Executive Vice President' | 'Senior Vice President' | 'Vice President' | 'Senior Director';
 export type ProjectWorkModel = 'Remote' | 'Hybrid' | 'On-Site';
 
+/** The kind of company to source from. This is the profile, not a named target list. */
+export type CompanyProfile = {
+  industries: string[];
+  ownership: string[];
+  revenueBand: string;
+  headcountBand: string;
+  headquarters: string[];
+  businessModel: string;
+  growthPosture: string;
+  /** What must be true of the company, in the recruiter's words. */
+  characteristics: string;
+  /** Company types to leave out. */
+  exclusions: string;
+};
+
 export type ProjectParameters = {
   // 1. Role & Leveling Baseline (feeds CMA Step-Up Delta & initial Master Graph search filters)
   primaryTitle: string;
@@ -183,6 +198,9 @@ export type ProjectParameters = {
   targetStartDate: string;
   maxNoticePeriodTolerance: string;
   confidentialityProtocol?: string;
+
+  /** Ideal company to source from. Named companies live on the Companies tab. */
+  companyProfile?: CompanyProfile;
 };
 
 export type ProjectAction = {

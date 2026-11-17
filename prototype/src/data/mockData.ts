@@ -556,7 +556,18 @@ export const mockProjects: Project[] = [
       relocationWillingness: true,
       targetStartDate: '2026-11-15',
       maxNoticePeriodTolerance: '60 days',
-      confidentialityProtocol: 'Strictly Confidential Blind Teaser'
+      confidentialityProtocol: 'Strictly Confidential Blind Teaser',
+      companyProfile: {
+        industries: ['Enterprise software', 'Fintech and payments'],
+        ownership: ['Venture-backed', 'Pre-IPO'],
+        revenueBand: '$100M–$500M',
+        headcountBand: '1,000–5,000',
+        headquarters: ['United States', 'San Francisco Bay Area', 'New York'],
+        businessModel: 'Multi-product B2B software',
+        growthPosture: 'Preparing for a public offering',
+        characteristics: 'Product companies whose finance leader has owned an audit, a fundraise, or the work toward a public filing.',
+        exclusions: 'Professional services, agencies, and consulting firms.',
+      },
     },
     lastAction: {
       action: 'Calibrated 18 executive finance candidates against pre-IPO S-1 filing criteria with CEO and Board Search Committee',
@@ -603,7 +614,18 @@ export const mockProjects: Project[] = [
       relocationWillingness: true,
       targetStartDate: '2026-12-01',
       maxNoticePeriodTolerance: '30 days',
-      confidentialityProtocol: 'Named Enterprise Search'
+      confidentialityProtocol: 'Named Enterprise Search',
+      companyProfile: {
+        industries: ['Cloud infrastructure', 'Enterprise software'],
+        ownership: ['Public', 'Pre-IPO'],
+        revenueBand: '$500M–$1B',
+        headcountBand: '1,000–5,000',
+        headquarters: ['San Francisco Bay Area', 'Seattle', 'Austin'],
+        businessModel: 'Infrastructure software sold to enterprises',
+        growthPosture: 'High growth',
+        characteristics: 'Companies running large distributed systems, with an engineering organization big enough to have staff and line leadership.',
+        exclusions: 'IT services firms and consultancies.',
+      },
     },
     lastAction: {
       action: 'Dispatched confidential slate review link with 6 finalist candidates to EVP Cloud & AI Platform Scott Guthrie',
@@ -650,7 +672,18 @@ export const mockProjects: Project[] = [
       relocationWillingness: false,
       targetStartDate: '2026-11-01',
       maxNoticePeriodTolerance: '30 days',
-      confidentialityProtocol: 'Named Enterprise Search'
+      confidentialityProtocol: 'Named Enterprise Search',
+      companyProfile: {
+        industries: ['Enterprise software'],
+        ownership: ['Venture-backed'],
+        revenueBand: '$20M–$100M',
+        headcountBand: '200–1,000',
+        headquarters: ['San Francisco Bay Area', 'New York'],
+        businessModel: 'B2B product company',
+        growthPosture: 'High growth',
+        characteristics: 'Product companies with a single product line large enough to have its own general manager.',
+        exclusions: 'Agencies and services businesses.',
+      },
     },
     lastAction: {
       action: 'Completed mandate intake calibration with VP of Product; finalized comp ceiling at $340k and hybrid work model',
@@ -697,7 +730,18 @@ export const mockProjects: Project[] = [
       relocationWillingness: true,
       targetStartDate: '2026-12-15',
       maxNoticePeriodTolerance: '60 days',
-      confidentialityProtocol: 'Board-Authorized Retained Mandate'
+      confidentialityProtocol: 'Board-Authorized Retained Mandate',
+      companyProfile: {
+        industries: ['Cybersecurity', 'Cloud infrastructure'],
+        ownership: ['Public', 'Private equity-backed'],
+        revenueBand: '$500M–$1B',
+        headcountBand: '1,000–5,000',
+        headquarters: ['United States', 'Washington DC'],
+        businessModel: 'Enterprise security or infrastructure software',
+        growthPosture: 'Profitable and scaling',
+        characteristics: 'Companies with a security program that reports to the board and sells to regulated buyers.',
+        exclusions: 'Staffing firms and pure advisory practices.',
+      },
     },
     lastAction: {
       action: 'Conducted confidential market talent map across Tier-1 cybersecurity firms; identified 21 board-caliber leaders',

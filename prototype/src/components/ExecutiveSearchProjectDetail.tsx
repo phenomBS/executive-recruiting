@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Project } from '../types';
+import { CompanyProfile, Project } from '../types';
 import { 
   ArrowLeft, 
   Briefcase, 
@@ -256,6 +256,11 @@ export function ExecutiveSearchProjectDetail({ project, onBack, onUpdateProject 
                       {project.description || 'Targeting exceptional executive leadership to drive organizational transformation and scaling.'}
                     </p>
                   </div>
+
+                  <TargetCompanyProfileCard
+                    profile={params?.companyProfile}
+                    onEdit={() => setShowSettingsModal(true)}
+                  />
 
                   {/* The Six Core Parameter Blocks Overview */}
                   <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
@@ -537,6 +542,43 @@ export function ExecutiveSearchProjectDetail({ project, onBack, onUpdateProject 
           )}
         </div>
       </div>
+    </div>
+  );
+}
+
+function TargetCompanyProfileCard({ profile, onEdit }: { profile?: CompanyProfile; onEdit: () => void }) {
+  const rows: { label: string; value: string }[] = [
+    { label: 'Industries', value: profile?.industries.join(', ') || '' },
+    { label: 'Ownership', value: profile?.ownership.join(', ') || '' },
+    { label: 'Revenue', value: profile?.revenueBand || '' },
+    { label: 'Headcount', value: profile?.headcountBand || '' },
+    { label: 'Headquarters', value: profile?.headquarters.join(', ') || '' },
+    { label: 'Business model', value: profile?.businessModel || '' },
+    { label: 'Growth', value: profile?.growthPosture || '' },
+    { label: 'What must be true', value: profile?.characteristics || '' },
+    { label: 'Leave out', value: profile?.exclusions || '' },
+  ];
+  return (
+    <div className="bg-(--bg-default) rounded-2xl border border-(--border-light) p-6">
+      <div className="flex items-start justify-between gap-4 mb-4">
+        <div>
+          <h3 className="m-0! text-base! leading-6! font-bold text-(--text-strong)">Target company profile</h3>
+          <p className="m-0! mt-1! text-sm text-(--text-default)">
+            The kind of company this search should source from. Named companies are on the Companies tab.
+          </p>
+        </div>
+        <button type="button" className="phx-btn shrink-0" data-variant="secondary" data-size="sm" onClick={onEdit}>
+          <Edit3 className="w-4 h-4" aria-hidden="true" /> Edit profile
+        </button>
+      </div>
+      <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3">
+        {rows.map(row => (
+          <div key={row.label} className={row.label === 'What must be true' || row.label === 'Leave out' ? 'sm:col-span-2' : undefined}>
+            <dt className="text-sm font-semibold text-(--text-subtle)">{row.label}</dt>
+            <dd className="m-0 text-sm text-(--text-strong)">{row.value || 'Not specified'}</dd>
+          </div>
+        ))}
+      </dl>
     </div>
   );
 }

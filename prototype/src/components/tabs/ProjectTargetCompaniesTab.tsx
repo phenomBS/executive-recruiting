@@ -15,6 +15,7 @@ import { ExportTargetCompaniesModal, TargetCompaniesExportChoices } from './Expo
 import { buildTargetCompaniesCsv } from '../../lib/targetCompaniesCsv';
 import { buildTargetCompaniesPdf } from '../../lib/targetCompaniesPdf';
 import { downloadBlob } from '../../lib/simplePdf';
+import { companyMatchTags } from '../../lib/companyProfile';
 
 interface ProjectTargetCompaniesTabProps {
   project: Project;
@@ -241,7 +242,7 @@ export function ProjectTargetCompaniesTab({ project, onCountChange }: ProjectTar
   };
 
   const p = project.parameters;
-  const criteria = [p?.primaryTitle || project.title, p?.roleLevel, p?.functionalDomain?.split(',')[0], p?.targetCompanyStage].filter(Boolean) as string[];
+  const criteria = companyMatchTags(p?.companyProfile);
 
   return (
     <div className="flex flex-col gap-6 max-w-7xl mx-auto w-full pb-20">
@@ -253,7 +254,7 @@ export function ProjectTargetCompaniesTab({ project, onCountChange }: ProjectTar
           </p>
           {criteria.length > 0 && (
             <div className="flex flex-wrap items-center gap-2 mt-3">
-              <span className="text-sm font-semibold text-(--text-default)">Matched to</span>
+              <span className="text-sm font-semibold text-(--text-default)">Matched to the company profile</span>
               {criteria.map(c => (
                 <span key={c} className="phx-tag">{c}</span>
               ))}
@@ -385,6 +386,7 @@ export function ProjectTargetCompaniesTab({ project, onCountChange }: ProjectTar
       <AddTargetCompanyModal
         isOpen={showAdd}
         onOpenChange={setShowAdd}
+        project={project}
         projectCompanyNames={companies.map(c => c.name)}
         onAdd={add}
       />
