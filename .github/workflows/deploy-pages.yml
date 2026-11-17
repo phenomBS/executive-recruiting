@@ -1,8 +1,10 @@
 name: Deploy GitHub Pages
 
+# One Pages site per repo: publish main at /executive-recruiting/ and
+# branch XRX-Prototype-MVP nested at /executive-recruiting/xrx/.
 on:
   push:
-    branches: [main]
+    branches: [main, XRX-Prototype-MVP]
     paths:
       - 'prototype/**'
       - '.github/workflows/deploy-pages.yml'
@@ -21,35 +23,62 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
+      - name: Checkout main (canonical site)
         uses: actions/checkout@v4
+        with:
+          ref: main
+          path: main-src
+
+      - name: Checkout XRX-Prototype-MVP (preview subpath)
+        uses: actions/checkout@v4
+        with:
+          ref: XRX-Prototype-MVP
+          path: xrx-src
 
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: '22'
           cache: npm
-          cache-dependency-path: prototype/package-lock.json
+          cache-dependency-path: main-src/prototype/package-lock.json
 
-      - name: Install
-        working-directory: prototype
+      - name: Install (main)
+        working-directory: main-src/prototype
         run: npm ci
 
-      - name: Build static SPA
-        working-directory: prototype
+      - name: Build main static SPA
+        working-directory: main-src/prototype
         env:
-          # Project Pages URL: https://phenombs.github.io/executive-recruiting/
+          # https://phenombs.github.io/executive-recruiting/
           VITE_BASE_PATH: /executive-recruiting/
         run: npm run build:web
 
-      # GitHub Pages serves 404.html for unknown paths; copy index so deep links work.
-      - name: SPA fallback for deep links
-        run: cp prototype/dist/index.html prototype/dist/404.html
+      - name: Install (XRX)
+        working-directory: xrx-src/prototype
+        run: npm ci
+
+      - name: Build XRX static SPA
+        working-directory: xrx-src/prototype
+        env:
+          # https://phenombs.github.io/executive-recruiting/xrx/
+          VITE_BASE_PATH: /executive-recruiting/xrx/
+        run: npm run build:web
+
+      - name: Assemble site (main + /xrx)
+        run: |
+          mkdir -p site
+          cp -a main-src/prototype/dist/. site/
+          # GitHub Pages serves root 404.html for unknown paths (deep links on main).
+          cp site/index.html site/404.html
+          mkdir -p site/xrx
+          cp -a xrx-src/prototype/dist/. site/xrx/
+          # Nested copy helps local preview; Pages still uses root 404 for missing paths.
+          cp site/xrx/index.html site/xrx/404.html
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: prototype/dist
+          path: site
 
   deploy:
     needs: build
