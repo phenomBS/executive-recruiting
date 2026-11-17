@@ -68,12 +68,14 @@ jobs:
         run: |
           mkdir -p site
           cp -a main-src/prototype/dist/. site/
-          # GitHub Pages serves root 404.html for unknown paths (deep links on main).
-          cp site/index.html site/404.html
           mkdir -p site/xrx
           cp -a xrx-src/prototype/dist/. site/xrx/
-          # Nested copy helps local preview; Pages still uses root 404 for missing paths.
-          cp site/xrx/index.html site/xrx/404.html
+          # GitHub Pages only uses the *root* 404.html for missing paths.
+          # Do not copy either SPA index here — that boots the wrong app on
+          # /xrx/… refresh. Dual-SPA redirect lives in pages-spa-404.html.
+          cp main-src/.github/pages-spa-404.html site/404.html
+          # Nested copies are unused by Pages but keep local static previews sane.
+          cp main-src/.github/pages-spa-404.html site/xrx/404.html
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
