@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import * as Dialog from '@radix-ui/react-dialog';
 import * as Switch from '@radix-ui/react-switch';
-import { ArrowRight, Bot, Check, ChevronDown, Linkedin, PenLine, Plus, Search, Sparkles, X } from 'lucide-react';
+import { ArrowRight, Bookmark, Bot, Check, ChevronDown, ChevronRight, Linkedin, PenLine, Plus, Search, Sparkles, User, X } from 'lucide-react';
 import type { Candidate, Project, ProjectParameters, ProjectRoleLevel } from '../types';
 import { isProjectLive, projectStatusLabel } from '../lib/projectStatus';
 import { initialProjectPipeline } from './tabs/ProjectCandidatesTab';
@@ -87,14 +87,15 @@ type Segment = {
 };
 
 type ChatItem =
-  | { kind: 'search'; id: string; query: string; segments: Segment[] }
+  | { kind: 'search'; id: string; query: string; segments: Segment[]; shown: number; thinking: boolean }
   | { kind: 'note'; id: string; text: string };
 
 const SUGGESTIONS = [
-  'Chief Operations Officer in Chicago',
-  'Chief Financial Officer in Philadelphia',
-  'VP of Engineering in the Bay Area',
-  'Chief Information Security Officer',
+  'Distinguished Engineer AI with machine learning',
+  'Registered Nurse with pediatric nursing',
+  'Electrical Superintendent with safety certification',
+  'Field Service Engineer Biomedical equipment',
+  'Principal Software Engineer with cloud',
 ];
 
 const COO_CHICAGO: Lead[] = [
@@ -139,6 +140,25 @@ function isCooChicago(query: string) {
   return (s.includes('chief operations') || /\bcoo\b/.test(s)) && s.includes('chicago');
 }
 
+function isCfoPhiladelphia(query: string) {
+  const s = query.toLowerCase();
+  return (s.includes('chief financial') || /\bcfo\b/.test(s)) && s.includes('philadelphia');
+}
+
+function ackTitle(query: string) {
+  if (isCfoPhiladelphia(query)) return 'Chief Financial Officer in Philadelphia';
+  if (isCooChicago(query)) return 'Chief Operations Officer in Chicago';
+  const trimmed = query.trim();
+  return trimmed.charAt(0).toUpperCase() + trimmed.slice(1);
+}
+
+const CFO_PHILADELPHIA: Lead[] = [
+  { id: 'lead-bill-chu', firstName: 'Bill', lastName: 'Chu', role: 'Chief Financial Officer', company: '', location: 'Philadelphia,Pennsylvania,United States', line: 'Looking for Chief Financial Officer | Philadelphia,Pennsylvania,United States', tags: ['Passive', 'CRM'], linkedin: false, emi: 81, about: 'Finance leader in Philadelphia looking for a chief financial officer role. A direct contact is on file.' },
+  { id: 'lead-matthew-cajda', firstName: 'Matthew', lastName: 'Cajda', role: 'Chief Financial Officer', company: 'All Access Gte', location: 'Philadelphia,Pennsylvania,United States', line: 'Chief Financial Officer at All Access Gte | Philadelphia,Pennsylvania,United States', tags: ['Passive', 'Cloud'], linkedin: true, emi: 84, about: 'Chief financial officer at All Access Gte, based in Philadelphia.' },
+  { id: 'lead-austin-conner', firstName: 'Austin', lastName: 'Conner', role: 'Chief Financial Officer', company: 'Ims Technology Services', location: 'Philadelphia,Pennsylvania,United States', line: 'Chief Financial Officer at Ims Technology Services | Philadelphia,Pennsylvania,United States', tags: ['Passive', 'Cloud'], linkedin: true, emi: 83, about: 'Chief financial officer at Ims Technology Services in Philadelphia.' },
+  { id: 'lead-chuck-paul', firstName: 'Chuck', lastName: 'Paul', role: 'Chief Financial Officer', company: '', location: 'Philadelphia,Pennsylvania,United States', line: 'Chief Financial Officer | Philadelphia,Pennsylvania,United States', tags: ['Passive', 'Cloud'], linkedin: true, emi: 80, about: 'Finance executive based in Philadelphia.' },
+];
+
 function generatedLeads(title: string, location: string): Lead[] {
   const place = location || 'United States';
   const names: [string, string, string][] = [
@@ -166,6 +186,34 @@ function generatedLeads(title: string, location: string): Lead[] {
 
 function buildSegments(query: string): Segment[] {
   const parsed = interpret(query);
+  if (isCfoPhiladelphia(query)) {
+    return [
+      {
+        id: 'cfo-asked',
+        title: 'What you asked for: Chief Financial Officer in Philadelphia',
+        description: 'Executive finance leader role based in Philadelphia. Focus on overall financial strategy and stewardship for the organization.',
+        count: 200,
+        leads: CFO_PHILADELPHIA,
+        reasoning: 'This is the direct read of the search: a chief financial officer based in Philadelphia, accountable for financial strategy and stewardship.',
+      },
+      {
+        id: 'cfo-adjacent',
+        title: 'Finance Leaders from Adjacent Tech Sectors (Philadelphia)',
+        description: 'Senior finance executives from broader tech or software sectors. Used to source leaders with transferable financial leadership skills.',
+        count: 200,
+        leads: CFO_PHILADELPHIA,
+        reasoning: 'The agent widened the Philadelphia finance search into adjacent technology sectors where financial leadership skills transfer.',
+      },
+      {
+        id: 'cfo-saas',
+        title: 'Finance Executives in HRTech/SaaS Companies (Philadelphia)',
+        description: 'Finance leaders from HRTech or SaaS companies in Philadelphia. Relevant for candidates with industry-specific financial expertise.',
+        count: 200,
+        leads: CFO_PHILADELPHIA,
+        reasoning: 'HRTech and SaaS finance leaders in Philadelphia, for a mandate that needs industry-specific financial expertise.',
+      },
+    ];
+  }
   if (isCooChicago(query)) {
     const saas = COO_CHICAGO.filter(lead => /chief operations/i.test(lead.role) || /cloud|saas|ai/i.test(lead.company + lead.line));
     return [
@@ -326,7 +374,7 @@ interface AgentProjectSearchProps {
   projects: Project[];
 }
 
-export function AgentProjectSearch({ isOpen, onOpenChange, onBack, onSave, projects }: AgentProjectSearchProps) {
+export function AgentProjectSearch({ isOpen, onOpenChange, onSave, projects }: AgentProjectSearchProps) {
   const [draft, setDraft] = useState('');
   const [items, setItems] = useState<ChatItem[]>([]);
   const [activeKey, setActiveKey] = useState('');
@@ -338,9 +386,12 @@ export function AgentProjectSearch({ isOpen, onOpenChange, onBack, onSave, proje
   const [addProjectOpen, setAddProjectOpen] = useState(false);
   const [projectQuery, setProjectQuery] = useState('');
   const threadRef = useRef<HTMLDivElement>(null);
+  const timers = useRef<number[]>([]);
 
   useEffect(() => {
     if (!isOpen) {
+      timers.current.forEach(id => window.clearTimeout(id));
+      timers.current = [];
       setDraft('');
       setItems([]);
       setActiveKey('');
@@ -352,11 +403,17 @@ export function AgentProjectSearch({ isOpen, onOpenChange, onBack, onSave, proje
     }
   }, [isOpen]);
 
+  useEffect(() => () => {
+    timers.current.forEach(id => window.clearTimeout(id));
+  }, []);
+
   useEffect(() => {
     threadRef.current?.scrollTo({ top: threadRef.current.scrollHeight });
   }, [items]);
 
   const searches = items.filter((item): item is Extract<ChatItem, { kind: 'search' }> => item.kind === 'search');
+  const latestSearch = searches[searches.length - 1];
+  const showSteps = Boolean(latestSearch && !latestSearch.thinking);
   const active = useMemo(() => {
     for (const search of searches) {
       const segment = search.segments.find(s => `${search.id}:${s.id}` === activeKey);
@@ -377,11 +434,20 @@ export function AgentProjectSearch({ isOpen, onOpenChange, onBack, onSave, proje
     if (!query) return;
     const id = `turn-${Date.now()}`;
     const segments = buildSegments(query);
-    setItems(prev => [...prev, { kind: 'search', id, query, segments }]);
+    const staged = isCfoPhiladelphia(query);
+    setItems(prev => [...prev, { kind: 'search', id, query, segments, shown: staged ? 2 : segments.length, thinking: staged }]);
     setActiveKey(`${id}:${segments[0].id}`);
     setPanel('candidates');
     setDraft('');
     setSelected([]);
+    if (staged) {
+      const timer = window.setTimeout(() => {
+        setItems(prev => prev.map(item => (
+          item.kind === 'search' && item.id === id ? { ...item, shown: item.segments.length, thinking: false } : item
+        )));
+      }, 1100);
+      timers.current.push(timer);
+    }
   };
 
   const note = (text: string) => setItems(prev => [...prev, { kind: 'note', id: `note-${Date.now()}`, text }]);
@@ -420,45 +486,29 @@ export function AgentProjectSearch({ isOpen, onOpenChange, onBack, onSave, proje
   return (
     <Dialog.Root open={isOpen} onOpenChange={onOpenChange}>
       <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 z-(--z-overlay)" style={{ background: 'var(--bg-overlay-blanket)' }} />
-        <Dialog.Content className="fixed inset-3 md:inset-5 z-(--z-modal) bg-(--bg-surface-base) rounded-2xl border border-(--border-light) shadow-2xl flex flex-col overflow-hidden relative">
-          <div className="px-4 py-3 border-b border-(--border-light) bg-(--bg-default) flex items-center justify-between gap-3 shrink-0">
-            <div className="flex items-center gap-2 min-w-0">
-              <button type="button" className="phx-btn" data-variant="tertiary" data-size="sm" onClick={onBack}>Back</button>
-              <Dialog.Title className="m-0! text-base! leading-6! font-bold text-(--text-strong) truncate">Phenom Sourcing Agent</Dialog.Title>
-              <Dialog.Description className="sr-only">Chat with the sourcing agent, review candidates, and add them to a project.</Dialog.Description>
-            </div>
-            <Dialog.Close asChild>
-              <button type="button" className="phx-btn" data-variant="tertiary" data-size="sm" aria-label="Close">
-                <X className="w-4 h-4" aria-hidden="true" />
-              </button>
-            </Dialog.Close>
-          </div>
+        <Dialog.Content
+          className="fixed z-(--z-modal) bg-(--bg-default) flex flex-col overflow-hidden outline-none"
+          style={{ top: 'var(--shell-topbar-height)', left: 'var(--shell-rail-width)', right: 0, bottom: 0 }}
+        >
+          <Dialog.Title className="sr-only m-0!">Phenom Sourcing Agent</Dialog.Title>
+          <Dialog.Description className="sr-only">Search for candidates and add them to a project.</Dialog.Description>
 
           {searches.length === 0 ? (
             <EmptySearch draft={draft} setDraft={setDraft} onAsk={ask} />
           ) : (
             <div className="flex-1 min-h-0 flex flex-col lg:flex-row">
-              <div className="lg:w-[400px] shrink-0 border-b lg:border-b-0 lg:border-r border-(--border-light) bg-(--bg-default) flex flex-col min-h-0">
-                <div ref={threadRef} className="flex-1 overflow-y-auto p-4 flex flex-col gap-4">
+              <div className="lg:w-[380px] shrink-0 border-b lg:border-b-0 lg:border-r border-(--border-light) bg-(--bg-default) flex flex-col min-h-0">
+                <div ref={threadRef} className="flex-1 overflow-y-auto px-4 py-5 flex flex-col gap-3">
                   {items.map(item => item.kind === 'note' ? (
-                    <p key={item.id} className="m-0! text-sm text-(--text-default) flex items-start gap-2">
-                      <Sparkles className="w-4 h-4 mt-0.5 shrink-0 text-(--color-secondary-200)" aria-hidden="true" />
-                      {item.text}
-                    </p>
+                    <p key={item.id} className="m-0! text-sm text-(--text-default)">{item.text}</p>
                   ) : (
                     <div key={item.id} className="flex flex-col gap-3">
-                      <div className="flex justify-end">
-                        <div className="max-w-[90%] rounded-2xl px-3 py-2 text-sm text-(--text-strong) flex items-center gap-2" style={{ background: 'var(--bg-neutral-soft)' }}>
-                          <span>{item.query}</span>
-                          <span className="w-7 h-7 rounded-full bg-(--bg-brand-secondary-subtle) text-(--text-brand-secondary-default) text-xs font-semibold flex items-center justify-center shrink-0" aria-hidden="true">BS</span>
-                        </div>
+                      <div className="flex justify-end items-center gap-2">
+                        <span className="max-w-[85%] rounded-2xl px-3 py-1.5 text-sm text-(--text-strong)" style={{ background: 'var(--bg-neutral-soft)' }}>{item.query}</span>
+                        <span className="w-8 h-8 rounded-full bg-(--bg-neutral-soft) text-(--text-strong) text-xs font-semibold flex items-center justify-center shrink-0" aria-hidden="true">BS</span>
                       </div>
-                      <p className="m-0! text-sm text-(--text-default) flex items-start gap-2">
-                        <Sparkles className="w-4 h-4 mt-0.5 shrink-0 text-(--color-secondary-200)" aria-hidden="true" />
-                        Got it — {isCooChicago(item.query) ? 'Chief Operations Officer in Chicago' : item.query.charAt(0).toUpperCase() + item.query.slice(1)}.
-                      </p>
-                      {item.segments.map(segment => {
+                      <p className="m-0! text-sm text-(--text-default)">Got it — {ackTitle(item.query)}.</p>
+                      {item.segments.slice(0, item.shown).map(segment => {
                         const on = active?.segment.id === segment.id && active.search.id === item.id;
                         return (
                           <button
@@ -466,18 +516,18 @@ export function AgentProjectSearch({ isOpen, onOpenChange, onBack, onSave, proje
                             type="button"
                             onClick={() => { setActiveKey(`${item.id}:${segment.id}`); setPanel('candidates'); }}
                             aria-pressed={on}
-                            className="text-left rounded-2xl border p-4 bg-(--bg-default)"
+                            className="text-left rounded-2xl border p-4"
                             style={{
-                              borderColor: on ? 'var(--color-secondary-200)' : 'var(--border-light)',
-                              background: on ? 'var(--bg-brand-secondary-subtle)' : 'var(--bg-default)',
+                              borderColor: on ? 'var(--color-secondary-100)' : 'var(--border-light)',
+                              background: on ? 'var(--color-secondary-40)' : 'var(--bg-default)',
                             }}
                           >
-                            <div className="text-2xl font-bold text-(--color-secondary-200)">{segment.count}</div>
-                            <div className="text-xs text-(--text-subtle)">Candidates found</div>
-                            <div className="mt-2 text-sm font-bold text-(--color-secondary-300)">{segment.title}</div>
+                            <div className="text-3xl font-bold leading-none text-(--color-secondary-300)">{segment.count}</div>
+                            <div className="mt-1 text-xs text-(--text-subtle)">Candidates found</div>
+                            <div className="mt-3 text-sm font-bold text-(--color-secondary-300)">{segment.title}</div>
                             <p className="m-0! mt-1! text-sm text-(--text-default)">{segment.description}</p>
                             {on && (
-                              <p className="m-0! mt-2! text-xs text-(--color-secondary-200) flex items-center gap-1.5">
+                              <p className="m-0! mt-3! text-xs text-(--color-brown-400) flex items-center gap-1.5">
                                 <Sparkles className="w-3.5 h-3.5" aria-hidden="true" />
                                 Viewing details on the right panel
                               </p>
@@ -485,50 +535,55 @@ export function AgentProjectSearch({ isOpen, onOpenChange, onBack, onSave, proje
                           </button>
                         );
                       })}
+                      {item.thinking && (
+                        <p className="m-0! text-sm text-(--text-default) flex items-center gap-2">
+                          <X className="w-4 h-4 text-(--text-subtle)" aria-hidden="true" />
+                          Thinking...
+                        </p>
+                      )}
                     </div>
                   ))}
-                  {searches.length > 0 && (
+                  {showSteps && (
                     <div className="flex flex-col gap-3">
                       <p className="m-0! text-sm text-(--text-default) flex items-start gap-2">
-                        <Sparkles className="w-4 h-4 mt-0.5 shrink-0 text-(--color-secondary-200)" aria-hidden="true" />
+                        <X className="w-4 h-4 mt-0.5 shrink-0 text-(--text-subtle)" aria-hidden="true" />
                         <span>
-                          Recommended next steps:
-                          <span className="block mt-1">1. Shortlist candidates you like and then add to list, job, project or create reachout.</span>
-                          <span className="block">2. Type to adjust criteria for the segment in view.</span>
+                        Recommended next steps:
+                        <span className="block mt-1">1. Shortlist candidates you like and then add to list, job, project or create reachout.</span>
+                        <span className="block">2. Type to adjust criteria for the segment in view.</span>
                         </span>
                       </p>
                       <div className="flex flex-wrap gap-2">
-                        <button type="button" className="phx-btn" data-variant="secondary" data-size="sm" onClick={() => {
-                          if (!active) return;
-                          setSelected(prev => Array.from(new Set([...prev, ...active.segment.leads.map(l => l.id)])));
-                          note(`Added the candidates in “${active.segment.title}” to your list.`);
-                        }}>
-                          Add Candidates to List
-                        </button>
-                        <button type="button" className="phx-btn" data-variant="secondary" data-size="sm" onClick={openAddProject}>
-                          Add Candidates to Project
-                        </button>
-                        <button type="button" className="phx-btn" data-variant="secondary" data-size="sm" onClick={() => note('Add these candidates to a project first. A job opening can be attached from that project.')}>
-                          Add Candidates to Job
-                        </button>
-                        <button type="button" className="phx-btn" data-variant="secondary" data-size="sm" onClick={() => note(selectedLeads.length === 0 ? 'Select candidates, then reachout drafts a note for each of them.' : `Reachout drafted for ${selectedLeads.map(l => l.firstName).join(', ')}: a short introduction to the ${active ? interpret(active.search.query).title : 'role'}.`)}>
-                          Reachout
-                        </button>
-                        <button type="button" className="phx-btn" data-variant="secondary" data-size="sm" onClick={createNew}>
-                          <Plus className="w-4 h-4" aria-hidden="true" /> Create new project
-                        </button>
+                        {([
+                          ['Add Candidates to List', () => {
+                            if (!active) return;
+                            setSelected(prev => Array.from(new Set([...prev, ...active.segment.leads.map(l => l.id)])));
+                            note(`Added the candidates in “${active.segment.title}” to your list.`);
+                          }],
+                          ['Add Candidates to Project', openAddProject],
+                          ['Add Candidates to Job', () => note('Add these candidates to a project first. A job opening can be attached from that project.')],
+                          ['Reachout', () => note(selectedLeads.length === 0 ? 'Select candidates, then reachout drafts a note for each of them.' : `Reachout drafted for ${selectedLeads.map(l => l.firstName).join(', ')}: a short introduction to the ${active ? interpret(active.search.query).title : 'role'}.`)],
+                        ] as const).map(([label, action]) => (
+                          <button
+                            key={label}
+                            type="button"
+                            onClick={action}
+                            className="rounded-full border bg-(--bg-default) px-3 py-1 text-sm text-(--color-secondary-300)"
+                            style={{ borderColor: 'var(--color-secondary-75)' }}
+                          >
+                            {label}
+                          </button>
+                        ))}
                       </div>
                     </div>
                   )}
                 </div>
-                <form className="p-3 border-t border-(--border-light)" onSubmit={e => { e.preventDefault(); ask(draft); }}>
+                <form className="p-3" onSubmit={e => { e.preventDefault(); ask(draft); }}>
                   <label className="sr-only" htmlFor="agent-followup">Message the sourcing agent</label>
-                  <div className="flex items-center gap-2 rounded-2xl border border-(--border-light) px-3 py-2">
+                  <div className="flex items-center gap-2 rounded-xl border border-(--border-light) px-3 py-2">
                     <Search className="w-4 h-4 text-(--text-subtle) shrink-0" aria-hidden="true" />
                     <input id="agent-followup" value={draft} onChange={e => setDraft(e.target.value)} placeholder="Find perfect fit candidates..." className="flex-1 border-0! shadow-none! bg-transparent" />
-                    <button type="submit" className="phx-btn" data-variant="primary" data-size="sm" aria-label="Send" disabled={!draft.trim()}>
-                      <ArrowRight className="w-4 h-4" aria-hidden="true" />
-                    </button>
+                    <SendButton disabled={!draft.trim()} label="Send" />
                   </div>
                 </form>
               </div>
@@ -555,7 +610,8 @@ export function AgentProjectSearch({ isOpen, onOpenChange, onBack, onSave, proje
                       note(`Added the candidates in “${active.segment.title}” to your list.`);
                     }}
                     onAddJob={() => { setAddMenu(false); note('Add these candidates to a project first. A job opening can be attached from that project.'); }}
-                    onNewSearch={() => { setItems([]); setDraft(''); }}
+                    onNewSearch={() => { setItems([]); setDraft(''); setSelected([]); setActiveKey(''); setAddMenu(false); }}
+                    onClose={() => onOpenChange(false)}
                     onAddAll={() => setSelected(prev => Array.from(new Set([...prev, ...active.segment.leads.map(l => l.id)])))}
                   />
                 )}
@@ -628,29 +684,91 @@ function ProjectGroup({ label, projects, onPick }: { label: string; projects: Pr
   );
 }
 
+function SendButton({ disabled, label }: { disabled?: boolean; label: string }) {
+  return (
+    <button
+      type="submit"
+      aria-label={label}
+      disabled={disabled}
+      className="w-8 h-8 rounded-full border border-(--border-light) bg-(--bg-default) flex items-center justify-center shrink-0 text-(--text-default) disabled:opacity-40"
+    >
+      <ArrowRight className="w-4 h-4" aria-hidden="true" />
+    </button>
+  );
+}
+
 function EmptySearch({ draft, setDraft, onAsk }: { draft: string; setDraft: (v: string) => void; onAsk: (q: string) => void }) {
+  const [agentMode, setAgentMode] = useState(false);
+  const [contactInfo, setContactInfo] = useState(true);
+  const [tipsOpen, setTipsOpen] = useState(true);
   return (
     <div className="flex-1 overflow-y-auto flex flex-col items-center justify-center px-6 py-10 bg-(--bg-default)">
-      <h2 className="m-0! text-xl! font-bold text-(--text-strong) text-center">Amazing talent is just a search away</h2>
-      <form className="mt-6 w-full max-w-xl rounded-2xl border border-(--border-light) p-3" onSubmit={e => { e.preventDefault(); onAsk(draft); }}>
+      <img src="/sourcing-hero.png" alt="" className="h-28 w-auto" />
+      <h2 className="m-0! mt-4! text-lg! font-semibold text-(--text-strong) text-center">Amazing talent is just a search away</h2>
+      <form className="mt-5 w-full max-w-2xl rounded-xl border border-(--border-light) bg-(--bg-default) px-4 py-3" onSubmit={e => { e.preventDefault(); onAsk(draft); }}>
         <label className="sr-only" htmlFor="agent-search">Find candidates</label>
         <div className="flex items-center gap-2">
           <Search className="w-4 h-4 text-(--text-subtle) shrink-0" aria-hidden="true" />
-          <input id="agent-search" value={draft} onChange={e => setDraft(e.target.value)} placeholder="Find perfect fit candidates..." className="flex-1 border-0! shadow-none! bg-transparent" />
-          <button type="submit" className="phx-btn" data-variant="primary" data-size="sm" aria-label="Search" disabled={!draft.trim()}>
-            <ArrowRight className="w-4 h-4" aria-hidden="true" />
+          <input id="agent-search" value={draft} onChange={e => setDraft(e.target.value)} placeholder="Find perfect fit candidates..." className="flex-1 border-0! shadow-none! bg-transparent" autoFocus />
+        </div>
+        <div className="mt-3 flex items-center gap-4">
+          <div className="flex items-center gap-2">
+            <Switch.Root
+              type="button"
+              checked={agentMode}
+              onCheckedChange={setAgentMode}
+              className="w-9 h-5 rounded-full relative shrink-0"
+              style={{ background: agentMode ? 'var(--color-green-400)' : 'var(--color-neutrals-100)' }}
+              aria-label="Agent mode"
+            >
+              <Switch.Thumb className={`block w-4 h-4 bg-white rounded-full shadow-xs transition-transform ${agentMode ? 'translate-x-4' : 'translate-x-0.5'}`} />
+            </Switch.Root>
+            <span className="text-sm text-(--text-default)">Agent mode</span>
+          </div>
+          <button
+            type="button"
+            role="checkbox"
+            aria-checked={contactInfo}
+            onClick={() => setContactInfo(v => !v)}
+            className="inline-flex items-center gap-2 text-sm text-(--text-default)"
+          >
+            <span
+              className="w-4 h-4 rounded-sm border flex items-center justify-center"
+              style={{
+                background: contactInfo ? 'var(--color-green-400)' : 'var(--bg-default)',
+                borderColor: contactInfo ? 'var(--color-green-400)' : 'var(--border-light)',
+                color: 'var(--text-inverse)',
+              }}
+              aria-hidden="true"
+            >
+              {contactInfo && <Check className="w-3 h-3" />}
+            </span>
+            Candidates with contact info
           </button>
+          <span className="flex-1" />
+          <SendButton disabled={!draft.trim()} label="Search" />
         </div>
       </form>
-      <p className="m-0! mt-6! text-sm text-(--text-subtle)">Try searching</p>
-      <div className="mt-3 flex flex-wrap justify-center gap-2 max-w-xl">
-        {SUGGESTIONS.map(item => (
-          <button key={item} type="button" className="phx-btn" data-variant="secondary" data-size="sm" onClick={() => onAsk(item)}>
-            <Sparkles className="w-3.5 h-3.5" aria-hidden="true" />
-            <span className="max-w-[240px] truncate">{item}</span>
-          </button>
-        ))}
-      </div>
+      <button type="button" className="mt-5 inline-flex items-center gap-1 text-sm text-(--text-subtle)" aria-expanded={tipsOpen} onClick={() => setTipsOpen(v => !v)}>
+        Try searching
+        <ChevronDown className={`w-4 h-4 transition-transform ${tipsOpen ? '' : '-rotate-90'}`} aria-hidden="true" />
+      </button>
+      {tipsOpen && (
+        <div className="mt-3 flex flex-wrap justify-center gap-2 max-w-2xl">
+          {SUGGESTIONS.map(item => (
+            <button
+              key={item}
+              type="button"
+              onClick={() => onAsk(item)}
+              className="inline-flex items-center gap-1.5 max-w-[240px] rounded-full border bg-(--bg-default) px-3 py-1 text-sm text-(--text-strong)"
+              style={{ borderColor: 'var(--color-kobe-200)' }}
+            >
+              <Sparkles className="w-3.5 h-3.5 shrink-0 text-(--color-secondary-200)" aria-hidden="true" />
+              <span className="truncate">{item}</span>
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -672,54 +790,72 @@ function ResultsPanel(props: {
   onAddList: () => void;
   onAddJob: () => void;
   onNewSearch: () => void;
+  onClose: () => void;
   onAddAll: () => void;
 }) {
   const parsed = interpret(props.query);
   const { segment } = props;
+  const [saved, setSaved] = useState<string[]>([]);
+  const showing = segment.id.startsWith('cfo-')
+    ? 'Showing 1–50 of 200 matching leads'
+    : `Showing 1–${segment.leads.length} of ${segment.count} matching leads`;
+  const shortlistedHere = segment.leads.filter(lead => props.selected.includes(lead.id)).length;
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex flex-col md:flex-row md:items-start justify-between gap-3">
-        <div className="min-w-0">
-          <p className="m-0! text-xs text-(--text-subtle)">Progression / Candidates</p>
-          <h2 className="m-0! mt-1! text-lg! leading-6! font-bold text-(--text-strong)">{segment.title}</h2>
-          <p className="m-0! mt-1! text-sm text-(--text-default) max-w-2xl">{segment.description}</p>
-        </div>
-        <div className="flex items-center gap-3 shrink-0">
-          <div className="text-right">
-            <div className="text-2xl font-bold text-(--color-secondary-200)">{segment.count}</div>
-            <div className="text-xs text-(--text-subtle)">Candidates found</div>
-          </div>
+      <div className="flex items-center justify-between gap-3">
+        <p className="m-0! text-sm text-(--text-subtle) inline-flex items-center gap-1">
+          Progression <ChevronRight className="w-3.5 h-3.5" aria-hidden="true" /> <span className="text-(--text-strong)">Candidates</span>
+        </p>
+        <div className="flex items-center gap-2">
           <div className="relative">
-            <button type="button" className="phx-btn" data-variant="secondary" data-size="sm" aria-expanded={props.addMenu} aria-haspopup="menu" onClick={() => props.setAddMenu(!props.addMenu)}>
+            <button type="button" className="inline-flex items-center gap-1 px-2 py-1 text-sm text-(--text-strong)" aria-expanded={props.addMenu} aria-haspopup="menu" onClick={() => props.setAddMenu(!props.addMenu)}>
               Add to <ChevronDown className="w-4 h-4" aria-hidden="true" />
             </button>
             {props.addMenu && (
-              <div role="menu" className="absolute right-0 top-11 z-10 w-44 rounded-xl border border-(--border-light) bg-(--bg-default) shadow-md py-1">
-                <button type="button" role="menuitem" className="w-full text-left px-3 py-2 text-sm hover:bg-(--bg-neutral-soft)" onClick={props.onAddProject}>Project</button>
+              <div role="menu" className="absolute right-0 top-9 z-10 w-44 rounded-xl border border-(--border-light) bg-(--bg-default) shadow-md py-1">
+                <button type="button" role="menuitem" className="w-full text-left px-3 py-2 text-sm hover:bg-(--bg-neutral-soft)" onClick={props.onAddProject}>Projects</button>
                 <button type="button" role="menuitem" className="w-full text-left px-3 py-2 text-sm hover:bg-(--bg-neutral-soft)" onClick={props.onAddList}>List</button>
                 <button type="button" role="menuitem" className="w-full text-left px-3 py-2 text-sm hover:bg-(--bg-neutral-soft)" onClick={props.onAddJob}>Job</button>
               </div>
             )}
           </div>
-          <button
-            type="button"
-            className="phx-btn"
-            data-variant="primary"
-            data-size="sm"
-            onClick={props.onNewSearch}
-          >
+          <button type="button" className="phx-btn" data-variant="primary" data-size="sm" onClick={props.onNewSearch}>
             New Search
           </button>
+          <button type="button" className="phx-btn" data-variant="tertiary" data-size="sm" aria-label="Close search" onClick={props.onClose}>
+            <X className="w-4 h-4" aria-hidden="true" />
+          </button>
+        </div>
+      </div>
+
+      <div className="flex items-start justify-between gap-6">
+        <div className="min-w-0">
+          <h2 className="m-0! text-lg! leading-6! font-bold text-(--text-strong)">{segment.title}</h2>
+          <p className="m-0! mt-1! text-sm text-(--text-default) max-w-2xl">{segment.description}</p>
+        </div>
+        <div className="text-right shrink-0">
+          <div className="text-3xl font-bold leading-none text-(--color-secondary-300)">{segment.count}</div>
+          <div className="mt-1 text-xs text-(--text-subtle)">Candidates found</div>
         </div>
       </div>
 
       <div role="tablist" aria-label="Search detail">
         {([
-          ['reasoning', 'Reasoning'],
-          ['criteria', 'Filter criteria'],
-          ['candidates', 'Candidates'],
-        ] as const).map(([id, label]) => (
-          <button key={id} type="button" role="tab" aria-selected={props.panel === id} onClick={() => props.setPanel(id)}>{label}</button>
+          ['reasoning', 'Reasoning', false],
+          ['criteria', 'Filter criteria', false],
+          ['candidates', 'Candidates', true],
+        ] as const).map(([id, label, person]) => (
+          <button
+            key={id}
+            type="button"
+            role="tab"
+            aria-selected={props.panel === id}
+            onClick={() => props.setPanel(id)}
+            style={props.panel === id ? { borderBottomColor: 'var(--color-green-400)', color: 'var(--text-strong)' } : undefined}
+          >
+            {person && <User className="w-4 h-4" aria-hidden="true" />}
+            {label}
+          </button>
         ))}
       </div>
 
@@ -735,79 +871,96 @@ function ResultsPanel(props: {
       {props.panel === 'candidates' && (
         <div className="flex flex-col gap-3">
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <p className="m-0! text-sm text-(--text-default)">Showing 1–{segment.leads.length} of {segment.count} matching leads</p>
-              <p className="m-0! text-sm font-semibold text-(--text-strong)">Total shortlisted: {props.selected.length}</p>
-            </div>
-            <button
-              type="button"
-              className="phx-btn"
-              data-variant="primary"
-              data-size="sm"
-              onClick={props.onAddAll}
-            >
-              <Plus className="w-4 h-4" aria-hidden="true" /> Add all to shortlist
-            </button>
+            <p className="m-0! text-sm text-(--text-default)">{showing}</p>
+            {shortlistedHere > 0 ? (
+              <p className="m-0! text-sm text-(--text-strong) inline-flex items-center gap-1.5">
+                <Check className="w-4 h-4 text-(--color-green-400)" aria-hidden="true" />
+                {shortlistedHere} Leads shortlisted
+              </p>
+            ) : (
+              <button type="button" className="phx-btn" data-variant="primary" data-size="sm" onClick={props.onAddAll}>
+                <Plus className="w-4 h-4" aria-hidden="true" /> Add all to shortlist
+              </button>
+            )}
           </div>
+          <p className="m-0! text-sm text-(--text-default)">Total shortlisted: {shortlistedHere}</p>
           <div className="flex items-center gap-2">
             <Switch.Root
+              type="button"
               checked={props.moreInfo}
               onCheckedChange={props.setMoreInfo}
-              className="w-10 h-6 rounded-full relative shrink-0"
-              style={{ background: props.moreInfo ? 'var(--bg-brand-secondary-default)' : 'var(--color-neutrals-100)' }}
-              aria-label="Display more info by default"
+              className="w-9 h-5 rounded-full relative shrink-0"
+              style={{ background: props.moreInfo ? 'var(--color-green-400)' : 'var(--color-neutrals-100)' }}
+              aria-label="Display More info by default"
             >
-              <Switch.Thumb className={`block w-4 h-4 bg-white rounded-full transition-transform shadow-xs ${props.moreInfo ? 'translate-x-5' : 'translate-x-1'}`} />
+              <Switch.Thumb className={`block w-4 h-4 bg-white rounded-full transition-transform shadow-xs ${props.moreInfo ? 'translate-x-4' : 'translate-x-0.5'}`} />
             </Switch.Root>
-            <span className="text-sm text-(--text-default)">Display more info by default</span>
+            <span className="text-sm text-(--text-default)">Display More info by default</span>
           </div>
-          <ul className="flex flex-col">
-            {segment.leads.map(lead => {
+          <ul className="flex flex-col gap-2">
+            {segment.leads.map((lead, index) => {
               const on = props.selected.includes(lead.id);
               const show = props.moreInfo || props.openInfo === lead.id;
+              const tint = index % 2 === 0 ? 'var(--color-secondary-40)' : 'var(--color-primary-50)';
+              const ink = index % 2 === 0 ? 'var(--color-secondary-300)' : 'var(--color-primary-500)';
               return (
                 <li
                   key={lead.id}
-                  className="py-3 border-b border-(--border-light)"
-                  style={on ? { background: 'var(--feedback-success-bg-light)', boxShadow: 'inset 0 0 0 1px var(--feedback-success-icon-default)' } : undefined}
+                  className="rounded-xl border bg-(--bg-default) px-3 py-3"
+                  style={{ borderColor: on ? 'var(--color-green-400)' : 'var(--border-light)' }}
                 >
-                  <div className="flex items-start justify-between gap-3 px-2">
-                    <div className="flex items-start gap-3 min-w-0">
-                      <div className="w-10 h-10 rounded-full bg-(--bg-neutral-soft) text-(--text-strong) text-xs font-bold flex items-center justify-center shrink-0" aria-hidden="true">
-                        {lead.firstName.charAt(0)}{lead.lastName.charAt(0)}
-                      </div>
-                      <div className="min-w-0">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <span className="text-sm font-bold text-(--text-strong)">{lead.firstName} {lead.lastName}</span>
-                          {lead.linkedin && <Linkedin className="w-3.5 h-3.5 text-(--text-subtle)" aria-label="LinkedIn on file" />}
-                          {lead.tags.map(tag => <span key={tag} className="phx-tag">{tag}</span>)}
-                          {on && <span className="phx-tag">Shortlisted</span>}
-                        </div>
-                        <p className="m-0! text-sm text-(--text-default)">{lead.line}</p>
-                      </div>
+                  <div className="flex items-start gap-3">
+                    {on && (
+                      <span className="mt-2.5 w-5 h-5 rounded-full flex items-center justify-center shrink-0" style={{ background: 'var(--color-green-400)', color: 'var(--text-inverse)' }} aria-hidden="true">
+                        <Check className="w-3 h-3" />
+                      </span>
+                    )}
+                    <div className="mt-0.5 w-10 h-10 rounded-full text-xs font-bold flex items-center justify-center shrink-0" style={{ background: tint, color: ink }} aria-hidden="true">
+                      {lead.firstName.charAt(0)}{lead.lastName.charAt(0)}
                     </div>
-                    <div className="flex items-center gap-2 shrink-0">
-                      <button type="button" className="phx-btn" data-variant="tertiary" data-size="sm" aria-expanded={show} onClick={() => props.setOpenInfo(props.openInfo === lead.id ? null : lead.id)}>
-                        {show ? 'Hide info' : 'More info'} <ChevronDown className="w-3.5 h-3.5" aria-hidden="true" />
-                      </button>
-                      {on ? (
-                        <button type="button" className="phx-btn" data-variant="secondary" data-size="sm" onClick={() => props.toggle(lead.id)}>
-                          <Check className="w-4 h-4" aria-hidden="true" /> Deselect
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex flex-wrap items-center gap-2 min-w-0">
+                          <span className="text-sm font-bold text-(--text-strong)">{lead.firstName} {lead.lastName}</span>
+                          {lead.linkedin && <Linkedin className="w-3.5 h-3.5 text-(--color-secondary-200)" aria-label="LinkedIn on file" />}
+                          {lead.tags.map(tag => <span key={tag} className="phx-tag">{tag}</span>)}
+                        </div>
+                        {on ? (
+                          <button type="button" className="text-sm font-medium text-(--color-green-500) shrink-0" onClick={() => props.toggle(lead.id)}>
+                            Deselect
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            aria-label={`Select ${lead.firstName} ${lead.lastName}`}
+                            onClick={() => props.toggle(lead.id)}
+                            className="w-7 h-7 rounded-full flex items-center justify-center shrink-0"
+                            style={{ background: 'var(--color-green-400)', color: 'var(--text-inverse)' }}
+                          >
+                            <Plus className="w-4 h-4" aria-hidden="true" />
+                          </button>
+                        )}
+                      </div>
+                      <div className="mt-1 flex items-center justify-between gap-3">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <button
+                            type="button"
+                            aria-pressed={saved.includes(lead.id)}
+                            aria-label={saved.includes(lead.id) ? `Remove bookmark for ${lead.firstName} ${lead.lastName}` : `Bookmark ${lead.firstName} ${lead.lastName}`}
+                            className="text-(--text-subtle) shrink-0"
+                            onClick={() => setSaved(prev => prev.includes(lead.id) ? prev.filter(id => id !== lead.id) : [...prev, lead.id])}
+                          >
+                            <Bookmark className="w-4 h-4" aria-hidden="true" />
+                          </button>
+                          <p className="m-0! text-sm text-(--text-subtle) truncate">{lead.line}</p>
+                        </div>
+                        <button type="button" className="inline-flex items-center gap-1 text-sm text-(--text-default) shrink-0" aria-expanded={show} onClick={() => props.setOpenInfo(props.openInfo === lead.id ? null : lead.id)}>
+                          More info <ChevronDown className="w-3.5 h-3.5" aria-hidden="true" />
                         </button>
-                      ) : (
-                        <button
-                          type="button"
-                          aria-label={`Select ${lead.firstName} ${lead.lastName}`}
-                          onClick={() => props.toggle(lead.id)}
-                          className="w-8 h-8 rounded-full flex items-center justify-center"
-                          style={{ background: 'var(--bg-brand-primary-default)', color: 'var(--text-inverse)' }}
-                        >
-                          <Plus className="w-4 h-4" aria-hidden="true" />
-                        </button>
-                      )}
+                      </div>
+                      {show && <p className="m-0! mt-2! text-sm text-(--text-default)">{lead.about}</p>}
                     </div>
                   </div>
-                  {show && <p className="m-0! mt-2! px-2 text-sm text-(--text-default)">{lead.about}</p>}
                 </li>
               );
             })}
