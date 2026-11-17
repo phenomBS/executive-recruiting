@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Redirecting…</title>
+    <script>
+      // GitHub Pages serves only the *root* 404.html for missing paths.
+      // This site hosts two SPAs (main + /xrx/), so a single copy of either
+      // index.html as 404 would boot the wrong app on refresh of deep links.
+      // Convert the path into a hash route under the correct SPA root; both
+      // apps already parse #/… in RouterContext.
+      (function () {
+        var path = location.pathname;
+        var search = location.search || '';
+        var hash = location.hash || '';
+        var MAIN = '/executive-recruiting';
+        var XRX = '/executive-recruiting/xrx';
+
+        var appRoot =
+          path === XRX || path.indexOf(XRX + '/') === 0 ? XRX : MAIN;
+        var rest = path.slice(appRoot.length) || '/';
+        if (rest.charAt(0) !== '/') rest = '/' + rest;
+
+        if (rest === '/') {
+          location.replace(appRoot + '/' + search + hash);
+          return;
+        }
+
+        if (hash.indexOf('#/') === 0) {
+          location.replace(appRoot + '/' + search + hash);
+          return;
+        }
+
+        location.replace(appRoot + '/#' + rest + search);
+      })();
+    </script>
+  </head>
+  <body></body>
+</html>

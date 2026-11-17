@@ -298,8 +298,22 @@ export function buildUrlForView(
   }
 }
 
+/** After Pages 404 → `#/route` redirect, normalize back to a clean path URL. */
+function normalizeHashDeepLink(): void {
+  const hash = window.location.hash;
+  if (!hash.startsWith('#/')) return;
+
+  const hashWithoutHash = hash.slice(1);
+  const hashParts = hashWithoutHash.split('?');
+  const pathPart = hashParts[0] || '/';
+  const queryPart = hashParts[1] ? `?${hashParts[1]}` : '';
+  const target = withBasePath(`${pathPart}${queryPart}`);
+  window.history.replaceState(null, '', target);
+}
+
 export function RouterProvider({ children }: { children: React.ReactNode }) {
   const [routeState, setRouteState] = useState<RouteState>(() => {
+    normalizeHashDeepLink();
     return parseLocation(window.location.pathname, window.location.search, window.location.hash);
   });
 
