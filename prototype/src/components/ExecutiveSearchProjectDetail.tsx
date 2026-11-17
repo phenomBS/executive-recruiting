@@ -9,7 +9,6 @@ import {
   Mail, 
   Sparkles, 
   Building2, 
-  ShieldAlert,
   UserCircle, 
   Target, 
   Edit3, 
@@ -27,8 +26,6 @@ import { ProjectCandidatesTab, ProjectPipelineCandidate, initialProjectPipeline 
 import { SearchBookDownloadModal } from './SearchBookDownloadModal';
 import { useRestricted } from '../context/RestrictedContext';
 import { ProjectTargetCompaniesTab } from './tabs/ProjectTargetCompaniesTab';
-import { ProjectOffLimitsTab } from './tabs/ProjectOffLimitsTab';
-import { getOffLimitsRows } from '../data/projectOffLimits';
 import { getProjectTargetCompanies } from '../data/projectTargetCompanies';
 import { ProjectRelationshipsTab } from './tabs/ProjectRelationshipsTab';
 import { ProjectMarketMapTab } from './tabs/ProjectMarketMapTab';
@@ -50,11 +47,11 @@ interface ExecutiveSearchProjectDetailProps {
   onUpdateProject?: (project: Project) => void;
 }
 
-type TabType = 'overview' | 'target-companies' | 'off-limits' | 'candidates' | 'market-map' | 'market-calibration' | 'relationships' | 'nurture';
+type TabType = 'overview' | 'target-companies' | 'candidates' | 'market-map' | 'market-calibration' | 'relationships' | 'nurture';
 
 export function ExecutiveSearchProjectDetail({ project, onBack, onUpdateProject }: ExecutiveSearchProjectDetailProps) {
   const router = useRouter();
-  const validTabs: TabType[] = ['overview', 'target-companies', 'off-limits', 'candidates', 'market-map', 'market-calibration', 'relationships', 'nurture'];
+  const validTabs: TabType[] = ['overview', 'target-companies', 'candidates', 'market-map', 'market-calibration', 'relationships', 'nurture'];
   const activeTab: TabType = (router.activeTab && validTabs.includes(router.activeTab as TabType))
     ? (router.activeTab as TabType)
     : 'overview';
@@ -91,12 +88,9 @@ export function ExecutiveSearchProjectDetail({ project, onBack, onUpdateProject 
       ).length
   );
 
-  const [offLimitsCount, setOffLimitsCount] = useState<number>(() => getOffLimitsRows(project, restrictedCompanies).length);
-
   const tabs: { id: TabType; label: string; icon: any; count?: number }[] = [
     { id: 'overview', label: 'Overview', icon: Briefcase },
-    { id: 'target-companies', label: 'Target Companies', icon: Building2, count: targetCompanyCount },
-    { id: 'off-limits', label: 'Off-Limits Companies', icon: ShieldAlert, count: offLimitsCount },
+    { id: 'target-companies', label: 'Companies', icon: Building2, count: targetCompanyCount },
     { id: 'candidates', label: 'Candidates', icon: Users },
     { id: 'market-map', label: 'Market Map', icon: Map },
     { id: 'market-calibration', label: 'Market Calibration', icon: SlidersHorizontal },
@@ -206,10 +200,6 @@ export function ExecutiveSearchProjectDetail({ project, onBack, onUpdateProject 
               </div>
 
               <div className="flex flex-wrap sm:flex-nowrap items-center gap-3 w-full lg:w-auto">
-                <button type="button" className="phx-btn" data-variant="secondary" onClick={() => setShowSettingsModal(true)}>
-                  <Sliders className="w-4 h-4" aria-hidden="true" />
-                  Project Settings & Parameters
-                </button>
                 <button type="button" className="phx-btn" data-variant="primary" onClick={() => setShowSearchBookModal(true)}>
                   Generate Search Book
                 </button>
@@ -526,10 +516,6 @@ export function ExecutiveSearchProjectDetail({ project, onBack, onUpdateProject 
 
           {activeTab === 'target-companies' && (
             <ProjectTargetCompaniesTab key={project.id} project={project} onCountChange={setTargetCompanyCount} />
-          )}
-
-          {activeTab === 'off-limits' && (
-            <ProjectOffLimitsTab key={project.id} project={project} onCountChange={setOffLimitsCount} />
           )}
 
           {activeTab === 'candidates' && (

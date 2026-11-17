@@ -1187,15 +1187,49 @@ export function getMarketMapForProject(project: Project): ProjectMarketMapData {
 // -------------------------------------------------------------
 // CSV Generator
 // -------------------------------------------------------------
-export function generateMarketMapCsv(data: ProjectMarketMapData): string {
-  const headers = [
-    'Target Company',
+export type MarketMapExportScope = {
+  companies: boolean;
+  candidates: boolean;
+};
+
+export function generateMarketMapCsv(
+  data: ProjectMarketMapData,
+  scope: MarketMapExportScope = { companies: true, candidates: true }
+): string {
+  const companyHeaders = [
+    'Company',
     'Tier',
     'Industry',
     'Company Stage / ARR',
     'Headquarters',
     'Poach / Compliance Status',
-    'Executive Name',
+    'Strategic Rationale'
+  ];
+  const candidateHeaders = [
+    'Company',
+    'Candidate Name',
+    'Current Role / Title',
+    'Reports To',
+    'Location',
+    'Tenure (Years)',
+    'Previous Pedigree',
+    'Mobility Indicator (EMI)',
+    'Mobility Catalyst',
+    'Match Score',
+    'Archetype Match',
+    'Estimated Base Comp',
+    'Estimated Total Comp',
+    'Outreach Status',
+    'Confidential Recruiter Notes'
+  ];
+  const bothHeaders = [
+    'Company',
+    'Tier',
+    'Industry',
+    'Company Stage / ARR',
+    'Headquarters',
+    'Poach / Compliance Status',
+    'Candidate Name',
     'Current Role / Title',
     'Reports To',
     'Location',
@@ -1211,17 +1245,30 @@ export function generateMarketMapCsv(data: ProjectMarketMapData): string {
     'Confidential Recruiter Notes'
   ];
 
+  const headers = scope.companies && scope.candidates
+    ? bothHeaders
+    : scope.companies
+      ? companyHeaders
+      : candidateHeaders;
+
   const rows: string[][] = [];
 
   data.companies.forEach(company => {
+    const companyCells = [
+      company.name,
+      company.tier,
+      company.industry,
+      company.stage,
+      company.headquarters,
+      company.poachStatus + (company.poachReason ? ` (${company.poachReason})` : ''),
+    ];
+    if (scope.companies && !scope.candidates) {
+      rows.push([...companyCells, company.strategicRationale]);
+      return;
+    }
     company.executives.forEach(exec => {
-      rows.push([
+      const candidateCells = [
         company.name,
-        company.tier,
-        company.industry,
-        company.stage,
-        company.headquarters,
-        company.poachStatus + (company.poachReason ? ` (${company.poachReason})` : ''),
         exec.name,
         exec.role,
         exec.reportsTo || '',
@@ -1236,7 +1283,8 @@ export function generateMarketMapCsv(data: ProjectMarketMapData): string {
         exec.estimatedComp.totalCash,
         exec.outreachStatus,
         exec.confidentialNotes
-      ]);
+      ];
+      rows.push(scope.companies ? [...companyCells, ...candidateCells.slice(1)] : candidateCells);
     });
   });
 
@@ -1252,7 +1300,7 @@ export function generateMarketMapCsv(data: ProjectMarketMapData): string {
   const csvContent = [
     `# Executive Search Market Map: ${data.mandateTitle} (${data.clientName})`,
     `# Lead Recruiter: ${data.leadRecruiter} | Generated: ${data.lastUpdated}`,
-    `# Scope: ${data.scopeSummary.totalCompaniesMapped} Companies | ${data.scopeSummary.totalExecutivesMapped} Executives | ${data.scopeSummary.clearTargetsCount} Clear Targets | ${data.scopeSummary.offLimitsCount} Off-Limits`,
+    `# Scope: ${scope.companies && scope.candidates ? 'Companies and candidates' : scope.companies ? 'Companies only' : 'Candidates only'} | ${data.scopeSummary.totalCompaniesMapped} Companies | ${data.scopeSummary.totalExecutivesMapped} Executives`,
     '',
     headers.map(formatCell).join(','),
     ...rows.map(row => row.map(formatCell).join(','))

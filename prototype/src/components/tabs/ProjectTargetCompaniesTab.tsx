@@ -236,7 +236,7 @@ export function ProjectTargetCompaniesTab({ project, onCountChange }: ProjectTar
     <div className="flex flex-col gap-6 max-w-7xl mx-auto w-full pb-20">
       <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-(--text-strong)">Target Companies</h2>
+          <h2 className="text-2xl font-bold text-(--text-strong)">Companies</h2>
           <p className="text-base text-(--text-default) mt-1 max-w-3xl">
             Companies on this search. Recommendations stay on the list until you add them, and they are not part of the search until then.
           </p>

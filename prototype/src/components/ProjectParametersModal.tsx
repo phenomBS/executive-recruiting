@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import * as Dialog from '@radix-ui/react-dialog';
 import * as Switch from '@radix-ui/react-switch';
 import { 
@@ -56,6 +56,16 @@ export function ProjectParametersModal({ isOpen, onOpenChange, project, onSave, 
 
   // Active parameter block tab for quick jumping
   const [activeBlock, setActiveBlock] = useState<number>(6);
+  const formRef = useRef<HTMLFormElement>(null);
+
+  const showBlock = (id: number) => {
+    setActiveBlock(id);
+    const scroller = formRef.current;
+    const target = document.getElementById(`block-${id}`);
+    if (!scroller || !target) return;
+    const top = target.getBoundingClientRect().top - scroller.getBoundingClientRect().top + scroller.scrollTop;
+    scroller.scrollTo({ top: Math.max(0, top - 12), behavior: 'smooth' });
+  };
 
   // Start from a tracked role (Roles & Succession): populates details and carries over the succession bench
   const [sourceRoleId, setSourceRoleId] = useState<string>('');
@@ -378,7 +388,7 @@ export function ProjectParametersModal({ isOpen, onOpenChange, project, onSave, 
           className="fixed inset-0 z-(--z-overlay) animate-fadeIn"
           style={{ background: 'var(--bg-overlay-blanket)' }}
         />
-        <Dialog.Content className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-(--bg-default) rounded-2xl shadow-2xl border border-(--border-light) w-full max-w-4xl max-h-[92vh] overflow-hidden flex flex-col z-(--z-modal) animate-scaleIn">
+        <Dialog.Content className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-(--bg-default) rounded-2xl shadow-2xl border border-(--border-light) w-full max-w-4xl h-[92vh] max-h-[92vh] overflow-hidden flex flex-col z-(--z-modal) animate-scaleIn">
           <div className="px-6 py-5 border-b border-(--border-light) flex items-start justify-between gap-4 shrink-0">
             <div>
               <span className="phx-tag">{isEdit ? 'Project parameters' : 'New executive project'}</span>
@@ -396,7 +406,7 @@ export function ProjectParametersModal({ isOpen, onOpenChange, project, onSave, 
             </Dialog.Close>
           </div>
 
-          <div role="tablist" aria-label="Project inputs" className="px-6 shrink-0">
+          <div role="tablist" aria-label="Project inputs" className="px-6 shrink-0 sticky top-0 z-10 bg-(--bg-default) flex-wrap!">
             {[
               { id: 6, label: 'Project Details', icon: FolderKanban },
               { id: 1, label: 'Role & Leveling', icon: Briefcase },
@@ -412,10 +422,7 @@ export function ProjectParametersModal({ isOpen, onOpenChange, project, onSave, 
                   type="button"
                   role="tab"
                   aria-selected={activeBlock === b.id}
-                  onClick={() => {
-                    setActiveBlock(b.id);
-                    document.getElementById(`block-${b.id}`)?.scrollIntoView({ behavior: 'smooth' });
-                  }}
+                  onClick={() => showBlock(b.id)}
                 >
                   <Icon className="w-4 h-4" aria-hidden="true" />
                   {b.label}
@@ -425,7 +432,7 @@ export function ProjectParametersModal({ isOpen, onOpenChange, project, onSave, 
           </div>
 
           {/* Form Body */}
-          <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 space-y-8 bg-(--bg-neutral-minimal)">
+          <form id="project-parameters-form" ref={formRef} onSubmit={handleSubmit} className="flex-1 min-h-0 overflow-y-auto p-6 space-y-8 bg-(--bg-neutral-minimal)">
             
             {/* ================================================================= */}
             {/* BLOCK 6: Project Details (shown first) */}
@@ -1201,23 +1208,22 @@ export function ProjectParametersModal({ isOpen, onOpenChange, project, onSave, 
               </div>
             </div>
 
-            {/* Footer Buttons */}
-            <div className="flex items-center justify-between gap-3 px-2 py-4 border-t border-(--border-light) bg-(--bg-neutral-soft) sticky bottom-0">
-              <span className="text-sm text-(--text-default)">
-                All inputs feed autonomous agent scoring and intake calibration.
-              </span>
-              <div className="flex items-center gap-3">
-                <button type="button" className="phx-btn" data-variant="secondary" data-size="sm" onClick={() => onOpenChange(false)}>
-                  Cancel
-                </button>
-                <button type="submit" className="phx-btn" data-variant="primary" data-size="sm">
-                  <Check className="w-4 h-4" aria-hidden="true" />
-                  {isEdit ? 'Save parameters' : 'Create project'}
-                </button>
-              </div>
-            </div>
-
           </form>
+
+          <div className="shrink-0 flex items-center justify-between gap-3 px-6 py-4 border-t border-(--border-light) bg-(--bg-default)">
+            <span className="text-sm text-(--text-default)">
+              All inputs feed autonomous agent scoring and intake calibration.
+            </span>
+            <div className="flex items-center gap-3">
+              <button type="button" className="phx-btn" data-variant="secondary" data-size="sm" onClick={() => onOpenChange(false)}>
+                Cancel
+              </button>
+              <button type="submit" form="project-parameters-form" className="phx-btn" data-variant="primary" data-size="sm">
+                <Check className="w-4 h-4" aria-hidden="true" />
+                {isEdit ? 'Save parameters' : 'Create project'}
+              </button>
+            </div>
+          </div>
 
         </Dialog.Content>
       </Dialog.Portal>

@@ -75,6 +75,8 @@ export function ProjectMarketMapTab({ project }: ProjectMarketMapTabProps) {
   const [previewTab, setPreviewTab] = useState<'dossier' | 'orgcharts' | 'matrix'>('dossier');
   const [previewExpandAllOrgs, setPreviewExpandAllOrgs] = useState(false);
   const [isExportMenuOpen, setIsExportMenuOpen] = useState(false);
+  const [exportCompanies, setExportCompanies] = useState(true);
+  const [exportCandidates, setExportCandidates] = useState(true);
   const [isAddCompanyModalOpen, setIsAddCompanyModalOpen] = useState(false);
   const [isAddExecutiveModalOpen, setIsAddExecutiveModalOpen] = useState(false);
   const [selectedCompanyForExec, setSelectedCompanyForExec] = useState<string>('');
@@ -218,7 +220,8 @@ export function ProjectMarketMapTab({ project }: ProjectMarketMapTabProps) {
   // Handlers for Export & Preview
   // -------------------------------------------------------------
   const handleCopyShareUrl = async () => {
-    const shareUrl = `${window.location.origin}${withBasePath(`/projects/${project.id}`)}?tab=market-map&mode=presentation`;
+    const include = exportCompanies && exportCandidates ? 'both' : exportCompanies ? 'companies' : 'candidates';
+    const shareUrl = `${window.location.origin}${withBasePath(`/projects/${project.id}`)}?tab=market-map&mode=presentation&include=${include}`;
     try {
       if (navigator.clipboard) {
         await navigator.clipboard.writeText(shareUrl);
@@ -231,8 +234,12 @@ export function ProjectMarketMapTab({ project }: ProjectMarketMapTabProps) {
     }
   };
 
+  const exportScope = { companies: exportCompanies, candidates: exportCandidates };
+  const canExport = exportCompanies || exportCandidates;
+
   const handleDownloadCsv = () => {
-    const csvContent = generateMarketMapCsv(marketMapData);
+    if (!canExport) return;
+    const csvContent = generateMarketMapCsv(marketMapData, exportScope);
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
@@ -243,11 +250,13 @@ export function ProjectMarketMapTab({ project }: ProjectMarketMapTabProps) {
     link.click();
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
-    triggerToast(`Market map CSV export downloaded successfully!`);
+    const what = exportCompanies && exportCandidates ? 'companies and candidates' : exportCompanies ? 'companies' : 'candidates';
+    triggerToast(`Market map CSV of ${what} downloaded.`);
     setIsExportMenuOpen(false);
   };
 
   const handlePrintPdf = () => {
+    if (!canExport) return;
     setIsExportMenuOpen(false);
     setIsPreviewOpen(true);
     triggerToast('Preparing board-ready PDF dossier layout...');
@@ -449,18 +458,50 @@ export function ProjectMarketMapTab({ project }: ProjectMarketMapTabProps) {
               </button>
 
               {isExportMenuOpen && (
-                <div className="absolute right-0 top-full mt-1.5 w-60 bg-white border border-slate-200 rounded-xl shadow-xl z-30 py-2 divide-y divide-slate-100">
-                  <div className="px-3 py-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                <div className="absolute right-0 top-full mt-1.5 w-72 bg-white border border-slate-200 rounded-xl shadow-xl z-30 py-2 divide-y divide-slate-100">
+                  <fieldset className="px-4 py-3 space-y-2">
+                    <legend className="text-xs font-semibold text-slate-700">Include in this export</legend>
+                    <label className="flex items-center gap-2 text-sm text-slate-800 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={exportCompanies}
+                        onChange={e => setExportCompanies(e.target.checked)}
+                        className="w-4 h-4 accent-(--color-secondary-200)"
+                      />
+                      Companies
+                    </label>
+                    <label className="flex items-center gap-2 text-sm text-slate-800 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={exportCandidates}
+                        onChange={e => setExportCandidates(e.target.checked)}
+                        className="w-4 h-4 accent-(--color-secondary-200)"
+                      />
+                      Candidates
+                    </label>
+                    <p className="text-xs text-slate-500">
+                      {exportCompanies && exportCandidates
+                        ? 'Exports companies and candidates.'
+                        : exportCompanies
+                          ? 'Exports companies only.'
+                          : exportCandidates
+                            ? 'Exports candidates only.'
+                            : 'Choose companies, candidates, or both.'}
+                    </p>
+                  </fieldset>
+                  <div className="px-3 py-1.5 text-xs font-bold text-slate-400 uppercase tracking-wider">
                     Client & Board Deliverables
                   </div>
                   
                   {/* Shareable URL */}
                   <button
+                    type="button"
+                    disabled={!canExport}
                     onClick={() => {
                       handleCopyShareUrl();
                       setIsExportMenuOpen(false);
                     }}
-                    className="w-full px-4 py-2.5 text-left text-xs text-slate-700 hover:bg-slate-50 flex items-start gap-2.5 transition-colors cursor-pointer"
+                    className="w-full px-4 py-2.5 text-left text-xs text-slate-700 hover:bg-slate-50 flex items-start gap-2.5 transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
                   >
                     <Link2 className="w-4 h-4 text-purple-600 mt-0.5 shrink-0" />
                     <div>
@@ -471,8 +512,10 @@ export function ProjectMarketMapTab({ project }: ProjectMarketMapTabProps) {
 
                   {/* Printable PDF */}
                   <button
+                    type="button"
+                    disabled={!canExport}
                     onClick={handlePrintPdf}
-                    className="w-full px-4 py-2.5 text-left text-xs text-slate-700 hover:bg-slate-50 flex items-start gap-2.5 transition-colors cursor-pointer"
+                    className="w-full px-4 py-2.5 text-left text-xs text-slate-700 hover:bg-slate-50 flex items-start gap-2.5 transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
                   >
                     <Printer className="w-4 h-4 text-blue-600 mt-0.5 shrink-0" />
                     <div>
@@ -483,8 +526,10 @@ export function ProjectMarketMapTab({ project }: ProjectMarketMapTabProps) {
 
                   {/* CSV Export */}
                   <button
+                    type="button"
+                    disabled={!canExport}
                     onClick={handleDownloadCsv}
-                    className="w-full px-4 py-2.5 text-left text-xs text-slate-700 hover:bg-slate-50 flex items-start gap-2.5 transition-colors cursor-pointer"
+                    className="w-full px-4 py-2.5 text-left text-xs text-slate-700 hover:bg-slate-50 flex items-start gap-2.5 transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
                   >
                     <FileSpreadsheet className="w-4 h-4 text-emerald-600 mt-0.5 shrink-0" />
                     <div>
@@ -1370,7 +1415,7 @@ export function ProjectMarketMapTab({ project }: ProjectMarketMapTabProps) {
                                   {comp.strategicRationale}
                                 </div>
 
-                                {/* Mapped Execs summary list */}
+                                {exportCandidates && (
                                 <div className="space-y-1.5 pt-1">
                                   <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Calibrated Leaders</span>
                                   {comp.executives.map(e => (
@@ -1383,6 +1428,7 @@ export function ProjectMarketMapTab({ project }: ProjectMarketMapTabProps) {
                                     </div>
                                   ))}
                                 </div>
+                                )}
                               </div>
                             ))}
                           </div>
@@ -1391,7 +1437,8 @@ export function ProjectMarketMapTab({ project }: ProjectMarketMapTabProps) {
                     })}
                   </div>
 
-                  {/* Section 2: COMPANY ORG CHARTS IN PREVIEW (Requirement 5) */}
+                  {exportCandidates && (
+                  /* Section 2: COMPANY ORG CHARTS IN PREVIEW */
                   <div className="bg-white rounded-xl border border-slate-200 p-6 sm:p-8 shadow-xs space-y-6">
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-slate-100 gap-3">
                       <div>
@@ -1425,6 +1472,7 @@ export function ProjectMarketMapTab({ project }: ProjectMarketMapTabProps) {
                       showAllMode={previewExpandAllOrgs}
                     />
                   </div>
+                  )}
                 </>
               )}
 
@@ -1503,6 +1551,7 @@ export function ProjectMarketMapTab({ project }: ProjectMarketMapTabProps) {
                                 {comp.strategicRationale}
                               </div>
 
+                              {exportCandidates && (
                               <div className="space-y-1.5 pt-1">
                                 <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Calibrated Leaders</span>
                                 {comp.executives.map(e => (
@@ -1515,6 +1564,7 @@ export function ProjectMarketMapTab({ project }: ProjectMarketMapTabProps) {
                                   </div>
                                 ))}
                               </div>
+                              )}
                             </div>
                           ))}
                         </div>
