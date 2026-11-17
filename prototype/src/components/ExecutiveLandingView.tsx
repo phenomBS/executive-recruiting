@@ -135,7 +135,7 @@ export function ExecutiveLandingView({ onNavigateView }: ExecutiveLandingViewPro
   };
 
   return (
-    <div className="min-h-full bg-(--bg-surface-base) pb-20">
+    <div className="min-h-full bg-(--bg-default) pb-20">
       
       {/* Toast Notification */}
       {toastMessage && (

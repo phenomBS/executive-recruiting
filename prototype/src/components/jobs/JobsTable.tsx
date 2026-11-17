@@ -115,9 +115,10 @@ export function JobsTable({
           <button
             type="button"
             onClick={onCreate}
-            className="flex items-center gap-2 px-5 py-2 rounded-full border border-slate-300 text-(--color-secondary-200) font-semibold text-sm hover:bg-slate-50 bg-white transition-colors cursor-pointer"
+            className="phx-btn"
+            data-variant="primary"
           >
-            <span className="text-lg leading-none mb-[2px]">+</span> Create Job
+            <span aria-hidden="true">+</span> Create Job
           </button>
           <button
             type="button"
@@ -186,7 +187,7 @@ export function JobsTable({
         <div className="flex-1 min-h-0 relative">
           <div className="absolute inset-0 overflow-auto">
             <table className="w-full text-left text-sm whitespace-nowrap">
-              <thead className="bg-slate-50 text-slate-600 font-semibold sticky top-0 z-10 shadow-2xs border-b border-slate-200">
+              <thead className="bg-(--bg-default) text-slate-600 font-semibold sticky top-0 z-10 border-b border-slate-200">
                 <tr>
                   <th className="w-12 px-4 py-4 text-center">
                     <input

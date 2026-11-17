@@ -96,7 +96,7 @@ export function DealRoomsDashboard({
   }
 
   return (
-    <div className="min-h-full bg-(--bg-surface-base) pb-16">
+    <div className="min-h-full bg-(--bg-default) pb-16">
       {/* Create Modal */}
       <CreateDealRoomModal 
         isOpen={isCreateModalOpen}
@@ -135,9 +135,10 @@ export function DealRoomsDashboard({
             <button
               type="button"
               onClick={() => setIsCreateModalOpen(true)}
-              className="px-5 py-2.5 rounded-xl bg-(--color-secondary-200) hover:bg-(--bg-brand-secondary-hover) text-white text-xs font-bold shadow-xs hover:shadow-sm transition-all flex items-center gap-2 cursor-pointer"
+              className="phx-btn"
+              data-variant="primary"
             >
-              <Plus className="w-4 h-4" />
+              <Plus className="w-4 h-4" aria-hidden="true" />
               <span>Create Opportunity Room</span>
             </button>
           </div>

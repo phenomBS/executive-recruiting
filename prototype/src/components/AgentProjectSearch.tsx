@@ -704,9 +704,9 @@ function ResultsPanel(props: {
           <button
             type="button"
             className="phx-btn"
+            data-variant="primary"
             data-size="sm"
             onClick={props.onNewSearch}
-            style={{ background: 'var(--feedback-success-bg-default)', color: 'var(--text-inverse)', borderColor: 'transparent' }}
           >
             New Search
           </button>
@@ -742,9 +742,9 @@ function ResultsPanel(props: {
             <button
               type="button"
               className="phx-btn"
+              data-variant="primary"
               data-size="sm"
               onClick={props.onAddAll}
-              style={{ background: 'var(--feedback-success-bg-default)', color: 'var(--text-inverse)', borderColor: 'transparent' }}
             >
               <Plus className="w-4 h-4" aria-hidden="true" /> Add all to shortlist
             </button>
@@ -800,7 +800,7 @@ function ResultsPanel(props: {
                           aria-label={`Select ${lead.firstName} ${lead.lastName}`}
                           onClick={() => props.toggle(lead.id)}
                           className="w-8 h-8 rounded-full flex items-center justify-center"
-                          style={{ background: 'var(--feedback-success-bg-default)', color: 'var(--text-inverse)' }}
+                          style={{ background: 'var(--bg-brand-primary-default)', color: 'var(--text-inverse)' }}
                         >
                           <Plus className="w-4 h-4" aria-hidden="true" />
                         </button>

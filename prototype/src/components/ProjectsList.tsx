@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { Project } from '../types';
-import { Search, Filter, FolderKanban, Calendar, User, CalendarPlus } from 'lucide-react';
+import { Search, Filter, FolderKanban, Calendar, User, CalendarPlus, Plus } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { isProjectLive, isProjectOpen, projectStatusLabel } from '../lib/projectStatus';
 import { IntakeMeetingModal } from './IntakeMeetingModal';
@@ -150,9 +150,10 @@ export function ProjectsList({ projects, onSelectProject, onAddProject }: Projec
           <button
             type="button"
             onClick={() => setCreateMode('choose')}
-            className="flex items-center gap-2 px-5 py-2 rounded-full border border-slate-300 text-(--color-secondary-200) font-semibold text-sm hover:bg-slate-50 bg-white transition-colors cursor-pointer"
+            className="phx-btn"
+            data-variant="primary"
           >
-            <span className="text-lg leading-none mb-[2px]">+</span> Create New Project
+            <Plus className="w-4 h-4" aria-hidden="true" /> Create New Project
           </button>
           <div className="relative">
             <button
@@ -222,7 +223,7 @@ export function ProjectsList({ projects, onSelectProject, onAddProject }: Projec
         <div className="flex-1 min-h-0 relative">
           <div className="absolute inset-0 overflow-auto">
             <table className="w-full text-left text-sm whitespace-nowrap">
-              <thead className="bg-slate-50 text-slate-600 font-semibold sticky top-0 z-10 shadow-2xs border-b border-slate-200">
+              <thead className="bg-(--bg-default) text-slate-600 font-semibold sticky top-0 z-10 border-b border-slate-200">
                 <tr>
                   <th className="w-12 px-4 py-4 text-center">
                     <input

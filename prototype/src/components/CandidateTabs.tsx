@@ -48,7 +48,7 @@ export function CandidateTabs({ candidate }: { candidate: Candidate }) {
         </Tabs.List>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-6 bg-(--bg-neutral-minimal)">
+      <div className="flex-1 overflow-y-auto p-6 bg-(--bg-default)">
         <Tabs.Content value="Summary" className="outline-none">
           <SummaryTab 
             candidate={candidate} 

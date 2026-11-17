@@ -14,7 +14,7 @@ export function AgentConfigurationModal({ isOpen, onOpenChange, candidate }: Age
   const [currentView, setCurrentView] = useState<'workflow' | 'campaigns' | 'templates' | 'builder'>('workflow');
 
   const renderWorkflowView = () => (
-    <div className="flex flex-col h-full bg-(--bg-surface-base) overflow-y-auto">
+    <div className="flex flex-col h-full bg-(--bg-default) overflow-y-auto">
       <div className="h-[72px] border-b border-slate-200 bg-white flex items-center px-8 flex-shrink-0 justify-between">
         <h1 className="text-xl font-bold text-slate-800">Agent Nurturing Strategy</h1>
         <div className="flex items-center gap-3">
@@ -122,7 +122,7 @@ export function AgentConfigurationModal({ isOpen, onOpenChange, candidate }: Age
   );
 
   const renderCampaignsView = () => (
-    <div className="flex flex-col h-full bg-(--bg-surface-base) overflow-y-auto">
+    <div className="flex flex-col h-full bg-(--bg-default) overflow-y-auto">
       <div className="bg-white border-b border-slate-200">
         <div className="h-[72px] flex items-center px-8 pb-0 pt-4">
           <h2 className="text-2xl font-bold text-slate-800 mb-2">Campaigns</h2>
@@ -222,7 +222,7 @@ export function AgentConfigurationModal({ isOpen, onOpenChange, candidate }: Age
   );
 
   const renderTemplatesView = () => (
-    <div className="flex flex-col h-full bg-(--bg-surface-base) overflow-y-auto">
+    <div className="flex flex-col h-full bg-(--bg-default) overflow-y-auto">
       <div className="bg-white border-b border-slate-200">
         <div className="h-[72px] flex items-center px-8 pb-0 pt-4">
           <h2 className="text-2xl font-bold text-slate-800 mb-2">Campaigns</h2>
@@ -309,7 +309,7 @@ export function AgentConfigurationModal({ isOpen, onOpenChange, candidate }: Age
   );
 
   const renderBuilderView = () => (
-    <div className="flex h-full bg-(--bg-surface-base)">
+    <div className="flex h-full bg-(--bg-default)">
       <div className="flex-1 flex flex-col relative h-full">
         <div className="h-[72px] bg-white border-b border-slate-200 flex items-center px-6 justify-between flex-shrink-0 relative z-10">
           <div className="flex items-center gap-4">
@@ -393,7 +393,7 @@ export function AgentConfigurationModal({ isOpen, onOpenChange, candidate }: Age
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 transition-opacity" />
         <Dialog.Content className="fixed inset-4 bg-white rounded-2xl shadow-2xl z-50 overflow-hidden flex flex-col focus:outline-none ring-1 ring-black/5 animate-in fade-in zoom-in-95 duration-200">
-          <div className="flex h-full w-full bg-(--bg-surface-base)">
+          <div className="flex h-full w-full bg-(--bg-default)">
             
             {/* Sidebar */}
             <div className="w-[260px] bg-white border-r border-slate-200 flex flex-col flex-shrink-0 relative z-20 shadow-[2px_0_8px_rgba(0,0,0,0.02)]">

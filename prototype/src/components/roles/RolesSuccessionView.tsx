@@ -172,7 +172,7 @@ export function RolesSuccessionView({ initialRoleId }: RolesSuccessionViewProps)
   ];
 
   return (
-    <div className="min-h-full bg-(--bg-surface-base) pb-16">
+    <div className="min-h-full bg-(--bg-default) pb-16">
       {toastMessage && (
         <div role="status" className="fixed bottom-6 right-6 z-50 bg-slate-900 text-white px-5 py-3 rounded-xl shadow-xl flex items-center gap-2.5 text-sm font-semibold animate-slideUp max-w-md">
           <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
@@ -192,9 +192,10 @@ export function RolesSuccessionView({ initialRoleId }: RolesSuccessionViewProps)
           <button
             type="button"
             onClick={() => setIsCreateRoleModalOpen(true)}
-            className="px-5 py-3 rounded-2xl bg-(--color-secondary-200) hover:bg-(--bg-brand-secondary-hover) text-white text-sm font-bold shadow-sm hover:shadow-md transition-all flex items-center gap-2.5 shrink-0 cursor-pointer self-start sm:self-auto"
+            className="phx-btn shrink-0 self-start sm:self-auto"
+            data-variant="primary"
           >
-            <Plus className="w-4 h-4" />
+            <Plus className="w-4 h-4" aria-hidden="true" />
             <span>Create Role</span>
           </button>
         </div>
@@ -289,7 +290,7 @@ export function RolesSuccessionView({ initialRoleId }: RolesSuccessionViewProps)
                 <h4 className="text-base font-bold text-(--text-strong)">No roles yet</h4>
                 <p className="text-sm text-(--text-default) max-w-sm mx-auto">Create a role, or activate one the agent recommends.</p>
                 <div className="flex justify-center gap-2">
-                  <button type="button" onClick={() => setIsCreateRoleModalOpen(true)} className="phx-btn" data-variant="primary-blue" data-size="sm">
+                  <button type="button" onClick={() => setIsCreateRoleModalOpen(true)} className="phx-btn" data-variant="primary" data-size="sm">
                     Create Role
                   </button>
                   <button type="button" onClick={() => setListTab('recommended')} className="phx-btn" data-variant="secondary" data-size="sm">

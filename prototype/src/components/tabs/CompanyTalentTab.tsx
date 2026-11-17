@@ -42,7 +42,7 @@ export function CompanyTalentTab({ company }: { company: Company }) {
 
       <div className="overflow-x-auto flex-1">
         <table className="w-full text-left text-sm whitespace-nowrap">
-          <thead className="bg-slate-50 text-slate-600 font-semibold sticky top-0 z-10 border-b border-slate-200 shadow-sm">
+          <thead className="bg-(--bg-default) text-slate-600 font-semibold sticky top-0 z-10 border-b border-slate-200">
             <tr>
               <th className="px-6 py-4">Name</th>
               <th className="px-6 py-4">Current Title</th>

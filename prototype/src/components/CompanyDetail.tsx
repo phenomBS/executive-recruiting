@@ -74,7 +74,7 @@ export function CompanyDetail({ company, onBack }: CompanyDetailProps) {
   };
 
   return (
-    <div className="flex flex-col h-full bg-(--bg-surface-base) overflow-y-auto w-full relative">
+    <div className="flex flex-col h-full bg-(--bg-default) overflow-y-auto w-full relative">
       <div className="bg-(--bg-default) border-b border-(--border-light) shrink-0 sticky top-0 z-20">
         <div className="max-w-[1400px] mx-auto w-full">
           <div className="px-8 py-4">

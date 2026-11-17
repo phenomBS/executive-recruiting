@@ -31,7 +31,7 @@ export function RecommendedCompanyDetail({ company, onBack, onAddToCrm }: Recomm
   const isRestricted = restrictedCompanies.some(rc => rc.name === company.name);
 
   return (
-    <div className="flex flex-col h-full bg-(--bg-surface-base) overflow-y-auto w-full">
+    <div className="flex flex-col h-full bg-(--bg-default) overflow-y-auto w-full">
       {/* Top Header Navigation */}
       <div className="bg-white border-b border-slate-200 shrink-0 sticky top-0 z-20">
         <div className="max-w-[1400px] mx-auto w-full px-8 py-4">

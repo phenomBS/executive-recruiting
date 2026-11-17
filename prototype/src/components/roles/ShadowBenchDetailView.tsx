@@ -201,7 +201,7 @@ export function ShadowBenchDetailView({
   const totalTracked = role.candidates.length;
 
   return (
-    <div className="min-h-full bg-(--bg-surface-base) pb-16">
+    <div className="min-h-full bg-(--bg-default) pb-16">
       <ProjectParametersModal
         isOpen={isProjectModalOpen}
         onOpenChange={setIsProjectModalOpen}
@@ -266,9 +266,11 @@ export function ShadowBenchDetailView({
             <button
               type="button"
               onClick={() => setIsQuickAddOpen(!isQuickAddOpen)}
-              className="px-3.5 py-2 rounded-xl bg-(--color-secondary-200) hover:bg-(--bg-brand-secondary-hover) text-white text-xs font-bold shadow-sm transition-all flex items-center gap-1.5 cursor-pointer"
+              className="phx-btn"
+              data-variant="primary"
+              data-size="sm"
             >
-              <Plus className="w-4 h-4" />
+              <Plus className="w-4 h-4" aria-hidden="true" />
               <span>Add Candidate to Bench</span>
             </button>
             )}

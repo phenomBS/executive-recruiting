@@ -389,7 +389,7 @@ export function ProjectMarketMapTab({ project }: ProjectMarketMapTabProps) {
   };
 
   return (
-    <div className="flex flex-col h-full bg-(--bg-surface-base) w-full min-h-[600px] relative pb-16">
+    <div className="flex flex-col h-full bg-(--bg-default) w-full min-h-[600px] relative pb-16">
       
       {/* Toast Notification */}
       {toastMessage && (
@@ -498,10 +498,13 @@ export function ProjectMarketMapTab({ project }: ProjectMarketMapTabProps) {
 
             {/* Add Target Company */}
             <button
+              type="button"
               onClick={() => setIsAddCompanyModalOpen(true)}
-              className="px-3.5 py-2 bg-(--color-secondary-200) hover:bg-(--bg-brand-secondary-hover) text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer shadow-xs"
+              className="phx-btn"
+              data-variant="primary"
+              data-size="sm"
             >
-              <Plus className="w-3.5 h-3.5" />
+              <Plus className="w-4 h-4" aria-hidden="true" />
               <span>Add Company</span>
             </button>
           </div>
